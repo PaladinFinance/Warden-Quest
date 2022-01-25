@@ -35,7 +35,7 @@ contract MultiMerkleDistributor is Ownable {
     mapping(uint256 => mapping(uint256 => mapping(uint256 => uint256))) private questPeriodClaimedBitMap;
 
 
-    address public questManager;
+    address public questBoard;
 
 
     // Events
@@ -54,15 +54,15 @@ contract MultiMerkleDistributor is Ownable {
     // Modifier
 
     modifier onlyAllowed(){
-        require(msg.sender == questManager || msg.sender == owner(), "MultiMerkle: Not allowed");
+        require(msg.sender == questBoard || msg.sender == owner(), "MultiMerkle: Not allowed");
         _;
     }
 
 
     // Constructor
 
-    constructor(address _questManager){
-        questManager = _questManager;
+    constructor(address _questBoard){
+        questBoard = _questBoard;
     }
 
     // Functions
@@ -178,8 +178,8 @@ contract MultiMerkleDistributor is Ownable {
 
 
     //  Admin functions
-    function updateQuestManager(address newQuestManager) external onlyOwner {
-        questManager = newQuestManager;
+    function updateQuestManager(address newquestBoard) external onlyOwner {
+        questBoard = newquestBoard;
     }
 
     function recoverERC20(address token, uint256 amount) external onlyOwner returns(bool) {
