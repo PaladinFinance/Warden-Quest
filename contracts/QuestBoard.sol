@@ -35,7 +35,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         uint256 periodStart;
         PeriodState currentState;
         uint256 rewardAmountPerPeriod;
-        uint256 rewardPerVote;
+        uint256 rewardPerSlopePoint;
         uint256 objectiveSlope;
         uint256 rewardAmountDistributed;
         uint256 withdrawableAmount; // Amount not distributed, for Quest creator to redeem
@@ -83,10 +83,10 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         address rewardToken,
         uint256 duration,
         uint256 startPeriod,
-        uint256 rewardPerVote
+        uint256 rewardPerSlopePoint
     );
 
-    event IncreasedQuestReward(uint256 indexed questID, uint256 indexed updatePeriod, uint256 newRewardPerVote, uint256 addedRewardAmount);
+    event IncreasedQuestReward(uint256 indexed questID, uint256 indexed updatePeriod, uint256 newRewardPerSlopePoint, uint256 addedRewardAmount);
     event IncreasedQuestObjective(uint256 indexed questID, uint256 indexed updatePeriod, uint256 newObjective, uint256 addedRewardAmount);
     event IncreasedQuestDuration(uint256 indexed questID, uint256 addedDuration, uint256 addedRewardAmount);
 
@@ -146,7 +146,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         address rewardToken,
         uint256 duration,
         uint256 objective,
-        uint256 rewardPerVote,
+        uint256 rewardPerSlopePoint,
         uint256 totalRewardAmount,
         uint256 feeAmount
     ) external nonReentrant returns(uint256) {
@@ -156,9 +156,9 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(gauge != address(0) && rewardToken != address(0), "QuestBoard: Zero Address");
         require(duration > 0, "QuestBoard: Incorrect duration");
         require(objective != 0, "QuestBoard: Null objective");
-        require(rewardPerVote != 0 && totalRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
+        require(rewardPerSlopePoint != 0 && totalRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
 
-        uint256 rewardPerPeriod = (objective * rewardPerVote) / UNIT;
+        uint256 rewardPerPeriod = (objective * rewardPerSlopePoint) / UNIT;
 
         require((rewardPerPeriod * duration) == totalRewardAmount, "QuestBoard: totalRewardAmount incorrect");
         require((totalRewardAmount * platformFee)/MAX_BPS == feeAmount, "QuestBoard: feeAmount incorrect");
@@ -191,7 +191,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
             periodsByQuest[newQuestID][periodIterator].periodStart = periodIterator;
             periodsByQuest[newQuestID][periodIterator].objectiveSlope = objective;
-            periodsByQuest[newQuestID][periodIterator].rewardPerVote = rewardPerVote;
+            periodsByQuest[newQuestID][periodIterator].rewardPerSlopePoint = rewardPerSlopePoint;
             periodsByQuest[newQuestID][periodIterator].rewardAmountPerPeriod = rewardPerPeriod;
             // Rest of the struct shoud laready have the correct base data:
             // currentState => PeriodState.ACTIVE
@@ -203,25 +203,25 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
         MultiMerkleDistributor(distributor).addQuest(newQuestID, rewardToken);
 
-        emit NewQuest(creator, gauge, rewardToken, duration, nextPeriod, rewardPerVote);
+        emit NewQuest(creator, gauge, rewardToken, duration, nextPeriod, rewardPerSlopePoint);
 
         return newQuestID;
     }
 
     function increaseQuestReward(
         uint256 questID,
-        uint256 newRewardPerVote,
+        uint256 newRewardPerSlopePoint,
         uint256 addedRewardAmount,
         uint256 feeAmount
     ) external nonReentrant {
         updatePeriod();
         require(questID < nextID, "QuestBoard: Non valid ID");
         require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
-        require(newRewardPerVote != 0 && addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
+        require(newRewardPerSlopePoint != 0 && addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
 
-        require(newRewardPerVote > periodsByQuest[questID][currentPeriod].rewardPerVote, "QuestBoard: New reward must be higher");
+        require(newRewardPerSlopePoint > periodsByQuest[questID][currentPeriod].rewardPerSlopePoint, "QuestBoard: New reward must be higher");
 
-        uint256 newRewardPerPeriod = (periodsByQuest[questID][currentPeriod].objectiveSlope * newRewardPerVote) / UNIT;
+        uint256 newRewardPerPeriod = (periodsByQuest[questID][currentPeriod].objectiveSlope * newRewardPerSlopePoint) / UNIT;
         uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
 
         uint256 remainingDuration = _getRemainingDuration(questID);
@@ -245,13 +245,13 @@ contract QuestBoard is Ownable, ReentrancyGuard {
             //safety check, don't want to change past or current periods
             if(periodsByQuest[questID][periodIterator].periodStart < nextPeriod) continue;
 
-            periodsByQuest[questID][periodIterator].rewardPerVote = newRewardPerVote;
+            periodsByQuest[questID][periodIterator].rewardPerSlopePoint = newRewardPerSlopePoint;
             periodsByQuest[questID][periodIterator].rewardAmountPerPeriod = newRewardPerPeriod;
 
             periodIterator = ((periodIterator + WEEK) / WEEK) * WEEK;
         }
 
-        emit IncreasedQuestReward(questID, nextPeriod, newRewardPerVote, addedRewardAmount);
+        emit IncreasedQuestReward(questID, nextPeriod, newRewardPerSlopePoint, addedRewardAmount);
     }
 
 
@@ -286,7 +286,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         quests[questID].totalRewardAmount += addedRewardAmount;
 
         uint256 objective = periodsByQuest[questID][lastPeriod].objectiveSlope;
-        uint256 rewardPerVote = periodsByQuest[questID][lastPeriod].rewardPerVote;
+        uint256 rewardPerSlopePoint = periodsByQuest[questID][lastPeriod].rewardPerSlopePoint;
 
         for(uint i = 0; i < newDuration; i++){
             questsByPeriod[periodIterator].push(questID);
@@ -295,7 +295,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
             periodsByQuest[questID][periodIterator].periodStart = periodIterator;
             periodsByQuest[questID][periodIterator].objectiveSlope = objective;
-            periodsByQuest[questID][periodIterator].rewardPerVote = rewardPerVote;
+            periodsByQuest[questID][periodIterator].rewardPerSlopePoint = rewardPerSlopePoint;
             periodsByQuest[questID][periodIterator].rewardAmountPerPeriod = rewardPerPeriod;
             // Rest of the struct shoud laready have the correct base data:
             // currentState => PeriodState.ACTIVE
@@ -323,7 +323,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
         require(newObjective > periodsByQuest[questID][currentPeriod].objectiveSlope, "QuestBoard: New objective must be higher");
 
-        uint256 newRewardPerPeriod = (newObjective * periodsByQuest[questID][currentPeriod].rewardPerVote) / UNIT;
+        uint256 newRewardPerPeriod = (newObjective * periodsByQuest[questID][currentPeriod].rewardPerSlopePoint) / UNIT;
         uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
 
         uint256 remainingDuration = _getRemainingDuration(questID);
