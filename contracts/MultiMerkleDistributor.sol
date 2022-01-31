@@ -178,8 +178,8 @@ contract MultiMerkleDistributor is Ownable {
 
 
     //  Admin functions
-    function updateQuestManager(address newquestBoard) external onlyOwner {
-        questBoard = newquestBoard;
+    function updateQuestManager(address newQuestBoard) external onlyOwner {
+        questBoard = newQuestBoard;
     }
 
     function recoverERC20(address token, uint256 amount) external onlyOwner returns(bool) {
