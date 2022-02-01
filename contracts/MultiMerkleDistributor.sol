@@ -121,6 +121,7 @@ contract MultiMerkleDistributor is Ownable {
 
 
     //FullQuest Claim (form of Multi Claim but for only one Quest => only one ERC20 transfer)
+    //Only works for the given periods (in ClaimParams) for the Quest. Any omitted period will be skipped
     function claimQuest(address account, uint256 questID, ClaimParams[] calldata claims) external {
         require(claims.length != 0, "MultiMerkle: empty parameters");
 
@@ -147,12 +148,18 @@ contract MultiMerkleDistributor is Ownable {
         IERC20(rewardToken).safeTransfer(account, totalClaimAmount);
     }
 
+
+    function getClosedPeriodsByQuests(uint256 questID) external view returns (uint256[] memory) {
+        return questClosedPeriods[questID];
+    }
+
     // Manager functions
 
     function addQuest(uint256 questID, address token) external onlyAllowed returns(bool) {
         require(questRewardToken[questID] == address(0), "MultiMerkle: Quest already listed");
+        require(token != address(0), "MultiMerkle: Incorrect reward token");
 
-        // Add a new Quest using the QuestID, and listing the reward token for that Quest
+        // Add a new Quest using the QuestID, and list the reward token for that Quest
         questRewardToken[questID] = token;
 
         emit NewQuest(questID, token);
