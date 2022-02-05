@@ -1,0 +1,10 @@
+import { ethers } from "hardhat";
+
+const VOTING_ESCROW_ADDRESS = "0x5f3b5DfEb7B28CDbD7FAba78963EE202a494e2A2"; //here : veCRV
+
+const GAUGE_CONTROLLER = "0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB";
+
+module.exports = {
+    VOTING_ESCROW_ADDRESS,
+    GAUGE_CONTROLLER
+};

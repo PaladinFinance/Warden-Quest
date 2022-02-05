@@ -28,13 +28,14 @@ const config: HardhatUserConfig = {
   },
   contractSizer: {
     alphaSort: true,
-    runOnCompile: false,
+    runOnCompile: true,
     disambiguatePaths: false,
   },
   networks: {
     hardhat: {
       forking: {
-        url: "https://eth-mainnet.alchemyapi.io/v2/" + (process.env.ALCHEMY_API_KEY || '')
+        url: "https://eth-mainnet.alchemyapi.io/v2/" + (process.env.ALCHEMY_API_KEY || ''),
+        blockNumber: 14131900
       }
     },
     mainnet: {
@@ -56,7 +57,7 @@ const config: HardhatUserConfig = {
     target: "ethers-v5"
   },
   gasReporter: {
-    enabled: false
+    enabled: true
   },
   tenderly: {
     project: process.env.TENDERLY_PROJECT || '',

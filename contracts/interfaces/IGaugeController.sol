@@ -18,9 +18,10 @@ interface IGaugeController {
         uint slope;
     }
     
-    function vote_user_slopes(address, address) external view returns (VotedSlope memory);
-    function last_user_vote(address, address) external view returns (uint);
-    function points_weight(address, uint256) external view returns (Point memory);
+    function vote_user_slopes(address, address) external view returns(VotedSlope memory);
+    function last_user_vote(address, address) external view returns(uint);
+    function points_weight(address, uint256) external view returns(Point memory);
     function checkpoint_gauge(address) external;
+    function gauge_types(address _addr) external view returns(int128);
     
 }

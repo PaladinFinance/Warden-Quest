@@ -202,6 +202,14 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         });
 
+        it(' should fail if empry MerkleRoot', async () => {
+
+            await expect(
+                distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, "0x0000000000000000000000000000000000000000000000000000000000000000")
+            ).to.be.revertedWith('MultiMerkle: Empty MerkleRoot')
+
+        });
+
         it(' should fail if an incorrect period is given', async () => {
 
             await expect(

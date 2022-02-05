@@ -170,6 +170,7 @@ contract MultiMerkleDistributor is Ownable {
     function updateQuestPeriod(uint256 questID, uint256 period, bytes32 merkleRoot) external onlyAllowed returns(bool) {
         require(questRewardToken[questID] != address(0), "MultiMerkle: Quest not listed");
         require(questMerkleRootPerPeriod[questID][period] == 0, "MultiMerkle: period already updated");
+        require(merkleRoot != 0, "MultiMerkle: Empty MerkleRoot");
 
         // Add a new Closed Period for the Quest
         require(period != 0, "MultiMerkle: incorrect period");
@@ -191,6 +192,19 @@ contract MultiMerkleDistributor is Ownable {
 
     function recoverERC20(address token, uint256 amount) external onlyOwner returns(bool) {
         IERC20(token).safeTransfer(owner(), amount);
+
+        return true;
+    }
+
+    // In case the given MerkleRoot was incorrect => allows to update with the correct one so users can claim
+    function emergencyUpdatequestPeriod(uint256 questID, uint256 period, bytes32 merkleRoot) external onlyOwner returns(bool) {
+        require(questRewardToken[questID] != address(0), "MultiMerkle: Quest not listed");
+        require(merkleRoot != 0, "MultiMerkle: Empty MerkleRoot");
+        require(period != 0, "MultiMerkle: incorrect period");
+
+        questMerkleRootPerPeriod[questID][period] = merkleRoot;
+
+        emit QuestPeriodUpdated(questID, period, merkleRoot);
 
         return true;
     }
