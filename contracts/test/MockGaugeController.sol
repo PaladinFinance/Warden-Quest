@@ -19,8 +19,8 @@ contract MockGaugeController {
 
     mapping(address => int128) types;
 
-    function set_points_weight(address gauge, uint256 period, uint256 slope) external {
-        point_weights[gauge][period].slope = slope;
+    function set_points_weight(address gauge, uint256 period, uint256 bias) external {
+        point_weights[gauge][period].bias = bias;
     }
 
     function points_weight(address gauge, uint256 period) external view returns (Point memory){

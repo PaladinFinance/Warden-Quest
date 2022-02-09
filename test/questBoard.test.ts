@@ -200,8 +200,8 @@ describe('QuestBoard contract tests', () => {
 
     describe('createQuest', async () => {
 
-        const target_slope = BigNumber.from('15000000000000000')
-        const reward_per_slopePoint = BigNumber.from('600000')
+        const target_votes = BigNumber.from('15000000000000000')
+        const reward_per_vote = BigNumber.from('600000')
 
         const rewards_per_period = BigNumber.from('9000000000000000000000')
 
@@ -237,8 +237,8 @@ describe('QuestBoard contract tests', () => {
                 gauge1.address,
                 DAI.address,
                 duration,
-                target_slope,
-                reward_per_slopePoint,
+                target_votes,
+                reward_per_vote,
                 total_rewards_amount,
                 total_fees
             )
@@ -262,8 +262,8 @@ describe('QuestBoard contract tests', () => {
                 gauge1.address,
                 DAI.address,
                 duration,
-                target_slope,
-                reward_per_slopePoint,
+                target_votes,
+                reward_per_vote,
                 total_rewards_amount,
                 total_fees
             )
@@ -278,8 +278,8 @@ describe('QuestBoard contract tests', () => {
                     DAI.address,
                     duration,
                     expected_period,
-                    target_slope,
-                    reward_per_slopePoint
+                    target_votes,
+                    reward_per_vote
                 );
 
             expect(await board.nextID()).to.be.eq(expected_id.add(1))
@@ -321,8 +321,8 @@ describe('QuestBoard contract tests', () => {
                 gauge1.address,
                 DAI.address,
                 duration,
-                target_slope,
-                reward_per_slopePoint,
+                target_votes,
+                reward_per_vote,
                 total_rewards_amount,
                 total_fees
             )
@@ -335,8 +335,8 @@ describe('QuestBoard contract tests', () => {
 
                 expect(quest_period.periodStart).to.be.eq(expected_future_period)
                 expect(quest_period.rewardAmountPerPeriod).to.be.eq(rewards_per_period)
-                expect(quest_period.rewardPerSlopePoint).to.be.eq(reward_per_slopePoint)
-                expect(quest_period.objectiveSlope).to.be.eq(target_slope)
+                expect(quest_period.rewardPerVote).to.be.eq(reward_per_vote)
+                expect(quest_period.objectiveVotes).to.be.eq(target_votes)
                 expect(quest_period.rewardAmountDistributed).to.be.eq(0)
                 expect(quest_period.withdrawableAmount).to.be.eq(0)
 
@@ -359,8 +359,8 @@ describe('QuestBoard contract tests', () => {
                 gauge1.address,
                 DAI.address,
                 duration,
-                target_slope,
-                reward_per_slopePoint,
+                target_votes,
+                reward_per_vote,
                 total_rewards_amount,
                 total_fees
             )
@@ -393,8 +393,8 @@ describe('QuestBoard contract tests', () => {
                 gauge1.address,
                 DAI.address,
                 duration,
-                target_slope,
-                reward_per_slopePoint,
+                target_votes,
+                reward_per_vote,
                 total_rewards_amount,
                 total_fees
             )
@@ -416,14 +416,14 @@ describe('QuestBoard contract tests', () => {
                 gauge1.address,
                 DAI.address,
                 duration,
-                target_slope,
-                reward_per_slopePoint,
+                target_votes,
+                reward_per_vote,
                 total_rewards_amount,
                 total_fees
             )
 
-            const target_slope2 = BigNumber.from('10000000000000000')
-            const reward_per_slopePoint2 = BigNumber.from('500000')
+            const target_votes2 = BigNumber.from('10000000000000000')
+            const reward_per_vote2 = BigNumber.from('500000')
 
             const rewards_per_period2 = BigNumber.from('5000000000000000000000')
 
@@ -453,8 +453,8 @@ describe('QuestBoard contract tests', () => {
                 gauge2.address,
                 CRV.address,
                 duration2,
-                target_slope2,
-                reward_per_slopePoint2,
+                target_votes2,
+                reward_per_vote2,
                 total_rewards_amount2,
                 total_fees2
             )
@@ -469,8 +469,8 @@ describe('QuestBoard contract tests', () => {
                     CRV.address,
                     duration2,
                     expected_period,
-                    target_slope2,
-                    reward_per_slopePoint2
+                    target_votes2,
+                    reward_per_vote2
                 );
 
             const quest_data = await board.quests(expected_id)
@@ -507,8 +507,8 @@ describe('QuestBoard contract tests', () => {
                     gauge1.address,
                     DAI.address,
                     duration,
-                    target_slope,
-                    reward_per_slopePoint,
+                    target_votes,
+                    reward_per_vote,
                     total_rewards_amount,
                     total_fees
                 )
@@ -525,8 +525,8 @@ describe('QuestBoard contract tests', () => {
                     ethers.constants.AddressZero,
                     DAI.address,
                     duration,
-                    target_slope,
-                    reward_per_slopePoint,
+                    target_votes,
+                    reward_per_vote,
                     total_rewards_amount,
                     total_fees
                 )
@@ -537,8 +537,8 @@ describe('QuestBoard contract tests', () => {
                     gauge1.address,
                     ethers.constants.AddressZero,
                     duration,
-                    target_slope,
-                    reward_per_slopePoint,
+                    target_votes,
+                    reward_per_vote,
                     total_rewards_amount,
                     total_fees
                 )
@@ -549,8 +549,8 @@ describe('QuestBoard contract tests', () => {
                     gauge1.address,
                     DAI.address,
                     0,
-                    target_slope,
-                    reward_per_slopePoint,
+                    target_votes,
+                    reward_per_vote,
                     total_rewards_amount,
                     total_fees
                 )
@@ -562,7 +562,7 @@ describe('QuestBoard contract tests', () => {
                     DAI.address,
                     duration,
                     0,
-                    reward_per_slopePoint,
+                    reward_per_vote,
                     total_rewards_amount,
                     total_fees
                 )
@@ -573,7 +573,7 @@ describe('QuestBoard contract tests', () => {
                     gauge1.address,
                     DAI.address,
                     duration,
-                    target_slope,
+                    target_votes,
                     0,
                     total_rewards_amount,
                     total_fees
@@ -585,8 +585,8 @@ describe('QuestBoard contract tests', () => {
                     gauge1.address,
                     DAI.address,
                     duration,
-                    target_slope,
-                    reward_per_slopePoint,
+                    target_votes,
+                    reward_per_vote,
                     0,
                     total_fees
                 )
@@ -597,8 +597,8 @@ describe('QuestBoard contract tests', () => {
                     gauge1.address,
                     DAI.address,
                     duration,
-                    target_slope,
-                    reward_per_slopePoint,
+                    target_votes,
+                    reward_per_vote,
                     total_rewards_amount,
                     0
                 )
@@ -615,8 +615,8 @@ describe('QuestBoard contract tests', () => {
                     gauge1.address,
                     CRV.address,
                     duration,
-                    target_slope,
-                    reward_per_slopePoint,
+                    target_votes,
+                    reward_per_vote,
                     total_rewards_amount,
                     total_fees
                 )
@@ -633,8 +633,8 @@ describe('QuestBoard contract tests', () => {
                     gauge3.address,
                     DAI.address,
                     duration,
-                    target_slope,
-                    reward_per_slopePoint,
+                    target_votes,
+                    reward_per_vote,
                     total_rewards_amount,
                     total_fees
                 )
@@ -654,8 +654,8 @@ describe('QuestBoard contract tests', () => {
                     gauge1.address,
                     DAI.address,
                     duration,
-                    target_slope,
-                    reward_per_slopePoint,
+                    target_votes,
+                    reward_per_vote,
                     wrong_total_rewards_amount,
                     total_fees
                 )
@@ -666,8 +666,8 @@ describe('QuestBoard contract tests', () => {
                     gauge1.address,
                     DAI.address,
                     duration,
-                    target_slope,
-                    reward_per_slopePoint,
+                    target_votes,
+                    reward_per_vote,
                     total_rewards_amount,
                     wrong_total_fees
                 )
@@ -680,8 +680,8 @@ describe('QuestBoard contract tests', () => {
 
     describe('increaseQuestDuration', async () => {
 
-        const target_slope = BigNumber.from('15000000000000000')
-        const reward_per_slopePoint = BigNumber.from('600000')
+        const target_votes = BigNumber.from('15000000000000000')
+        const reward_per_vote = BigNumber.from('600000')
 
         const rewards_per_period = BigNumber.from('9000000000000000000000')
 
@@ -713,8 +713,8 @@ describe('QuestBoard contract tests', () => {
                 gauge1.address,
                 DAI.address,
                 duration,
-                target_slope,
-                reward_per_slopePoint,
+                target_votes,
+                reward_per_vote,
                 total_rewards_amount,
                 total_fees
             )
@@ -760,8 +760,8 @@ describe('QuestBoard contract tests', () => {
 
                 expect(quest_period.periodStart).to.be.eq(expected_future_period)
                 expect(quest_period.rewardAmountPerPeriod).to.be.eq(last_old_period.rewardAmountPerPeriod)
-                expect(quest_period.rewardPerSlopePoint).to.be.eq(last_old_period.rewardPerSlopePoint)
-                expect(quest_period.objectiveSlope).to.be.eq(last_old_period.objectiveSlope)
+                expect(quest_period.rewardPerVote).to.be.eq(last_old_period.rewardPerVote)
+                expect(quest_period.objectiveVotes).to.be.eq(last_old_period.objectiveVotes)
                 expect(quest_period.rewardAmountDistributed).to.be.eq(0)
                 expect(quest_period.withdrawableAmount).to.be.eq(0)
 
@@ -799,8 +799,8 @@ describe('QuestBoard contract tests', () => {
 
                 expect(new_quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                 expect(new_quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
-                expect(new_quest_period.rewardPerSlopePoint).to.be.eq(old_quest_period.rewardPerSlopePoint)
-                expect(new_quest_period.objectiveSlope).to.be.eq(old_quest_period.objectiveSlope)
+                expect(new_quest_period.rewardPerVote).to.be.eq(old_quest_period.rewardPerVote)
+                expect(new_quest_period.objectiveVotes).to.be.eq(old_quest_period.objectiveVotes)
                 expect(new_quest_period.rewardAmountDistributed).to.be.eq(old_quest_period.rewardAmountDistributed)
                 expect(new_quest_period.withdrawableAmount).to.be.eq(old_quest_period.withdrawableAmount)
                 expect(new_quest_period.currentState).to.be.eq(old_quest_period.currentState)
@@ -879,8 +879,8 @@ describe('QuestBoard contract tests', () => {
 
                 expect(new_quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                 expect(new_quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
-                expect(new_quest_period.rewardPerSlopePoint).to.be.eq(old_quest_period.rewardPerSlopePoint)
-                expect(new_quest_period.objectiveSlope).to.be.eq(old_quest_period.objectiveSlope)
+                expect(new_quest_period.rewardPerVote).to.be.eq(old_quest_period.rewardPerVote)
+                expect(new_quest_period.objectiveVotes).to.be.eq(old_quest_period.objectiveVotes)
                 expect(new_quest_period.rewardAmountDistributed).to.be.eq(old_quest_period.rewardAmountDistributed)
                 expect(new_quest_period.withdrawableAmount).to.be.eq(old_quest_period.withdrawableAmount)
                 expect(new_quest_period.currentState).to.be.eq(old_quest_period.currentState)
@@ -985,8 +985,8 @@ describe('QuestBoard contract tests', () => {
 
     describe('increaseQuestReward', async () => {
 
-        const target_slope = BigNumber.from('15000000000000000')
-        const reward_per_slopePoint = BigNumber.from('600000')
+        const target_votes = BigNumber.from('15000000000000000')
+        const reward_per_vote = BigNumber.from('600000')
 
         const rewards_per_period = BigNumber.from('9000000000000000000000')
 
@@ -997,7 +997,7 @@ describe('QuestBoard contract tests', () => {
         const total_rewards_amount = rewards_per_period.mul(duration)
         const total_fees = total_rewards_amount.mul(500).div(10000)
 
-        const new_reward_per_slopePoint = BigNumber.from('1200000')
+        const new_reward_per_vote = BigNumber.from('1200000')
         const new_rewards_per_period = BigNumber.from('18000000000000000000000')
         const added_total_rewards_amount = new_rewards_per_period.sub(rewards_per_period).mul(remainingDuration)
         const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
@@ -1021,8 +1021,8 @@ describe('QuestBoard contract tests', () => {
                 gauge1.address,
                 DAI.address,
                 duration,
-                target_slope,
-                reward_per_slopePoint,
+                target_votes,
+                reward_per_vote,
                 total_rewards_amount,
                 total_fees
             )
@@ -1042,7 +1042,7 @@ describe('QuestBoard contract tests', () => {
 
             const increase_tx = await board.connect(creator1).increaseQuestReward(
                 questID,
-                new_reward_per_slopePoint,
+                new_reward_per_vote,
                 added_total_rewards_amount,
                 added_total_fees
             )
@@ -1056,7 +1056,7 @@ describe('QuestBoard contract tests', () => {
                 .withArgs(
                     questID,
                     applied_period,
-                    new_reward_per_slopePoint,
+                    new_reward_per_vote,
                     added_total_rewards_amount
                 );
 
@@ -1078,8 +1078,8 @@ describe('QuestBoard contract tests', () => {
                     //Past & current should stay the same
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
-                    expect(quest_period.rewardPerSlopePoint).to.be.eq(old_quest_period.rewardPerSlopePoint)
-                    expect(quest_period.objectiveSlope).to.be.eq(old_quest_period.objectiveSlope)
+                    expect(quest_period.rewardPerVote).to.be.eq(old_quest_period.rewardPerVote)
+                    expect(quest_period.objectiveVotes).to.be.eq(old_quest_period.objectiveVotes)
                     expect(quest_period.rewardAmountDistributed).to.be.eq(old_quest_period.rewardAmountDistributed)
                     expect(quest_period.withdrawableAmount).to.be.eq(old_quest_period.withdrawableAmount)
                     expect(quest_period.currentState).to.be.eq(old_quest_period.currentState)
@@ -1087,9 +1087,9 @@ describe('QuestBoard contract tests', () => {
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
 
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(new_rewards_per_period)
-                    expect(quest_period.rewardPerSlopePoint).to.be.eq(new_reward_per_slopePoint)
+                    expect(quest_period.rewardPerVote).to.be.eq(new_reward_per_vote)
 
-                    expect(quest_period.objectiveSlope).to.be.eq(old_quest_period.objectiveSlope)
+                    expect(quest_period.objectiveVotes).to.be.eq(old_quest_period.objectiveVotes)
                     expect(quest_period.rewardAmountDistributed).to.be.eq(old_quest_period.rewardAmountDistributed)
                     expect(quest_period.withdrawableAmount).to.be.eq(old_quest_period.withdrawableAmount)
                     expect(quest_period.currentState).to.be.eq(old_quest_period.currentState)
@@ -1109,7 +1109,7 @@ describe('QuestBoard contract tests', () => {
 
             const increase_tx = await board.connect(creator1).increaseQuestReward(
                 questID,
-                new_reward_per_slopePoint,
+                new_reward_per_vote,
                 added_total_rewards_amount,
                 added_total_fees
             )
@@ -1153,7 +1153,7 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(creator1).increaseQuestReward(
                 questID,
-                new_reward_per_slopePoint,
+                new_reward_per_vote,
                 added_total_rewards_amount,
                 added_total_fees
             )
@@ -1171,8 +1171,8 @@ describe('QuestBoard contract tests', () => {
                     //Past & current should stay the same
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
-                    expect(quest_period.rewardPerSlopePoint).to.be.eq(old_quest_period.rewardPerSlopePoint)
-                    expect(quest_period.objectiveSlope).to.be.eq(old_quest_period.objectiveSlope)
+                    expect(quest_period.rewardPerVote).to.be.eq(old_quest_period.rewardPerVote)
+                    expect(quest_period.objectiveVotes).to.be.eq(old_quest_period.objectiveVotes)
                     expect(quest_period.rewardAmountDistributed).to.be.eq(old_quest_period.rewardAmountDistributed)
                     expect(quest_period.withdrawableAmount).to.be.eq(old_quest_period.withdrawableAmount)
                     expect(quest_period.currentState).to.be.eq(old_quest_period.currentState)
@@ -1183,7 +1183,7 @@ describe('QuestBoard contract tests', () => {
 
         it(' should fail if new reward per SlopePoint is less than current one', async () => {
 
-            const lower_reward_per_slopePoint = reward_per_slopePoint.div(2)
+            const lower_reward_per_vote = reward_per_vote.div(2)
             const lower_total_rewards_amount = rewards_per_period.div(2).mul(remainingDuration)
             const lower_total_fees = lower_total_rewards_amount.mul(500).div(10000)
 
@@ -1194,7 +1194,7 @@ describe('QuestBoard contract tests', () => {
             await expect(
                 board.connect(creator1).increaseQuestReward(
                     questID,
-                    lower_reward_per_slopePoint,
+                    lower_reward_per_vote,
                     lower_total_rewards_amount,
                     lower_total_fees
                 )
@@ -1211,7 +1211,7 @@ describe('QuestBoard contract tests', () => {
             await expect(
                 board.connect(creator2).increaseQuestReward(
                     questID,
-                    new_reward_per_slopePoint,
+                    new_reward_per_vote,
                     added_total_rewards_amount,
                     added_total_fees
                 )
@@ -1230,7 +1230,7 @@ describe('QuestBoard contract tests', () => {
             await expect(
                 board.connect(creator1).increaseQuestReward(
                     wrong_ID,
-                    new_reward_per_slopePoint,
+                    new_reward_per_vote,
                     added_total_rewards_amount,
                     added_total_fees
                 )
@@ -1256,7 +1256,7 @@ describe('QuestBoard contract tests', () => {
             await expect(
                 board.connect(creator1).increaseQuestReward(
                     questID,
-                    new_reward_per_slopePoint,
+                    new_reward_per_vote,
                     0,
                     added_total_fees
                 )
@@ -1265,7 +1265,7 @@ describe('QuestBoard contract tests', () => {
             await expect(
                 board.connect(creator1).increaseQuestReward(
                     questID,
-                    new_reward_per_slopePoint,
+                    new_reward_per_vote,
                     added_total_rewards_amount,
                     0
                 )
@@ -1285,7 +1285,7 @@ describe('QuestBoard contract tests', () => {
             await expect(
                 board.connect(creator1).increaseQuestReward(
                     questID,
-                    new_reward_per_slopePoint,
+                    new_reward_per_vote,
                     wrong_total_rewards_amount,
                     added_total_fees
                 )
@@ -1294,7 +1294,7 @@ describe('QuestBoard contract tests', () => {
             await expect(
                 board.connect(creator1).increaseQuestReward(
                     questID,
-                    new_reward_per_slopePoint,
+                    new_reward_per_vote,
                     added_total_rewards_amount,
                     wrong_total_fees
                 )
@@ -1307,8 +1307,8 @@ describe('QuestBoard contract tests', () => {
 
     describe('increaseQuestObjective', async () => {
 
-        const target_slope = BigNumber.from('15000000000000000')
-        const reward_per_slopePoint = BigNumber.from('600000')
+        const target_votes = BigNumber.from('15000000000000000')
+        const reward_per_vote = BigNumber.from('600000')
 
         const rewards_per_period = BigNumber.from('9000000000000000000000')
 
@@ -1319,7 +1319,7 @@ describe('QuestBoard contract tests', () => {
         const total_rewards_amount = rewards_per_period.mul(duration)
         const total_fees = total_rewards_amount.mul(500).div(10000)
 
-        const new_target_slope = BigNumber.from('20000000000000000')
+        const new_target_votes = BigNumber.from('20000000000000000')
         const new_rewards_per_period = BigNumber.from('12000000000000000000000')
         const added_total_rewards_amount = new_rewards_per_period.sub(rewards_per_period).mul(remainingDuration)
         const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
@@ -1343,8 +1343,8 @@ describe('QuestBoard contract tests', () => {
                 gauge1.address,
                 DAI.address,
                 duration,
-                target_slope,
-                reward_per_slopePoint,
+                target_votes,
+                reward_per_vote,
                 total_rewards_amount,
                 total_fees
             )
@@ -1364,7 +1364,7 @@ describe('QuestBoard contract tests', () => {
 
             const increase_tx = await board.connect(creator1).increaseQuestObjective(
                 questID,
-                new_target_slope,
+                new_target_votes,
                 added_total_rewards_amount,
                 added_total_fees
             )
@@ -1378,7 +1378,7 @@ describe('QuestBoard contract tests', () => {
                 .withArgs(
                     questID,
                     applied_period,
-                    new_target_slope,
+                    new_target_votes,
                     added_total_rewards_amount
                 );
 
@@ -1400,18 +1400,18 @@ describe('QuestBoard contract tests', () => {
                     //Past & current should stay the same
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
-                    expect(quest_period.rewardPerSlopePoint).to.be.eq(old_quest_period.rewardPerSlopePoint)
-                    expect(quest_period.objectiveSlope).to.be.eq(old_quest_period.objectiveSlope)
+                    expect(quest_period.rewardPerVote).to.be.eq(old_quest_period.rewardPerVote)
+                    expect(quest_period.objectiveVotes).to.be.eq(old_quest_period.objectiveVotes)
                     expect(quest_period.rewardAmountDistributed).to.be.eq(old_quest_period.rewardAmountDistributed)
                     expect(quest_period.withdrawableAmount).to.be.eq(old_quest_period.withdrawableAmount)
                     expect(quest_period.currentState).to.be.eq(old_quest_period.currentState)
                 } else {
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
 
-                    expect(quest_period.objectiveSlope).to.be.eq(new_target_slope)
+                    expect(quest_period.objectiveVotes).to.be.eq(new_target_votes)
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(new_rewards_per_period)
 
-                    expect(quest_period.rewardPerSlopePoint).to.be.eq(old_quest_period.rewardPerSlopePoint)
+                    expect(quest_period.rewardPerVote).to.be.eq(old_quest_period.rewardPerVote)
                     expect(quest_period.rewardAmountDistributed).to.be.eq(old_quest_period.rewardAmountDistributed)
                     expect(quest_period.withdrawableAmount).to.be.eq(old_quest_period.withdrawableAmount)
                     expect(quest_period.currentState).to.be.eq(old_quest_period.currentState)
@@ -1431,7 +1431,7 @@ describe('QuestBoard contract tests', () => {
 
             const increase_tx = await board.connect(creator1).increaseQuestObjective(
                 questID,
-                new_target_slope,
+                new_target_votes,
                 added_total_rewards_amount,
                 added_total_fees
             )
@@ -1475,7 +1475,7 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(creator1).increaseQuestObjective(
                 questID,
-                new_target_slope,
+                new_target_votes,
                 added_total_rewards_amount,
                 added_total_fees
             )
@@ -1493,8 +1493,8 @@ describe('QuestBoard contract tests', () => {
                     //Past & current should stay the same
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
-                    expect(quest_period.rewardPerSlopePoint).to.be.eq(old_quest_period.rewardPerSlopePoint)
-                    expect(quest_period.objectiveSlope).to.be.eq(old_quest_period.objectiveSlope)
+                    expect(quest_period.rewardPerVote).to.be.eq(old_quest_period.rewardPerVote)
+                    expect(quest_period.objectiveVotes).to.be.eq(old_quest_period.objectiveVotes)
                     expect(quest_period.rewardAmountDistributed).to.be.eq(old_quest_period.rewardAmountDistributed)
                     expect(quest_period.withdrawableAmount).to.be.eq(old_quest_period.withdrawableAmount)
                     expect(quest_period.currentState).to.be.eq(old_quest_period.currentState)
@@ -1505,8 +1505,8 @@ describe('QuestBoard contract tests', () => {
 
         it(' should fail if new reward per SlopePoint is less than current one', async () => {
 
-            const lower_target_slope = target_slope.div(2)
-            const lower_total_rewards_amount = reward_per_slopePoint.mul(lower_target_slope).mul(remainingDuration)
+            const lower_target_votes = target_votes.div(2)
+            const lower_total_rewards_amount = reward_per_vote.mul(lower_target_votes).mul(remainingDuration)
             const lower_total_fees = lower_total_rewards_amount.mul(500).div(10000)
 
             await DAI.connect(creator1).approve(board.address, lower_total_rewards_amount.add(lower_total_fees))
@@ -1516,7 +1516,7 @@ describe('QuestBoard contract tests', () => {
             await expect(
                 board.connect(creator1).increaseQuestObjective(
                     questID,
-                    lower_target_slope,
+                    lower_target_votes,
                     lower_total_rewards_amount,
                     lower_total_fees
                 )
@@ -1533,7 +1533,7 @@ describe('QuestBoard contract tests', () => {
             await expect(
                 board.connect(creator2).increaseQuestObjective(
                     questID,
-                    new_target_slope,
+                    new_target_votes,
                     added_total_rewards_amount,
                     added_total_fees
                 )
@@ -1552,7 +1552,7 @@ describe('QuestBoard contract tests', () => {
             await expect(
                 board.connect(creator1).increaseQuestObjective(
                     wrong_ID,
-                    new_target_slope,
+                    new_target_votes,
                     added_total_rewards_amount,
                     added_total_fees
                 )
@@ -1569,7 +1569,7 @@ describe('QuestBoard contract tests', () => {
             await expect(
                 board.connect(creator1).increaseQuestObjective(
                     questID,
-                    new_target_slope,
+                    new_target_votes,
                     0,
                     added_total_fees
                 )
@@ -1578,7 +1578,7 @@ describe('QuestBoard contract tests', () => {
             await expect(
                 board.connect(creator1).increaseQuestObjective(
                     questID,
-                    new_target_slope,
+                    new_target_votes,
                     added_total_rewards_amount,
                     0
                 )
@@ -1598,7 +1598,7 @@ describe('QuestBoard contract tests', () => {
             await expect(
                 board.connect(creator1).increaseQuestObjective(
                     questID,
-                    new_target_slope,
+                    new_target_votes,
                     wrong_total_rewards_amount,
                     added_total_fees
                 )
@@ -1607,7 +1607,7 @@ describe('QuestBoard contract tests', () => {
             await expect(
                 board.connect(creator1).increaseQuestObjective(
                     questID,
-                    new_target_slope,
+                    new_target_votes,
                     added_total_rewards_amount,
                     wrong_total_fees
                 )
@@ -1623,17 +1623,17 @@ describe('QuestBoard contract tests', () => {
         let gauges: string[] = []
         let rewardToken: IERC20[] = []
 
-        const target_slope = [BigNumber.from('15000000000000000'), BigNumber.from('25000000000000000'), BigNumber.from('8000000000000000')]
-        const reward_per_slopePoint = [BigNumber.from('600000'), BigNumber.from('150000'), BigNumber.from('200000')]
+        const target_votes = [BigNumber.from('15000000000000000'), BigNumber.from('25000000000000000'), BigNumber.from('8000000000000000')]
+        const reward_per_vote = [BigNumber.from('600000'), BigNumber.from('150000'), BigNumber.from('200000')]
         const duration = [6, 4, 7]
 
         let questIDs: BigNumber[] = [];
 
-        const gauge1_slopes = [BigNumber.from('8000000000000000'), BigNumber.from('10000000000000000'), BigNumber.from('12000000000000000')]
-        const gauge2_slopes = [BigNumber.from('18000000000000000'), BigNumber.from('25000000000000000'), BigNumber.from('30000000000000000')]
-        const gauge3_slopes = [BigNumber.from('10000000000000000'), BigNumber.from('11000000000000000'), BigNumber.from('12000000000000000')]
+        const gauge1_biases = [BigNumber.from('8000000000000000'), BigNumber.from('10000000000000000'), BigNumber.from('12000000000000000')]
+        const gauge2_biases = [BigNumber.from('18000000000000000'), BigNumber.from('25000000000000000'), BigNumber.from('30000000000000000')]
+        const gauge3_biases = [BigNumber.from('10000000000000000'), BigNumber.from('11000000000000000'), BigNumber.from('12000000000000000')]
 
-        const all_slopes = [gauge1_slopes, gauge2_slopes, gauge3_slopes]
+        const all_biases = [gauge1_biases, gauge2_biases, gauge3_biases]
 
         let first_period: BigNumber;
 
@@ -1662,7 +1662,7 @@ describe('QuestBoard contract tests', () => {
             first_period = (await board.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
-                rewards_per_period[i] = target_slope[i].mul(reward_per_slopePoint[i])
+                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i])
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
                 total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
 
@@ -1676,20 +1676,20 @@ describe('QuestBoard contract tests', () => {
                     gauges[i],
                     rewardToken[i].address,
                     duration[i],
-                    target_slope[i],
-                    reward_per_slopePoint[i],
+                    target_votes[i],
+                    reward_per_vote[i],
                     total_rewards_amount[i],
                     total_fees[i]
                 )
             }
 
             //setup the gauges slopes
-            for (let i = 0; i < gauge1_slopes.length; i++) {
+            for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
 
-                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_slopes[i])
-                await controller.set_points_weight(gauge2.address, period_end_to_set, gauge2_slopes[i])
-                await controller.set_points_weight(gauge3.address, period_end_to_set, gauge3_slopes[i])
+                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_biases[i])
+                await controller.set_points_weight(gauge2.address, period_end_to_set, gauge2_biases[i])
+                await controller.set_points_weight(gauge3.address, period_end_to_set, gauge3_biases[i])
             }
 
         });
@@ -1716,7 +1716,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
 
-                const expected_completion = all_slopes[i][0].gte(target_slope[i]) ? UNIT : all_slopes[i][0].mul(UNIT).div(target_slope[i])
+                const expected_completion = all_biases[i][0].gte(target_votes[i]) ? UNIT : all_biases[i][0].mul(UNIT).div(target_votes[i])
                 const expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
@@ -1771,7 +1771,7 @@ describe('QuestBoard contract tests', () => {
                 for (let i = 0; i < gauges.length; i++) {
                     let questPriod_data = await board.periodsByQuest(questIDs[i], toClose_period)
 
-                    let expected_completion = all_slopes[i][j].gte(target_slope[i]) ? UNIT : all_slopes[i][j].mul(UNIT).div(target_slope[i])
+                    let expected_completion = all_biases[i][j].gte(target_votes[i]) ? UNIT : all_biases[i][j].mul(UNIT).div(target_votes[i])
                     let expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
                     let expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
@@ -1854,19 +1854,19 @@ describe('QuestBoard contract tests', () => {
         let gauges: string[] = []
         let rewardToken: IERC20[] = []
 
-        const target_slope = [BigNumber.from('15000000000000000'), BigNumber.from('25000000000000000'), BigNumber.from('8000000000000000')]
-        const reward_per_slopePoint = [BigNumber.from('600000'), BigNumber.from('150000'), BigNumber.from('200000')]
+        const target_votes = [BigNumber.from('15000000000000000'), BigNumber.from('25000000000000000'), BigNumber.from('8000000000000000')]
+        const reward_per_vote = [BigNumber.from('600000'), BigNumber.from('150000'), BigNumber.from('200000')]
         const duration = [6, 4, 7]
 
         let questIDs: BigNumber[] = [];
 
         let ID_to_distribute: BigNumber;
 
-        const gauge1_slopes = [BigNumber.from('8000000000000000'), BigNumber.from('10000000000000000')]
-        const gauge2_slopes = [BigNumber.from('18000000000000000'), BigNumber.from('25000000000000000')]
-        const gauge3_slopes = [BigNumber.from('10000000000000000'), BigNumber.from('11000000000000000')]
+        const gauge1_biases = [BigNumber.from('8000000000000000'), BigNumber.from('10000000000000000')]
+        const gauge2_biases = [BigNumber.from('18000000000000000'), BigNumber.from('25000000000000000')]
+        const gauge3_biases = [BigNumber.from('10000000000000000'), BigNumber.from('11000000000000000')]
 
-        const all_slopes = [gauge1_slopes, gauge2_slopes, gauge3_slopes]
+        const all_biases = [gauge1_biases, gauge2_biases, gauge3_biases]
 
         let first_period: BigNumber;
 
@@ -1895,7 +1895,7 @@ describe('QuestBoard contract tests', () => {
             first_period = (await board.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
-                rewards_per_period[i] = target_slope[i].mul(reward_per_slopePoint[i])
+                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i])
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
                 total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
 
@@ -1909,19 +1909,19 @@ describe('QuestBoard contract tests', () => {
                     gauges[i],
                     rewardToken[i].address,
                     duration[i],
-                    target_slope[i],
-                    reward_per_slopePoint[i],
+                    target_votes[i],
+                    reward_per_vote[i],
                     total_rewards_amount[i],
                     total_fees[i]
                 )
             }
 
-            for (let i = 0; i < gauge1_slopes.length; i++) {
+            for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
 
-                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_slopes[i])
-                await controller.set_points_weight(gauge2.address, period_end_to_set, gauge2_slopes[i])
-                await controller.set_points_weight(gauge3.address, period_end_to_set, gauge3_slopes[i])
+                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_biases[i])
+                await controller.set_points_weight(gauge2.address, period_end_to_set, gauge2_biases[i])
+                await controller.set_points_weight(gauge3.address, period_end_to_set, gauge3_biases[i])
             }
 
             await advanceTime(WEEK.mul(2).toNumber())
@@ -2053,15 +2053,15 @@ describe('QuestBoard contract tests', () => {
         let gauges: string[] = []
         let rewardToken: IERC20[] = []
 
-        const target_slope = [BigNumber.from('15000000000000000'), BigNumber.from('25000000000000000'), BigNumber.from('8000000000000000')]
-        const reward_per_slopePoint = [BigNumber.from('600000'), BigNumber.from('150000'), BigNumber.from('200000')]
+        const target_votes = [BigNumber.from('15000000000000000'), BigNumber.from('25000000000000000'), BigNumber.from('8000000000000000')]
+        const reward_per_vote = [BigNumber.from('600000'), BigNumber.from('150000'), BigNumber.from('200000')]
         const duration = [6, 4, 7]
 
         let questIDs: BigNumber[] = [];
 
-        const gauge1_slopes = [BigNumber.from('8000000000000000'), BigNumber.from('10000000000000000'), BigNumber.from('12000000000000000')]
-        const gauge2_slopes = [BigNumber.from('12000000000000000'), BigNumber.from('15000000000000000'), BigNumber.from('18000000000000000')]
-        const gauge3_slopes = [BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0')]
+        const gauge1_biases = [BigNumber.from('8000000000000000'), BigNumber.from('10000000000000000'), BigNumber.from('12000000000000000')]
+        const gauge2_biases = [BigNumber.from('12000000000000000'), BigNumber.from('15000000000000000'), BigNumber.from('18000000000000000')]
+        const gauge3_biases = [BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0')]
 
         let first_period: BigNumber;
 
@@ -2090,7 +2090,7 @@ describe('QuestBoard contract tests', () => {
             first_period = (await board.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
-                rewards_per_period[i] = target_slope[i].mul(reward_per_slopePoint[i])
+                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i])
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
                 total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
 
@@ -2104,19 +2104,19 @@ describe('QuestBoard contract tests', () => {
                     gauges[i],
                     rewardToken[i].address,
                     duration[i],
-                    target_slope[i],
-                    reward_per_slopePoint[i],
+                    target_votes[i],
+                    reward_per_vote[i],
                     total_rewards_amount[i],
                     total_fees[i]
                 )
             }
 
-            for (let i = 0; i < gauge1_slopes.length; i++) {
+            for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
 
-                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_slopes[i])
-                await controller.set_points_weight(gauge2.address, period_end_to_set, gauge2_slopes[i])
-                await controller.set_points_weight(gauge3.address, period_end_to_set, gauge3_slopes[i])
+                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_biases[i])
+                await controller.set_points_weight(gauge2.address, period_end_to_set, gauge2_biases[i])
+                await controller.set_points_weight(gauge3.address, period_end_to_set, gauge3_biases[i])
             }
 
             await advanceTime(WEEK.mul(3).toNumber())
@@ -2351,8 +2351,8 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(admin).killBoard()
 
-            const target_slope = BigNumber.from('15000000000000000')
-            const reward_per_slopePoint = BigNumber.from('600000')
+            const target_votes = BigNumber.from('15000000000000000')
+            const reward_per_vote = BigNumber.from('600000')
 
             const rewards_per_period = BigNumber.from('9000000000000000000000')
 
@@ -2370,8 +2370,8 @@ describe('QuestBoard contract tests', () => {
                     gauge1.address,
                     DAI.address,
                     duration,
-                    target_slope,
-                    reward_per_slopePoint,
+                    target_votes,
+                    reward_per_vote,
                     total_rewards_amount,
                     total_fees
                 )
@@ -2453,8 +2453,8 @@ describe('QuestBoard contract tests', () => {
 
         it(' should unblock all isAlive methods', async () => {
 
-            const target_slope = BigNumber.from('15000000000000000')
-            const reward_per_slopePoint = BigNumber.from('600000')
+            const target_votes = BigNumber.from('15000000000000000')
+            const reward_per_vote = BigNumber.from('600000')
 
             const rewards_per_period = BigNumber.from('9000000000000000000000')
 
@@ -2482,8 +2482,8 @@ describe('QuestBoard contract tests', () => {
                     gauge1.address,
                     DAI.address,
                     duration,
-                    target_slope,
-                    reward_per_slopePoint,
+                    target_votes,
+                    reward_per_vote,
                     total_rewards_amount,
                     total_fees
                 )
@@ -2535,15 +2535,15 @@ describe('QuestBoard contract tests', () => {
         let gauges: string[] = []
         let rewardToken: IERC20[] = []
 
-        const target_slope = [BigNumber.from('15000000000000000'), BigNumber.from('25000000000000000'), BigNumber.from('8000000000000000')]
-        const reward_per_slopePoint = [BigNumber.from('600000'), BigNumber.from('150000'), BigNumber.from('200000')]
+        const target_votes = [BigNumber.from('15000000000000000'), BigNumber.from('25000000000000000'), BigNumber.from('8000000000000000')]
+        const reward_per_vote = [BigNumber.from('600000'), BigNumber.from('150000'), BigNumber.from('200000')]
         const duration = [6, 4, 7]
 
         let questIDs: BigNumber[] = [];
 
-        const gauge1_slopes = [BigNumber.from('8000000000000000'), BigNumber.from('10000000000000000'), BigNumber.from('12000000000000000')]
-        const gauge2_slopes = [BigNumber.from('12000000000000000'), BigNumber.from('15000000000000000'), BigNumber.from('18000000000000000')]
-        const gauge3_slopes = [BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0')]
+        const gauge1_biases = [BigNumber.from('8000000000000000'), BigNumber.from('10000000000000000'), BigNumber.from('12000000000000000')]
+        const gauge2_biases = [BigNumber.from('12000000000000000'), BigNumber.from('15000000000000000'), BigNumber.from('18000000000000000')]
+        const gauge3_biases = [BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0')]
 
         let first_period: BigNumber;
 
@@ -2572,7 +2572,7 @@ describe('QuestBoard contract tests', () => {
             first_period = (await board.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
-                rewards_per_period[i] = target_slope[i].mul(reward_per_slopePoint[i])
+                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i])
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
                 total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
 
@@ -2586,19 +2586,19 @@ describe('QuestBoard contract tests', () => {
                     gauges[i],
                     rewardToken[i].address,
                     duration[i],
-                    target_slope[i],
-                    reward_per_slopePoint[i],
+                    target_votes[i],
+                    reward_per_vote[i],
                     total_rewards_amount[i],
                     total_fees[i]
                 )
             }
 
-            for (let i = 0; i < gauge1_slopes.length; i++) {
+            for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
 
-                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_slopes[i])
-                await controller.set_points_weight(gauge2.address, period_end_to_set, gauge2_slopes[i])
-                await controller.set_points_weight(gauge3.address, period_end_to_set, gauge3_slopes[i])
+                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_biases[i])
+                await controller.set_points_weight(gauge2.address, period_end_to_set, gauge2_biases[i])
+                await controller.set_points_weight(gauge3.address, period_end_to_set, gauge3_biases[i])
             }
 
             await advanceTime(WEEK.mul(3).toNumber())
