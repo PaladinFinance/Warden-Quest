@@ -7,7 +7,9 @@
     "build": "npm run clean && npm run compile",
     "clean": "npx hardhat clean",
     "compile": "npx hardhat compile",
-    "test": "npx hardhat test"
+    "test": "npx hardhat test",
+    "gv": "ts-node scripts/utils/gaugeVotes.utils.ts",
+    "mg": "ts-node scripts/merkle/merkleGenerator.ts"
   },
   "author": "",
   "license": "MIT",
@@ -36,6 +38,7 @@
   "dependencies": {
     "@tenderly/hardhat-tenderly": "^1.1.0-beta.6",
     "axios": "^0.21.4",
+    "commander": "^9.0.0",
     "dotenv": "^10.0.0"
   }
 }

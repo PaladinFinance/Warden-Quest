@@ -1,3 +1,4 @@
+import { BigNumber } from 'ethers';
 import { Vote } from '../dto/vote';
 
 export class VoteMapper {
@@ -7,7 +8,8 @@ export class VoteMapper {
             gaugeAdress: rawVote.gauge_addr,
             user: rawVote.user,
             time: rawVote.time,
-            weight: rawVote.weight
+            weight: rawVote.weight,
+            bias: BigNumber.from(0)
         };
 
         return vote;

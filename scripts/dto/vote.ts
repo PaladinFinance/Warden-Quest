@@ -5,4 +5,5 @@ export interface Vote {
     user: string;
     time: BigNumber;
     weight: BigNumber;
+    bias:BigNumber;
 }
