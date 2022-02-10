@@ -72,8 +72,8 @@ describe('QuestBoard contract tests', () => {
 
         controllerFactory = await ethers.getContractFactory("MockGaugeController");
 
-        const crv_amount = ethers.utils.parseEther('750000');
-        const dai_amount = ethers.utils.parseEther('10000000');
+        const crv_amount = ethers.utils.parseEther('75000000');
+        const dai_amount = ethers.utils.parseEther('840000000');
 
         CRV = IERC20__factory.connect(TOKEN1_ADDRESS, provider);
         DAI = IERC20__factory.connect(TOKEN2_ADDRESS, provider);
@@ -200,10 +200,10 @@ describe('QuestBoard contract tests', () => {
 
     describe('createQuest', async () => {
 
-        const target_votes = BigNumber.from('15000000000000000')
-        const reward_per_vote = BigNumber.from('600000')
+        const target_votes = ethers.utils.parseEther('150000')
+        const reward_per_vote = ethers.utils.parseEther('6')
 
-        const rewards_per_period = BigNumber.from('9000000000000000000000')
+        const rewards_per_period = ethers.utils.parseEther('900000')
 
         const duration = 4
 
@@ -422,10 +422,10 @@ describe('QuestBoard contract tests', () => {
                 total_fees
             )
 
-            const target_votes2 = BigNumber.from('10000000000000000')
-            const reward_per_vote2 = BigNumber.from('500000')
+            const target_votes2 = ethers.utils.parseEther('1000000')
+            const reward_per_vote2 = ethers.utils.parseEther('0.5')
 
-            const rewards_per_period2 = BigNumber.from('5000000000000000000000')
+            const rewards_per_period2 = ethers.utils.parseEther('500000')
 
             const duration2 = 4
 
@@ -644,7 +644,7 @@ describe('QuestBoard contract tests', () => {
 
         it(' should fail if given amounts (rewards or fees) are incorrect', async () => {
 
-            const wrong_total_rewards_amount = BigNumber.from('8000000000000000000000').mul(duration)
+            const wrong_total_rewards_amount = ethers.utils.parseEther('800000').mul(duration)
             const wrong_total_fees = total_rewards_amount.mul(400).div(10000)
 
             await DAI.connect(creator1).approve(board.address, total_rewards_amount.add(total_fees))
@@ -680,10 +680,10 @@ describe('QuestBoard contract tests', () => {
 
     describe('increaseQuestDuration', async () => {
 
-        const target_votes = BigNumber.from('15000000000000000')
-        const reward_per_vote = BigNumber.from('600000')
+        const target_votes = ethers.utils.parseEther('150000')
+        const reward_per_vote = ethers.utils.parseEther('0.3')
 
-        const rewards_per_period = BigNumber.from('9000000000000000000000')
+        const rewards_per_period = ethers.utils.parseEther('45000')
 
         const duration = 4
 
@@ -756,7 +756,7 @@ describe('QuestBoard contract tests', () => {
 
             for (let i = old_periods_length; i < new_quest_periods.length; i++) {
                 let quest_period = new_quest_periods[i]
-                let expected_future_period = last_old_period.periodStart.add(WEEK.mul(i - old_periods_length + 1)).div(WEEK).mul(WEEK)
+                let expected_future_period = BigNumber.from(last_old_period.periodStart).add(WEEK.mul(i - old_periods_length + 1)).div(WEEK).mul(WEEK)
 
                 expect(quest_period.periodStart).to.be.eq(expected_future_period)
                 expect(quest_period.rewardAmountPerPeriod).to.be.eq(last_old_period.rewardAmountPerPeriod)
@@ -931,7 +931,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Incorrect newDuration')
+            ).to.be.revertedWith('QuestBoard: Incorrect addedDuration')
 
             await expect(
                 board.connect(creator1).increaseQuestDuration(
@@ -955,7 +955,7 @@ describe('QuestBoard contract tests', () => {
 
         it(' should fail if given amounts (rewards or fees) are incorrect', async () => {
 
-            const wrong_total_rewards_amount = BigNumber.from('8000000000000000000000').mul(extend_duration)
+            const wrong_total_rewards_amount = ethers.utils.parseEther('40000').mul(extend_duration)
             const wrong_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
             await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
@@ -985,10 +985,10 @@ describe('QuestBoard contract tests', () => {
 
     describe('increaseQuestReward', async () => {
 
-        const target_votes = BigNumber.from('15000000000000000')
-        const reward_per_vote = BigNumber.from('600000')
+        const target_votes = ethers.utils.parseEther('150000')
+        const reward_per_vote = ethers.utils.parseEther('0.3')
 
-        const rewards_per_period = BigNumber.from('9000000000000000000000')
+        const rewards_per_period = ethers.utils.parseEther('45000')
 
         const duration = 6
         const ellapsedDuration = 3
@@ -997,8 +997,8 @@ describe('QuestBoard contract tests', () => {
         const total_rewards_amount = rewards_per_period.mul(duration)
         const total_fees = total_rewards_amount.mul(500).div(10000)
 
-        const new_reward_per_vote = BigNumber.from('1200000')
-        const new_rewards_per_period = BigNumber.from('18000000000000000000000')
+        const new_reward_per_vote = ethers.utils.parseEther('0.6')
+        const new_rewards_per_period = ethers.utils.parseEther('90000')
         const added_total_rewards_amount = new_rewards_per_period.sub(rewards_per_period).mul(remainingDuration)
         const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
 
@@ -1074,7 +1074,7 @@ describe('QuestBoard contract tests', () => {
 
                 let old_quest_period = old_quest_periods[i]
 
-                if (quest_period.periodStart.lte(current_period)) {
+                if (BigNumber.from(quest_period.periodStart).lte(current_period)) {
                     //Past & current should stay the same
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
@@ -1167,7 +1167,7 @@ describe('QuestBoard contract tests', () => {
 
                 let old_quest_period = old_quest_periods[i]
 
-                if (quest_period.periodStart.lte(current_period)) {
+                if (BigNumber.from(quest_period.periodStart).lte(current_period)) {
                     //Past & current should stay the same
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
@@ -1275,7 +1275,7 @@ describe('QuestBoard contract tests', () => {
 
         it(' should fail if given amounts (rewards or fees) are incorrect', async () => {
 
-            const wrong_total_rewards_amount = BigNumber.from('12000000000000000000000').sub(rewards_per_period).mul(remainingDuration)
+            const wrong_total_rewards_amount = ethers.utils.parseEther('80000').sub(rewards_per_period).mul(remainingDuration)
             const wrong_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
             await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
@@ -1307,10 +1307,10 @@ describe('QuestBoard contract tests', () => {
 
     describe('increaseQuestObjective', async () => {
 
-        const target_votes = BigNumber.from('15000000000000000')
-        const reward_per_vote = BigNumber.from('600000')
+        const target_votes = ethers.utils.parseEther('15000')
+        const reward_per_vote = ethers.utils.parseEther('0.3')
 
-        const rewards_per_period = BigNumber.from('9000000000000000000000')
+        const rewards_per_period = ethers.utils.parseEther('4500')
 
         const duration = 6
         const ellapsedDuration = 3
@@ -1319,8 +1319,8 @@ describe('QuestBoard contract tests', () => {
         const total_rewards_amount = rewards_per_period.mul(duration)
         const total_fees = total_rewards_amount.mul(500).div(10000)
 
-        const new_target_votes = BigNumber.from('20000000000000000')
-        const new_rewards_per_period = BigNumber.from('12000000000000000000000')
+        const new_target_votes = ethers.utils.parseEther('20000')
+        const new_rewards_per_period = ethers.utils.parseEther('6000')
         const added_total_rewards_amount = new_rewards_per_period.sub(rewards_per_period).mul(remainingDuration)
         const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
 
@@ -1396,7 +1396,7 @@ describe('QuestBoard contract tests', () => {
 
                 let old_quest_period = old_quest_periods[i]
 
-                if (quest_period.periodStart.lte(current_period)) {
+                if (BigNumber.from(quest_period.periodStart).lte(current_period)) {
                     //Past & current should stay the same
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
@@ -1489,7 +1489,7 @@ describe('QuestBoard contract tests', () => {
 
                 let old_quest_period = old_quest_periods[i]
 
-                if (quest_period.periodStart.lte(current_period)) {
+                if (BigNumber.from(quest_period.periodStart).lte(current_period)) {
                     //Past & current should stay the same
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
@@ -1588,7 +1588,7 @@ describe('QuestBoard contract tests', () => {
 
         it(' should fail if given amounts (rewards or fees) are incorrect', async () => {
 
-            const wrong_total_rewards_amount = BigNumber.from('10000000000000000000000').sub(rewards_per_period).mul(remainingDuration)
+            const wrong_total_rewards_amount = ethers.utils.parseEther('50000').sub(rewards_per_period).mul(remainingDuration)
             const wrong_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
             await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
@@ -1623,15 +1623,15 @@ describe('QuestBoard contract tests', () => {
         let gauges: string[] = []
         let rewardToken: IERC20[] = []
 
-        const target_votes = [BigNumber.from('15000000000000000'), BigNumber.from('25000000000000000'), BigNumber.from('8000000000000000')]
-        const reward_per_vote = [BigNumber.from('600000'), BigNumber.from('150000'), BigNumber.from('200000')]
+        const target_votes = [ethers.utils.parseEther('1500'), ethers.utils.parseEther('2500'), ethers.utils.parseEther('800')]
+        const reward_per_vote = [ethers.utils.parseEther('2'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.5')]
         const duration = [6, 4, 7]
 
         let questIDs: BigNumber[] = [];
 
-        const gauge1_biases = [BigNumber.from('8000000000000000'), BigNumber.from('10000000000000000'), BigNumber.from('12000000000000000')]
-        const gauge2_biases = [BigNumber.from('18000000000000000'), BigNumber.from('25000000000000000'), BigNumber.from('30000000000000000')]
-        const gauge3_biases = [BigNumber.from('10000000000000000'), BigNumber.from('11000000000000000'), BigNumber.from('12000000000000000')]
+        const gauge1_biases = [ethers.utils.parseEther('800'), ethers.utils.parseEther('10000'), ethers.utils.parseEther('1200')]
+        const gauge2_biases = [ethers.utils.parseEther('1800'), ethers.utils.parseEther('2500'), ethers.utils.parseEther('3000')]
+        const gauge3_biases = [ethers.utils.parseEther('1000'), ethers.utils.parseEther('1100'), ethers.utils.parseEther('1500')]
 
         const all_biases = [gauge1_biases, gauge2_biases, gauge3_biases]
 
@@ -1662,7 +1662,7 @@ describe('QuestBoard contract tests', () => {
             first_period = (await board.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
-                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i])
+                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
                 total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
 
@@ -1854,17 +1854,17 @@ describe('QuestBoard contract tests', () => {
         let gauges: string[] = []
         let rewardToken: IERC20[] = []
 
-        const target_votes = [BigNumber.from('15000000000000000'), BigNumber.from('25000000000000000'), BigNumber.from('8000000000000000')]
-        const reward_per_vote = [BigNumber.from('600000'), BigNumber.from('150000'), BigNumber.from('200000')]
+        const target_votes = [ethers.utils.parseEther('15000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('8000')]
+        const reward_per_vote = [ethers.utils.parseEther('2'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.5')]
         const duration = [6, 4, 7]
 
         let questIDs: BigNumber[] = [];
 
-        let ID_to_distribute: BigNumber;
+        const gauge1_biases = [ethers.utils.parseEther('8000'), ethers.utils.parseEther('10000')]
+        const gauge2_biases = [ethers.utils.parseEther('18000'), ethers.utils.parseEther('25000')]
+        const gauge3_biases = [ethers.utils.parseEther('10000'), ethers.utils.parseEther('11000')]
 
-        const gauge1_biases = [BigNumber.from('8000000000000000'), BigNumber.from('10000000000000000')]
-        const gauge2_biases = [BigNumber.from('18000000000000000'), BigNumber.from('25000000000000000')]
-        const gauge3_biases = [BigNumber.from('10000000000000000'), BigNumber.from('11000000000000000')]
+        let ID_to_distribute: BigNumber;
 
         const all_biases = [gauge1_biases, gauge2_biases, gauge3_biases]
 
@@ -1895,7 +1895,7 @@ describe('QuestBoard contract tests', () => {
             first_period = (await board.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
-                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i])
+                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
                 total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
 
@@ -2053,15 +2053,15 @@ describe('QuestBoard contract tests', () => {
         let gauges: string[] = []
         let rewardToken: IERC20[] = []
 
-        const target_votes = [BigNumber.from('15000000000000000'), BigNumber.from('25000000000000000'), BigNumber.from('8000000000000000')]
-        const reward_per_vote = [BigNumber.from('600000'), BigNumber.from('150000'), BigNumber.from('200000')]
+        const target_votes = [ethers.utils.parseEther('1500'), ethers.utils.parseEther('2500'), ethers.utils.parseEther('800')]
+        const reward_per_vote = [ethers.utils.parseEther('0.75'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.25')]
         const duration = [6, 4, 7]
 
         let questIDs: BigNumber[] = [];
 
-        const gauge1_biases = [BigNumber.from('8000000000000000'), BigNumber.from('10000000000000000'), BigNumber.from('12000000000000000')]
-        const gauge2_biases = [BigNumber.from('12000000000000000'), BigNumber.from('15000000000000000'), BigNumber.from('18000000000000000')]
-        const gauge3_biases = [BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0')]
+        const gauge1_biases = [ethers.utils.parseEther('800'), ethers.utils.parseEther('1000'), ethers.utils.parseEther('1200')]
+        const gauge2_biases = [ethers.utils.parseEther('1200'), ethers.utils.parseEther('1500'), ethers.utils.parseEther('1800')]
+        const gauge3_biases = [ethers.utils.parseEther('0'), ethers.utils.parseEther('0'), ethers.utils.parseEther('0')]
 
         let first_period: BigNumber;
 
@@ -2090,7 +2090,7 @@ describe('QuestBoard contract tests', () => {
             first_period = (await board.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
-                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i])
+                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
                 total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
 
@@ -2351,10 +2351,10 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(admin).killBoard()
 
-            const target_votes = BigNumber.from('15000000000000000')
-            const reward_per_vote = BigNumber.from('600000')
+            const target_votes = ethers.utils.parseEther('15000')
+            const reward_per_vote = ethers.utils.parseEther('6')
 
-            const rewards_per_period = BigNumber.from('9000000000000000000000')
+            const rewards_per_period = ethers.utils.parseEther('90000')
 
             const duration = 4
 
@@ -2453,10 +2453,10 @@ describe('QuestBoard contract tests', () => {
 
         it(' should unblock all isAlive methods', async () => {
 
-            const target_votes = BigNumber.from('15000000000000000')
-            const reward_per_vote = BigNumber.from('600000')
+            const target_votes = ethers.utils.parseEther('150000')
+            const reward_per_vote = ethers.utils.parseEther('6')
 
-            const rewards_per_period = BigNumber.from('9000000000000000000000')
+            const rewards_per_period = ethers.utils.parseEther('900000')
 
             const duration = 4
 
@@ -2535,15 +2535,15 @@ describe('QuestBoard contract tests', () => {
         let gauges: string[] = []
         let rewardToken: IERC20[] = []
 
-        const target_votes = [BigNumber.from('15000000000000000'), BigNumber.from('25000000000000000'), BigNumber.from('8000000000000000')]
-        const reward_per_vote = [BigNumber.from('600000'), BigNumber.from('150000'), BigNumber.from('200000')]
+        const target_votes = [ethers.utils.parseEther('1500'), ethers.utils.parseEther('2500'), ethers.utils.parseEther('800')]
+        const reward_per_vote = [ethers.utils.parseEther('1'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.5')]
         const duration = [6, 4, 7]
 
         let questIDs: BigNumber[] = [];
 
-        const gauge1_biases = [BigNumber.from('8000000000000000'), BigNumber.from('10000000000000000'), BigNumber.from('12000000000000000')]
-        const gauge2_biases = [BigNumber.from('12000000000000000'), BigNumber.from('15000000000000000'), BigNumber.from('18000000000000000')]
-        const gauge3_biases = [BigNumber.from('0'), BigNumber.from('0'), BigNumber.from('0')]
+        const gauge1_biases = [ethers.utils.parseEther('800'), ethers.utils.parseEther('1000'), ethers.utils.parseEther('1200')]
+        const gauge2_biases = [ethers.utils.parseEther('1200'), ethers.utils.parseEther('1500'), ethers.utils.parseEther('1800')]
+        const gauge3_biases = [ethers.utils.parseEther('0'), ethers.utils.parseEther('0'), ethers.utils.parseEther('0')]
 
         let first_period: BigNumber;
 
@@ -2572,7 +2572,7 @@ describe('QuestBoard contract tests', () => {
             first_period = (await board.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
-                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i])
+                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
                 total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
 
