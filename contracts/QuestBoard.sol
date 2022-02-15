@@ -101,6 +101,9 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     /** @notice Platform fees ratio (in BPS) */
     uint256 public platformFee = 500;
 
+    /** @notice Minimum Objective required */
+    uint256 public minObjective;
+
     /** @notice Address of the Chest to receive platform fees */
     address public questChest;
     /** @notice Address of the reward Distributor contract */
@@ -177,6 +180,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         questChest = _chest;
 
         currentPeriod = (block.timestamp / WEEK) * WEEK;
+
+        minObjective = 1000 * UNIT;
     }
 
 
@@ -283,7 +288,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(IGaugeController(GAUGE_CONTROLLER).gauge_types(gauge) >= 0, "QuestBoard: Invalid Gauge");
         require(whitelistedTokens[rewardToken], "QuestBoard: Token not allowed");
         require(duration > 0, "QuestBoard: Incorrect duration");
-        require(objective != 0, "QuestBoard: Null objective");
+        require(objective >= minObjective, "QuestBoard: Objective too low");
         require(rewardPerVote != 0 && totalRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
 
         // Verifiy the given amounts of reward token are correct
@@ -506,6 +511,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
         require(addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
 
+        // No need to compare to minObjective : the new value must be higher than current Objective
+        // and current objective needs to be >= minObjective
         require(newObjective > periodsByQuest[questID][currentPeriod].objectiveVotes, "QuestBoard: New objective must be higher");
 
         // For all non active QuestPeriods (non Closed, nor the current Active one)
@@ -831,11 +838,21 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     /**
     * @notice Updates the Platfrom fees BPS ratio
     * @dev Updates the Platfrom fees BPS ratio
-    * @param newFee ANew fee ratio
+    * @param newFee New fee ratio
     */
     function updatePlatformFee(uint256 newFee) external onlyOwner {
         require(newFee <= 500, "QuestBoard: Fee too high");
         platformFee = newFee;
+    }
+   
+    /**
+    * @notice Updates the min objective value
+    * @dev Updates the min objective value
+    * @param newMinObjective New min objective
+    */
+    function updateMinObjective(uint256 newMinObjective) external onlyOwner {
+        require(newMinObjective > 0, "QuestBoard: Null value");
+        minObjective = newMinObjective;
     }
    
     /**

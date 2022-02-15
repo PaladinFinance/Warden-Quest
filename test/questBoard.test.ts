@@ -107,6 +107,8 @@ describe('QuestBoard contract tests', () => {
 
         expect(await board.platformFee()).to.be.eq(500)
 
+        expect(await board.minObjective()).to.be.eq(ethers.utils.parseEther('1000'))
+
         expect(await board.distributor()).to.be.eq(ethers.constants.AddressZero)
 
         const block_number = await provider.getBlockNumber()
@@ -561,12 +563,24 @@ describe('QuestBoard contract tests', () => {
                     gauge1.address,
                     DAI.address,
                     duration,
+                    ethers.utils.parseEther('50'),
+                    reward_per_vote,
+                    total_rewards_amount,
+                    total_fees
+                )
+            ).to.be.revertedWith('QuestBoard: Objective too low')
+
+            await expect(
+                board.connect(creator1).createQuest(
+                    gauge1.address,
+                    DAI.address,
+                    duration,
                     0,
                     reward_per_vote,
                     total_rewards_amount,
                     total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Null objective')
+            ).to.be.revertedWith('QuestBoard: Objective too low')
 
             await expect(
                 board.connect(creator1).createQuest(
@@ -1623,15 +1637,15 @@ describe('QuestBoard contract tests', () => {
         let gauges: string[] = []
         let rewardToken: IERC20[] = []
 
-        const target_votes = [ethers.utils.parseEther('1500'), ethers.utils.parseEther('2500'), ethers.utils.parseEther('800')]
+        const target_votes = [ethers.utils.parseEther('15000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('8000')]
         const reward_per_vote = [ethers.utils.parseEther('2'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.5')]
         const duration = [6, 4, 7]
 
         let questIDs: BigNumber[] = [];
 
-        const gauge1_biases = [ethers.utils.parseEther('800'), ethers.utils.parseEther('10000'), ethers.utils.parseEther('1200')]
-        const gauge2_biases = [ethers.utils.parseEther('1800'), ethers.utils.parseEther('2500'), ethers.utils.parseEther('3000')]
-        const gauge3_biases = [ethers.utils.parseEther('1000'), ethers.utils.parseEther('1100'), ethers.utils.parseEther('1500')]
+        const gauge1_biases = [ethers.utils.parseEther('8000'), ethers.utils.parseEther('10000'), ethers.utils.parseEther('12000')]
+        const gauge2_biases = [ethers.utils.parseEther('18000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('30000')]
+        const gauge3_biases = [ethers.utils.parseEther('10000'), ethers.utils.parseEther('11000'), ethers.utils.parseEther('15000')]
 
         const all_biases = [gauge1_biases, gauge2_biases, gauge3_biases]
 
@@ -2053,14 +2067,14 @@ describe('QuestBoard contract tests', () => {
         let gauges: string[] = []
         let rewardToken: IERC20[] = []
 
-        const target_votes = [ethers.utils.parseEther('1500'), ethers.utils.parseEther('2500'), ethers.utils.parseEther('800')]
-        const reward_per_vote = [ethers.utils.parseEther('0.75'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.25')]
+        const target_votes = [ethers.utils.parseEther('15000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('8000')]
+        const reward_per_vote = [ethers.utils.parseEther('2'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.5')]
         const duration = [6, 4, 7]
 
         let questIDs: BigNumber[] = [];
 
-        const gauge1_biases = [ethers.utils.parseEther('800'), ethers.utils.parseEther('1000'), ethers.utils.parseEther('1200')]
-        const gauge2_biases = [ethers.utils.parseEther('1200'), ethers.utils.parseEther('1500'), ethers.utils.parseEther('1800')]
+        const gauge1_biases = [ethers.utils.parseEther('8000'), ethers.utils.parseEther('10000'), ethers.utils.parseEther('12000')]
+        const gauge2_biases = [ethers.utils.parseEther('12000'), ethers.utils.parseEther('15000'), ethers.utils.parseEther('18000')]
         const gauge3_biases = [ethers.utils.parseEther('0'), ethers.utils.parseEther('0'), ethers.utils.parseEther('0')]
 
         let first_period: BigNumber;
@@ -2535,14 +2549,14 @@ describe('QuestBoard contract tests', () => {
         let gauges: string[] = []
         let rewardToken: IERC20[] = []
 
-        const target_votes = [ethers.utils.parseEther('1500'), ethers.utils.parseEther('2500'), ethers.utils.parseEther('800')]
-        const reward_per_vote = [ethers.utils.parseEther('1'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.5')]
+        const target_votes = [ethers.utils.parseEther('15000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('8000')]
+        const reward_per_vote = [ethers.utils.parseEther('2'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.5')]
         const duration = [6, 4, 7]
 
         let questIDs: BigNumber[] = [];
 
-        const gauge1_biases = [ethers.utils.parseEther('800'), ethers.utils.parseEther('1000'), ethers.utils.parseEther('1200')]
-        const gauge2_biases = [ethers.utils.parseEther('1200'), ethers.utils.parseEther('1500'), ethers.utils.parseEther('1800')]
+        const gauge1_biases = [ethers.utils.parseEther('8000'), ethers.utils.parseEther('10000'), ethers.utils.parseEther('12000')]
+        const gauge2_biases = [ethers.utils.parseEther('12000'), ethers.utils.parseEther('15000'), ethers.utils.parseEther('18000')]
         const gauge3_biases = [ethers.utils.parseEther('0'), ethers.utils.parseEther('0'), ethers.utils.parseEther('0')]
 
         let first_period: BigNumber;
@@ -3071,6 +3085,37 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(user2).updatePlatformFee(new_fee)
+            ).to.be.revertedWith('Ownable: caller is not the owner')
+
+        });
+
+    });
+
+
+    describe('updateMinObjective', async () => {
+
+        const new_min = ethers.utils.parseEther('500')
+
+        it(' should update the min objective', async () => {
+
+            await board.connect(admin).updateMinObjective(new_min)
+
+            expect(await board.minObjective()).to.be.eq(new_min)
+
+        });
+
+        it(' should fail if given 0', async () => {
+
+            await expect(
+                board.connect(admin).updateMinObjective(0)
+            ).to.be.revertedWith('QuestBoard: Null value')
+
+        });
+
+        it(' should only be allowed for admin', async () => {
+
+            await expect(
+                board.connect(user2).updateMinObjective(new_min)
             ).to.be.revertedWith('Ownable: caller is not the owner')
 
         });
