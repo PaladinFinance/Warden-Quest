@@ -113,6 +113,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     mapping(address => bool) approvedManagers;
     /** @notice Whitelisted tokens that can be used as reward tokens */
     mapping(address => bool) public whitelistedTokens;
+    /** @notice Min rewardPerVote per token (to avoid spam creation of useless Quest) */
+    mapping(address => uint256) public minRewardPerVotePerToken;
 
     /** @notice Boolean, true if the cotnract was killed, stopping main user functions */
     bool public isKilled;
@@ -147,9 +149,12 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
     /** @notice Event emitted when a Period is Closed */
     event PeriodClosed(uint256 indexed period);
+    /** @notice Event emitted when a part of the Period is Closed */
+    event PeriodClosedPart(uint256 indexed period);
 
     /** @notice Event emitted when a new reward token is whitelisted */
-    event WhitelistToken(address indexed token);
+    event WhitelistToken(address indexed token, uint256 minRewardPerVote);
+    event UpdateRewardToken(address indexed token, uint256 newMinRewardPerVote);
 
     /** @notice Event emitted when the contract is killed */
     event Killed();
@@ -290,6 +295,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(duration > 0, "QuestBoard: Incorrect duration");
         require(objective >= minObjective, "QuestBoard: Objective too low");
         require(rewardPerVote != 0 && totalRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
+        require(rewardPerVote >= minRewardPerVotePerToken[rewardToken], "QuestBoard: RewardPerVote too low");
 
         // Verifiy the given amounts of reward token are correct
         vars.rewardPerPeriod = (objective * rewardPerVote) / UNIT;
@@ -714,6 +720,76 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
         emit PeriodClosed(period);
     }
+
+    /**
+    * @notice Closes the given QuestPeriods for the Period
+    * @dev Closes the given QuestPeriods for the Period, calculating rewards to distribute & send them to distributor
+    * @param period Timestamp of the period
+    * @param questIDs List of the Quest IDs to close
+    */
+    function closePartOfQuestPeriod(uint256 period, uint256[] calldata questIDs) external isAlive onlyAllowed nonReentrant {
+        updatePeriod();
+        require(questIDs.length != 0, "QuestBoard: empty array");
+        require(distributor != address(0), "QuestBoard: no Distributor set");
+        require(period != 0, "QuestBoard: invalid Period");
+        require(period < currentPeriod, "QuestBoard: Period still active");
+        require(questsByPeriod[period].length != 0, "QuestBoard: empty Period");
+
+        IGaugeController gaugeController = IGaugeController(GAUGE_CONTROLLER);
+
+        // We use the Gauge Point data from nextPeriod => the end of the period we are closing
+        uint256 nextPeriod = ((period + WEEK) / WEEK) * WEEK;
+
+        // For each QuestPeriod
+        for(uint i = 0; i < questIDs.length; i++){
+            // We chack that this period was not already closed
+            require(
+                periodsByQuest[questIDs[i]][period].currentState == PeriodState.ACTIVE,
+                "QuestBoard: Period already closed"
+            );
+
+            Quest storage _quest = quests[questIDs[i]];
+            QuestPeriod memory _questPeriod = periodsByQuest[questIDs[i]][period];
+            _questPeriod.currentState = PeriodState.CLOSED;
+
+            // Call a checkpoint on the Gauge, in case it was not written yet
+            gaugeController.checkpoint_gauge(_quest.gauge);
+
+            // Get the bias of the Gauge for the end of the period
+            uint256 periodBias = gaugeController.points_weight(_quest.gauge, nextPeriod).bias;
+
+            if(periodBias == 0) { 
+                //Because we don't want to divide by 0
+                // Here since the bias is 0, we consider 0% completion
+                // => no rewards to be distributed
+                _questPeriod.rewardAmountDistributed = 0;
+                _questPeriod.withdrawableAmount = _questPeriod.rewardAmountPerPeriod;
+            }
+            else{
+                // For here, 100% completion is 1e18 (represented by the UNIT constant).
+                // The completion percentage is calculated based on the Gauge bias for 
+                // the next period (all accrued from previous periods),
+                // and the Bias objective for this period as listed in the Quest Period.
+                // To get how much rewards to distribute, we can multiply by the completion value
+                // (that will be between 0 & UNIT), and divided by UNIT.
+
+                uint256 objectiveCompletion = periodBias >= _questPeriod.objectiveVotes ? UNIT : (periodBias * UNIT) / _questPeriod.objectiveVotes;
+
+                // Using the completion ratio, we calculate the amount to distribute
+                uint256 toDistributeAmount = (_questPeriod.rewardAmountPerPeriod * objectiveCompletion) / UNIT;
+
+                _questPeriod.rewardAmountDistributed = toDistributeAmount;
+                // And the rest is set as withdrawable amount, that the Quest creator can retrieve
+                _questPeriod.withdrawableAmount = _questPeriod.rewardAmountPerPeriod - toDistributeAmount;
+
+                IERC20(_quest.rewardToken).safeTransfer(distributor, toDistributeAmount);
+            }
+
+            periodsByQuest[questIDs[i]][period] =  _questPeriod;
+        }
+
+        emit PeriodClosedPart(period);
+    }
    
     /**
     * @dev Sets the QuestPeriod as disitrbuted, and adds the MerkleRoot to the Distributor contract
@@ -764,11 +840,15 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     * @dev Whitelists a reward token
     * @param newToken Address of the reward token
     */
-    function whitelistToken(address newToken) public onlyAllowed {
+    function whitelistToken(address newToken, uint256 minRewardPerVote) public onlyAllowed {
         require(newToken != address(0), "QuestBoard: Zero Address");
+        require(minRewardPerVote != 0, "QuestBoard: Null value");
+
         whitelistedTokens[newToken] = true;
 
-        emit WhitelistToken(newToken);
+        minRewardPerVotePerToken[newToken] = minRewardPerVote;
+
+        emit WhitelistToken(newToken, minRewardPerVote);
     }
    
     /**
@@ -776,11 +856,21 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     * @dev Whitelists a list of reward tokens
     * @param newTokens List of reward tokens addresses
     */
-    function whitelistMultipleTokens(address[] memory newTokens) external onlyAllowed {
+    function whitelistMultipleTokens(address[] calldata newTokens, uint256[] calldata minRewardPerVotes) external onlyAllowed {
         require(newTokens.length != 0, "QuestBoard: empty list");
+        require(newTokens.length == minRewardPerVotes.length, "QuestBoard: list sizes inequal");
         for(uint i = 0; i < newTokens.length; i++){
-            whitelistToken(newTokens[i]);
+            whitelistToken(newTokens[i], minRewardPerVotes[i]);
         }
+    }
+
+    function updateRewardToken(address newToken, uint256 newMinRewardPerVote) public onlyAllowed {
+        require(whitelistedTokens[newToken], "QuestBoard: Token not whitelisted");
+        require(newMinRewardPerVote != 0, "QuestBoard: Null value");
+
+        minRewardPerVotePerToken[newToken] = newMinRewardPerVote;
+
+        emit UpdateRewardToken(newToken, newMinRewardPerVote);
     }
 
     // Admin functions

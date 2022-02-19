@@ -63,6 +63,9 @@ describe('QuestBoard contract tests', () => {
     let CRV: IERC20
     let DAI: IERC20
 
+    let minCRVAmount = ethers.utils.parseEther("0.0001")
+    let minDAIAmount = ethers.utils.parseEther("0.005")
+
     before(async () => {
         [admin, mockChest, manager, manager2, creator1, creator2, creator3, gauge1, gauge2, gauge3, user1, user2, receiver, newChest, newDistributor, otherAddress] = await ethers.getSigners();
 
@@ -216,7 +219,7 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(admin).initiateDistributor(distributor.address)
 
-            await board.connect(admin).whitelistToken(DAI.address)
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
 
             await controller.add_gauge(gauge1.address, 2)
 
@@ -435,7 +438,7 @@ describe('QuestBoard contract tests', () => {
             const total_fees2 = total_rewards_amount2.mul(500).div(10000)
 
 
-            await board.connect(admin).whitelistToken(CRV.address)
+            await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
 
             await controller.add_gauge(gauge2.address, 1)
 
@@ -495,9 +498,9 @@ describe('QuestBoard contract tests', () => {
             let otherBoard = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as QuestBoard;
             await otherBoard.deployed();
 
-            await otherBoard.connect(admin).whitelistToken(DAI.address)
+            await otherBoard.connect(admin).whitelistToken(DAI.address, minDAIAmount)
 
-            await otherBoard.connect(admin).whitelistToken(DAI.address)
+            await otherBoard.connect(admin).whitelistToken(DAI.address, minDAIAmount)
 
             await controller.add_gauge(gauge1.address, 2)
 
@@ -593,6 +596,18 @@ describe('QuestBoard contract tests', () => {
                     total_fees
                 )
             ).to.be.revertedWith('QuestBoard: Null amount')
+
+            await expect(
+                board.connect(creator1).createQuest(
+                    gauge1.address,
+                    DAI.address,
+                    duration,
+                    target_votes,
+                    500000,
+                    total_rewards_amount,
+                    total_fees
+                )
+            ).to.be.revertedWith('QuestBoard: RewardPerVote too low')
 
             await expect(
                 board.connect(creator1).createQuest(
@@ -714,7 +729,7 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(admin).initiateDistributor(distributor.address)
 
-            await board.connect(admin).whitelistToken(DAI.address)
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
 
             await controller.add_gauge(gauge1.address, 2)
 
@@ -1022,7 +1037,7 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(admin).initiateDistributor(distributor.address)
 
-            await board.connect(admin).whitelistToken(DAI.address)
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
 
             await controller.add_gauge(gauge1.address, 2)
 
@@ -1344,7 +1359,7 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(admin).initiateDistributor(distributor.address)
 
-            await board.connect(admin).whitelistToken(DAI.address)
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
 
             await controller.add_gauge(gauge1.address, 2)
 
@@ -1666,8 +1681,8 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(admin).approveManager(manager.address)
 
-            await board.connect(admin).whitelistToken(DAI.address)
-            await board.connect(admin).whitelistToken(CRV.address)
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+            await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
 
             await controller.add_gauge(gauge1.address, 2)
             await controller.add_gauge(gauge2.address, 1)
@@ -1834,7 +1849,7 @@ describe('QuestBoard contract tests', () => {
             let otherBoard = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as QuestBoard;
             await otherBoard.deployed();
 
-            await otherBoard.connect(admin).whitelistToken(DAI.address)
+            await otherBoard.connect(admin).whitelistToken(DAI.address, minDAIAmount)
 
             first_period = (await otherBoard.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
@@ -1854,6 +1869,269 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(user1).closeQuestPeriod(first_period)
+            ).to.be.revertedWith('QuestBoard: Not allowed')
+
+        });
+
+    });
+
+    describe('closePartOfQuestPeriod', async () => {
+
+        let gauges: string[] = []
+        let rewardToken: IERC20[] = []
+
+        const target_votes = [ethers.utils.parseEther('15000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('8000')]
+        const reward_per_vote = [ethers.utils.parseEther('2'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.5')]
+        const duration = [6, 4, 7]
+
+        let questIDs: BigNumber[] = [];
+
+        const gauge1_biases = [ethers.utils.parseEther('8000'), ethers.utils.parseEther('10000'), ethers.utils.parseEther('12000')]
+        const gauge2_biases = [ethers.utils.parseEther('18000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('30000')]
+        const gauge3_biases = [ethers.utils.parseEther('10000'), ethers.utils.parseEther('11000'), ethers.utils.parseEther('15000')]
+
+        const all_biases = [gauge1_biases, gauge2_biases, gauge3_biases]
+
+        let first_period: BigNumber;
+
+        let rewards_per_period: BigNumber[] = []
+        let total_rewards_amount: BigNumber[] = []
+        let total_fees: BigNumber[] = []
+
+        let toCloseIDs: BigNumber[] = []; 
+
+        beforeEach(async () => {
+
+            gauges = [gauge1.address, gauge2.address, gauge3.address]
+            rewardToken = [DAI, CRV, DAI]
+
+            let creators = [creator1, creator2, creator3]
+
+            await board.connect(admin).initiateDistributor(distributor.address)
+
+            await board.connect(admin).approveManager(manager.address)
+
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+            await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
+
+            await controller.add_gauge(gauge1.address, 2)
+            await controller.add_gauge(gauge2.address, 1)
+            await controller.add_gauge(gauge3.address, 2)
+
+            first_period = (await board.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+
+            for (let i = 0; i < gauges.length; i++) {
+                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
+                total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
+                total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
+
+                await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
+                await rewardToken[i].connect(creators[i]).approve(board.address, 0)
+                await rewardToken[i].connect(creators[i]).approve(board.address, total_rewards_amount[i].add(total_fees[i]))
+
+                questIDs[i] = await board.nextID()
+
+                await board.connect(creators[i]).createQuest(
+                    gauges[i],
+                    rewardToken[i].address,
+                    duration[i],
+                    target_votes[i],
+                    reward_per_vote[i],
+                    total_rewards_amount[i],
+                    total_fees[i]
+                )
+            }
+
+            //setup the gauges slopes
+            for (let i = 0; i < gauge1_biases.length; i++) {
+                let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
+
+                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_biases[i])
+                await controller.set_points_weight(gauge2.address, period_end_to_set, gauge2_biases[i])
+                await controller.set_points_weight(gauge3.address, period_end_to_set, gauge3_biases[i])
+            }
+
+            toCloseIDs = [questIDs[0], questIDs[2]]
+
+        });
+
+        it(' 1 period - should update the period', async () => {
+            await advanceTime(WEEK.mul(2).toNumber())
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            const current_period = current_ts.div(WEEK).mul(WEEK)
+
+            await board.connect(manager).closePartOfQuestPeriod(first_period, toCloseIDs)
+
+            expect(await board.currentPeriod()).to.be.eq(current_period)
+
+        });
+
+        it(' 1 period - should close & update the given questPeriods correctly (& emit the correct event)', async () => {
+            await advanceTime(WEEK.mul(2).toNumber())
+
+            const close_tx = await board.connect(manager).closePartOfQuestPeriod(first_period, toCloseIDs)
+
+            for (let i = 0; i < questIDs.length; i++) {
+                if(!toCloseIDs.includes(questIDs[i])) continue;
+
+                const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
+
+                const expected_completion = all_biases[i][0].gte(target_votes[i]) ? UNIT : all_biases[i][0].mul(UNIT).div(target_votes[i])
+                const expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
+                const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
+
+                expect(questPriod_data.currentState).to.be.eq(1)
+                expect(questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
+                expect(questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
+
+                await expect(
+                    close_tx
+                ).to.emit(rewardToken[i], "Transfer")
+                    .withArgs(board.address, distributor.address, expected_distribute_amount);
+
+            }
+
+            await expect(
+                close_tx
+            ).to.emit(board, "PeriodClosedPart")
+                .withArgs(first_period);
+
+        });
+
+        it(' 1 period - should not close & update the other questPeriods', async () => {
+            await advanceTime(WEEK.mul(2).toNumber())
+
+            await board.connect(manager).closePartOfQuestPeriod(first_period, toCloseIDs)
+
+            const questPriod_data = await board.periodsByQuest(questIDs[1], first_period)
+
+            expect(questPriod_data.currentState).to.be.eq(0)
+            expect(questPriod_data.rewardAmountDistributed).to.be.eq(0)
+            expect(questPriod_data.withdrawableAmount).to.be.eq(0)
+
+        });
+
+        it(' 1 period - should not be able to close the same QuestPeriods twice', async () => {
+            await advanceTime(WEEK.mul(2).toNumber())
+
+            await board.connect(manager).closePartOfQuestPeriod(first_period, toCloseIDs)
+
+            await expect(
+                board.connect(manager).closePartOfQuestPeriod(first_period, toCloseIDs)
+            ).to.be.revertedWith('QuestBoard: Period already closed')
+
+            await expect(
+                board.connect(manager).closePartOfQuestPeriod(first_period, [questIDs[1], questIDs[2]])
+            ).to.be.revertedWith('QuestBoard: Period already closed')
+
+        });
+
+        it(' 1 period - should fail on current active period', async () => {
+            await advanceTime(WEEK.toNumber())
+
+            await expect(
+                board.connect(manager).closePartOfQuestPeriod(first_period, toCloseIDs)
+            ).to.be.revertedWith('QuestBoard: Period still active')
+
+        });
+
+        it(' multiple period - should close & update the given questPeriods correctly for each period (& emit the correct event)', async () => {
+            await advanceTime(WEEK.mul(4).toNumber())
+
+            const ellapsed_periods = 3
+
+            for (let j = 0; j < ellapsed_periods; j++) {
+                let toClose_period = first_period.add(WEEK.mul(j)).div(WEEK).mul(WEEK)
+
+                let close_tx = await board.connect(manager).closePartOfQuestPeriod(toClose_period, toCloseIDs)
+
+                for (let i = 0; i < gauges.length; i++) {
+
+                    if(!toCloseIDs.includes(questIDs[i])) continue;
+
+                    let questPriod_data = await board.periodsByQuest(questIDs[i], toClose_period)
+
+                    let expected_completion = all_biases[i][j].gte(target_votes[i]) ? UNIT : all_biases[i][j].mul(UNIT).div(target_votes[i])
+                    let expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
+                    let expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
+
+                    expect(questPriod_data.currentState).to.be.eq(1)
+                    expect(questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
+                    expect(questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
+
+                    await expect(
+                        close_tx
+                    ).to.emit(rewardToken[i], "Transfer")
+                        .withArgs(board.address, distributor.address, expected_distribute_amount);
+
+                }
+
+                await expect(
+                    close_tx
+                ).to.emit(board, "PeriodClosedPart")
+                    .withArgs(toClose_period);
+
+            }
+
+        });
+
+        it(' should fail if empty array is given', async () => {
+            await advanceTime(WEEK.toNumber())
+
+            await expect(
+                board.connect(manager).closePartOfQuestPeriod(first_period, [])
+            ).to.be.revertedWith('QuestBoard: empty array')
+
+        });
+
+        it(' should fail on incorrect period', async () => {
+            await advanceTime(WEEK.toNumber())
+
+            await expect(
+                board.connect(manager).closePartOfQuestPeriod(0, toCloseIDs)
+            ).to.be.revertedWith('QuestBoard: invalid Period')
+
+        });
+
+        it(' should fail on empty period', async () => {
+            await advanceTime(WEEK.toNumber())
+
+            let previous_period = first_period.sub(WEEK).div(WEEK).mul(WEEK)
+
+            await expect(
+                board.connect(manager).closePartOfQuestPeriod(previous_period, toCloseIDs)
+            ).to.be.revertedWith('QuestBoard: empty Period')
+
+        });
+
+        it(' should fail if no distributor set', async () => {
+
+            let otherBoard = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as QuestBoard;
+            await otherBoard.deployed();
+
+            await otherBoard.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+
+            first_period = (await otherBoard.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+
+            await advanceTime(WEEK.mul(2).toNumber())
+
+            await expect(
+                otherBoard.connect(admin).closePartOfQuestPeriod(first_period, toCloseIDs)
+            ).to.be.revertedWith('QuestBoard: no Distributor set')
+
+        });
+
+        it(' should only be allowed for admin and managers', async () => {
+
+            await expect(
+                board.connect(manager2).closePartOfQuestPeriod(first_period, toCloseIDs)
+            ).to.be.revertedWith('QuestBoard: Not allowed')
+
+            await expect(
+                board.connect(user1).closePartOfQuestPeriod(first_period, toCloseIDs)
             ).to.be.revertedWith('QuestBoard: Not allowed')
 
         });
@@ -1899,8 +2177,8 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(admin).approveManager(manager.address)
 
-            await board.connect(admin).whitelistToken(DAI.address)
-            await board.connect(admin).whitelistToken(CRV.address)
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+            await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
 
             await controller.add_gauge(gauge1.address, 2)
             await controller.add_gauge(gauge2.address, 1)
@@ -2094,8 +2372,8 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(admin).approveManager(manager.address)
 
-            await board.connect(admin).whitelistToken(DAI.address)
-            await board.connect(admin).whitelistToken(CRV.address)
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+            await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
 
             await controller.add_gauge(gauge1.address, 2)
             await controller.add_gauge(gauge2.address, 1)
@@ -2415,7 +2693,7 @@ describe('QuestBoard contract tests', () => {
             ).to.not.be.reverted
 
             await expect(
-                board.connect(admin).whitelistToken(DAI.address)
+                board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
             ).to.not.be.reverted
 
         });
@@ -2479,7 +2757,7 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(admin).initiateDistributor(distributor.address)
 
-            await board.connect(admin).whitelistToken(DAI.address)
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
 
             await controller.add_gauge(gauge1.address, 2)
 
@@ -2576,8 +2854,8 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(admin).approveManager(manager.address)
 
-            await board.connect(admin).whitelistToken(DAI.address)
-            await board.connect(admin).whitelistToken(CRV.address)
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+            await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
 
             await controller.add_gauge(gauge1.address, 2)
             await controller.add_gauge(gauge2.address, 1)
@@ -2898,29 +3176,43 @@ describe('QuestBoard contract tests', () => {
         it(' should add the token (& emit the correct Event)', async () => {
 
             await expect(
-                board.connect(manager).whitelistToken(CRV.address)
+                board.connect(manager).whitelistToken(CRV.address, minCRVAmount)
             ).to.emit(board, "WhitelistToken")
-                .withArgs(CRV.address);
+                .withArgs(CRV.address, minCRVAmount);
 
             expect(await board.whitelistedTokens(CRV.address)).to.be.true
             expect(await board.whitelistedTokens(DAI.address)).to.be.false
             expect(await board.whitelistedTokens(otherAddress.address)).to.be.false
 
+            expect(await board.minRewardPerVotePerToken(CRV.address)).to.be.eq(minCRVAmount)
+            expect(await board.minRewardPerVotePerToken(DAI.address)).to.be.eq(0)
+
             await expect(
-                board.connect(manager).whitelistToken(DAI.address)
+                board.connect(manager).whitelistToken(DAI.address, minDAIAmount)
             ).to.emit(board, "WhitelistToken")
-                .withArgs(DAI.address);
+                .withArgs(DAI.address, minDAIAmount);
 
             expect(await board.whitelistedTokens(CRV.address)).to.be.true
             expect(await board.whitelistedTokens(DAI.address)).to.be.true
             expect(await board.whitelistedTokens(otherAddress.address)).to.be.false
+
+            expect(await board.minRewardPerVotePerToken(CRV.address)).to.be.eq(minCRVAmount)
+            expect(await board.minRewardPerVotePerToken(DAI.address)).to.be.eq(minDAIAmount)
+
+        });
+
+        it(' should fail if given 0 value', async () => {
+
+            await expect(
+                board.connect(manager).whitelistToken(CRV.address, 0)
+            ).to.be.revertedWith('QuestBoard: Null value')
 
         });
 
         it(' should fail if given address 0x0', async () => {
 
             await expect(
-                board.connect(manager).whitelistToken(ethers.constants.AddressZero)
+                board.connect(manager).whitelistToken(ethers.constants.AddressZero, 100)
             ).to.be.revertedWith('QuestBoard: Zero Address')
 
         });
@@ -2928,11 +3220,11 @@ describe('QuestBoard contract tests', () => {
         it(' should only be calalble by admin & allowed addresses', async () => {
 
             await expect(
-                board.connect(user1).whitelistToken(CRV.address)
+                board.connect(user1).whitelistToken(CRV.address, minCRVAmount)
             ).to.be.revertedWith('QuestBoard: Not allowed')
 
             await expect(
-                board.connect(user2).whitelistToken(DAI.address)
+                board.connect(user2).whitelistToken(DAI.address, minDAIAmount)
             ).to.be.revertedWith('QuestBoard: Not allowed')
 
         });
@@ -2950,17 +3242,17 @@ describe('QuestBoard contract tests', () => {
 
         it(' should whitelist all the tokens (& emit the correct Events)', async () => {
 
-            const tx = board.connect(manager).whitelistMultipleTokens([CRV.address, DAI.address])
+            const tx = board.connect(manager).whitelistMultipleTokens([CRV.address, DAI.address], [minCRVAmount, minDAIAmount])
 
             await expect(
                 tx
             ).to.emit(board, "WhitelistToken")
-                .withArgs(CRV.address);
+                .withArgs(CRV.address, minCRVAmount);
 
             await expect(
                 tx
             ).to.emit(board, "WhitelistToken")
-                .withArgs(DAI.address);
+                .withArgs(DAI.address, minDAIAmount);
 
             expect(await board.whitelistedTokens(CRV.address)).to.be.true
             expect(await board.whitelistedTokens(DAI.address)).to.be.true
@@ -2968,22 +3260,30 @@ describe('QuestBoard contract tests', () => {
 
         });
 
-        it(' should fail if empty lsit given', async () => {
+        it(' should fail if empty list given', async () => {
 
             await expect(
-                board.connect(manager).whitelistMultipleTokens([])
+                board.connect(manager).whitelistMultipleTokens([], [])
             ).to.be.revertedWith('QuestBoard: empty list')
+
+        });
+
+        it(' should fail if inequal lists given', async () => {
+
+            await expect(
+                board.connect(manager).whitelistMultipleTokens([CRV.address, DAI.address], [minCRVAmount])
+            ).to.be.revertedWith('QuestBoard: list sizes inequal')
 
         });
 
         it(' should fail if address 0x0 is in the list', async () => {
 
             await expect(
-                board.connect(manager).whitelistMultipleTokens([ethers.constants.AddressZero, DAI.address])
+                board.connect(manager).whitelistMultipleTokens([ethers.constants.AddressZero, DAI.address], [minCRVAmount, minDAIAmount])
             ).to.be.revertedWith('QuestBoard: Zero Address')
 
             await expect(
-                board.connect(manager).whitelistMultipleTokens([CRV.address, ethers.constants.AddressZero])
+                board.connect(manager).whitelistMultipleTokens([CRV.address, ethers.constants.AddressZero], [minCRVAmount, minDAIAmount])
             ).to.be.revertedWith('QuestBoard: Zero Address')
 
         });
@@ -2991,11 +3291,65 @@ describe('QuestBoard contract tests', () => {
         it(' should only be calalble by admin & allowed addresses', async () => {
 
             await expect(
-                board.connect(user1).whitelistMultipleTokens([CRV.address, DAI.address])
+                board.connect(user1).whitelistMultipleTokens([CRV.address, DAI.address], [minCRVAmount, minDAIAmount])
             ).to.be.revertedWith('QuestBoard: Not allowed')
 
             await expect(
-                board.connect(user2).whitelistMultipleTokens([CRV.address, DAI.address])
+                board.connect(user2).whitelistMultipleTokens([CRV.address, DAI.address], [minCRVAmount, minDAIAmount])
+            ).to.be.revertedWith('QuestBoard: Not allowed')
+
+        });
+
+    });
+
+
+    describe('updateRewardToken', async () => {
+
+        let newMinCRVAmount = ethers.utils.parseEther("0.002")
+
+        beforeEach(async () => {
+
+            await board.connect(admin).approveManager(manager.address)
+
+            await board.connect(manager).whitelistToken(CRV.address, minCRVAmount)
+
+        });
+
+        it(' should update the token minPricePerVote (& emit the correct Event)', async () => {
+
+            await expect(
+                board.connect(manager).updateRewardToken(CRV.address, newMinCRVAmount)
+            ).to.emit(board, "UpdateRewardToken")
+                .withArgs(CRV.address, newMinCRVAmount);
+
+            expect(await board.minRewardPerVotePerToken(CRV.address)).to.be.eq(newMinCRVAmount)
+
+        });
+
+        it(' should fail if given 0 value', async () => {
+
+            await expect(
+                board.connect(manager).updateRewardToken(CRV.address, 0)
+            ).to.be.revertedWith('QuestBoard: Null value')
+
+        });
+
+        it(' should fail if given token is not whitelisted', async () => {
+
+            await expect(
+                board.connect(manager).updateRewardToken(DAI.address, 100)
+            ).to.be.revertedWith('QuestBoard: Token not whitelisted')
+
+        });
+
+        it(' should only be calalble by admin & allowed addresses', async () => {
+
+            await expect(
+                board.connect(user1).updateRewardToken(CRV.address, newMinCRVAmount)
+            ).to.be.revertedWith('QuestBoard: Not allowed')
+
+            await expect(
+                board.connect(user2).updateRewardToken(DAI.address, newMinCRVAmount)
             ).to.be.revertedWith('QuestBoard: Not allowed')
 
         });
@@ -3128,13 +3482,13 @@ describe('QuestBoard contract tests', () => {
         it(' should allow the added address as manager', async () => {
 
             await expect(
-                board.connect(manager).whitelistToken(DAI.address)
+                board.connect(manager).whitelistToken(DAI.address, minDAIAmount)
             ).to.be.revertedWith('QuestBoard: Not allowed')
 
             await board.connect(admin).approveManager(manager.address)
 
             await expect(
-                board.connect(manager).whitelistToken(DAI.address)
+                board.connect(manager).whitelistToken(DAI.address, minDAIAmount)
             ).to.not.be.reverted
 
         });
@@ -3166,13 +3520,13 @@ describe('QuestBoard contract tests', () => {
         it(' should remove the address as manager', async () => {
 
             await expect(
-                board.connect(manager).whitelistToken(DAI.address)
+                board.connect(manager).whitelistToken(DAI.address, minDAIAmount)
             ).to.not.be.reverted
 
             await board.connect(admin).removeManager(manager.address)
 
             await expect(
-                board.connect(manager).whitelistToken(CRV.address)
+                board.connect(manager).whitelistToken(CRV.address, minCRVAmount)
             ).to.be.revertedWith('QuestBoard: Not allowed')
 
         });
@@ -3182,7 +3536,7 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).removeManager(manager.address)
 
             await expect(
-                board.connect(manager2).whitelistToken(DAI.address)
+                board.connect(manager2).whitelistToken(DAI.address, minDAIAmount)
             ).to.not.be.reverted
 
         });
@@ -3227,7 +3581,7 @@ describe('QuestBoard contract tests', () => {
 
         it(' should fail for whitelisted tokens', async () => {
 
-            await board.connect(admin).whitelistToken(DAI.address)
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
 
             await expect(
                 board.connect(admin).recoverERC20(DAI.address, lost_amount)
