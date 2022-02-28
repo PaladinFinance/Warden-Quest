@@ -1,14 +1,25 @@
 import { HardhatUserConfig } from "hardhat/types";
-
+import path from 'path';
+import fs from 'fs';
 import "@nomiclabs/hardhat-waffle";
 import "@typechain/hardhat";
 import "hardhat-contract-sizer";
 import "@nomiclabs/hardhat-etherscan";
 import "solidity-coverage";
 import "hardhat-gas-reporter";
-import '@tenderly/hardhat-tenderly';
 
 require("dotenv").config();
+
+['fork'].forEach(
+  (folder) => {
+    const tasksPath = path.join(__dirname, 'tasks', folder);
+    fs.readdirSync(tasksPath)
+      .filter((pth) => pth.includes('.ts'))
+      .forEach((task) => {
+        require(`${tasksPath}/${task}`);
+      });
+  }
+);
 
 
 const config: HardhatUserConfig = {
@@ -41,8 +52,8 @@ const config: HardhatUserConfig = {
       url: process.env.MAINNET_URI,
       accounts: [process.env.MAINNET_PRIVATE_KEY || ''],
     },
-    tenderly: {
-      url: "https://rpc.tenderly.co/fork/" + (process.env.TENDERLY_FORK_ID || ''),
+    fork: {
+      url: process.env.FORK_URI,
       accounts: [process.env.MAINNET_PRIVATE_KEY || ''],
     }
   },
@@ -57,11 +68,6 @@ const config: HardhatUserConfig = {
   },
   gasReporter: {
     enabled: true
-  },
-  tenderly: {
-    project: process.env.TENDERLY_PROJECT || '',
-    username: process.env.TENDERLY_USERNAME || '',
-    forkNetwork: '1', //Network id of the network we want to fork
   }
 };
 
