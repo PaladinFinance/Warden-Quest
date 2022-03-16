@@ -164,8 +164,11 @@ contract MultiMerkleDistributor is Ownable {
     function multiClaim(address account, ClaimParams[] calldata claims) external {
         require(claims.length != 0, "MultiMerkle: empty parameters");
 
-        for(uint i = 0; i < claims.length; i++){
+        uint256 length = claims.length;
+        for(uint256 i = 0; i < length;){
             claim(claims[i].questID, claims[i].period, claims[i].index, account, claims[i].amount, claims[i].merkleProof);
+
+            unchecked{ ++i; }
         }
     }
 
@@ -186,7 +189,8 @@ contract MultiMerkleDistributor is Ownable {
         uint256 totalClaimAmount = 0;
         address rewardToken = questRewardToken[questID];
 
-        for(uint i = 0; i < claims.length; i++){
+        uint256 length = claims.length;
+        for(uint256 i = 0; i < length;){
             require(claims[i].questID == questID, "MultiMerkle: incorrect Quest");
             require(questMerkleRootPerPeriod[claims[i].questID][claims[i].period] != 0, "MultiMerkle: not updated yet");
             require(!isClaimed(questID, claims[i].period, claims[i].index), "MultiMerkle: already claimed");
@@ -203,6 +207,8 @@ contract MultiMerkleDistributor is Ownable {
             totalClaimAmount += claims[i].amount;
 
             emit Claimed(questID, claims[i].period, claims[i].index, claims[i].amount, rewardToken, account);
+
+            unchecked{ ++i; }
         }
 
         // Transfer the total claimed amount

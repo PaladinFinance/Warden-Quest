@@ -221,7 +221,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     function getAllQuestPeriodsForQuestId(uint256 questId) external view returns(QuestPeriod[] memory) {
         uint256 nbPeriods = questPeriods[questId].length;
         QuestPeriod[] memory periods = new QuestPeriod[](nbPeriods);
-        for(uint i = 0; i < nbPeriods; i++){
+        for(uint256 i = 0; i < nbPeriods; i++){
             periods[i] = periodsByQuest[questId][questPeriods[questId][i]];
         }
         return periods;
@@ -327,7 +327,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
         // Iterate on periods based on Quest duration
         uint256 periodIterator = vars.nextPeriod;
-        for(uint i = 0; i < duration; i++){
+        for(uint256 i = 0; i < duration;){
             // Add the Quest on the list of Quests active on the period
             questsByPeriod[periodIterator].push(newQuestID);
 
@@ -344,6 +344,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
             // withdrawableAmount => 0
 
             periodIterator = ((periodIterator + WEEK) / WEEK) * WEEK;
+
+            unchecked{ ++i; }
         }
 
         // Write the array of period timestamp of that Quest in storage
@@ -412,7 +414,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         uint256 rewardPerVote = periodsByQuest[questID][lastPeriod].rewardPerVote;
 
         // Add QuestPeriods for the new added duration
-        for(uint i = 0; i < addedDuration; i++){
+        for(uint256 i = 0; i < addedDuration;){
             questsByPeriod[periodIterator].push(questID);
 
             questPeriods[questID].push(safe48(periodIterator));
@@ -427,6 +429,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
             // redeemableAmount => 0
 
             periodIterator = ((periodIterator + WEEK) / WEEK) * WEEK;
+
+            unchecked{ ++i; }
         }
 
         emit IncreasedQuestDuration(questID, addedDuration, addedRewardAmount);
@@ -484,7 +488,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         quests[questID].totalRewardAmount += addedRewardAmount;
 
         // Update all QuestPeriods, starting with the nextPeriod one
-        for(uint i = 0; i < remainingDuration; i++){
+        for(uint256 i = 0; i < remainingDuration;){
 
             if(periodIterator > lastPeriod) break; //Safety check, we never want to write on non-initialized QuestPeriods (that were not initialized)
 
@@ -493,6 +497,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
             periodsByQuest[questID][periodIterator].rewardAmountPerPeriod = newRewardPerPeriod;
 
             periodIterator = ((periodIterator + WEEK) / WEEK) * WEEK;
+
+            unchecked{ ++i; }
         }
 
         emit IncreasedQuestReward(questID, nextPeriod, newRewardPerVote, addedRewardAmount);
@@ -551,7 +557,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         quests[questID].totalRewardAmount += addedRewardAmount;
 
         // Update all QuestPeriods, starting with the nextPeriod one
-        for(uint i = 0; i < remainingDuration; i++){
+        for(uint256 i = 0; i < remainingDuration;){
 
             if(periodIterator > lastPeriod) break; //Safety check, we never want to write on non-existing QuestPeriods (that were not initialized)
 
@@ -560,6 +566,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
             periodsByQuest[questID][periodIterator].rewardAmountPerPeriod = newRewardPerPeriod;
 
             periodIterator = ((periodIterator + WEEK) / WEEK) * WEEK;
+
+            unchecked{ ++i; }
         }
 
         emit IncreasedQuestObjective(questID, nextPeriod, newObjective, addedRewardAmount);
@@ -580,9 +588,13 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         uint256 totalWithdraw = 0;
 
         uint48[] memory _questPeriods = questPeriods[questID];
-        for(uint i = 0; i < _questPeriods.length; i++){
+        uint256 length = _questPeriods.length;
+        for(uint256 i = 0; i < length;){
             // We allow to withdraw unused rewards after the period was closed, or after it was distributed
-            if(periodsByQuest[questID][_questPeriods[i]].currentState == PeriodState.ACTIVE) continue;
+            if(periodsByQuest[questID][_questPeriods[i]].currentState == PeriodState.ACTIVE) {
+                unchecked{ ++i; }
+                continue;
+            }
 
             uint256 withdrawableForPeriod = periodsByQuest[questID][_questPeriods[i]].withdrawableAmount;
 
@@ -592,9 +604,11 @@ contract QuestBoard is Ownable, ReentrancyGuard {
                 totalWithdraw += withdrawableForPeriod;
                 periodsByQuest[questID][_questPeriods[i]].withdrawableAmount = 0;
             }
+
+            unchecked{ ++i; }
         }
 
-        // If there is a non_null amount of toke nto withdraw, execute a transfer
+        // If there is a non null amount of token to withdraw, execute a transfer
         if(totalWithdraw != 0){
             address rewardToken = quests[questID].rewardToken;
             IERC20(rewardToken).safeTransfer(recipient, totalWithdraw);
@@ -621,7 +635,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         uint256 totalWithdraw = 0;
 
         uint48[] memory _questPeriods = questPeriods[questID];
-        for(uint i = 0; i < _questPeriods.length; i++){
+        uint256 length = _questPeriods.length;
+        for(uint256 i = 0; i < length;){
             // For CLOSED or DISTRIBUTED periods
             if(periodsByQuest[questID][_questPeriods[i]].currentState != PeriodState.ACTIVE){
                 uint256 withdrawableForPeriod = periodsByQuest[questID][_questPeriods[i]].withdrawableAmount;
@@ -637,6 +652,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
                 totalWithdraw += periodsByQuest[questID][_questPeriods[i]].rewardAmountPerPeriod;
                 periodsByQuest[questID][_questPeriods[i]].rewardAmountPerPeriod = 0;
             }
+
+            unchecked{ ++i; }
         }
 
         // If the total amount to emergency withdraw is non_null, execute a transfer
@@ -677,7 +694,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         uint256 nextPeriod = ((period + WEEK) / WEEK) * WEEK;
 
         // For each QuestPeriod
-        for(uint i = 0; i < questsForPeriod.length; i++){
+        uint256 length = questsForPeriod.length;
+        for(uint256 i = 0; i < length;){
             Quest storage _quest = quests[questsForPeriod[i]];
             QuestPeriod memory _questPeriod = periodsByQuest[questsForPeriod[i]][period];
             _questPeriod.currentState = PeriodState.CLOSED;
@@ -716,6 +734,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
             }
 
             periodsByQuest[questsForPeriod[i]][period] =  _questPeriod;
+
+            unchecked{ ++i; }
         }
 
         emit PeriodClosed(period);
@@ -741,7 +761,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         uint256 nextPeriod = ((period + WEEK) / WEEK) * WEEK;
 
         // For each QuestPeriod
-        for(uint i = 0; i < questIDs.length; i++){
+        uint256 length = questIDs.length;
+        for(uint256 i = 0; i < length;){
             // We chack that this period was not already closed
             require(
                 periodsByQuest[questIDs[i]][period].currentState == PeriodState.ACTIVE,
@@ -786,6 +807,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
             }
 
             periodsByQuest[questIDs[i]][period] =  _questPeriod;
+
+            unchecked{ ++i; }
         }
 
         emit PeriodClosedPart(period);
@@ -830,8 +853,12 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     */
     function addMultipleMerkleRoot(uint256[] calldata questIDs, uint256 period, bytes32[] calldata merkleRoots) external isAlive onlyAllowed nonReentrant {
         require(questIDs.length == merkleRoots.length, "QuestBoard: Diff list size");
-        for(uint i = 0; i < questIDs.length; i++){
+
+        uint256 length = questIDs.length;
+        for(uint256 i = 0; i < length;){
             _addMerkleRoot(questIDs[i], period, merkleRoots[i]);
+
+            unchecked{ ++i; }
         }
     }
    
@@ -859,8 +886,12 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     function whitelistMultipleTokens(address[] calldata newTokens, uint256[] calldata minRewardPerVotes) external onlyAllowed {
         require(newTokens.length != 0, "QuestBoard: empty list");
         require(newTokens.length == minRewardPerVotes.length, "QuestBoard: list sizes inequal");
-        for(uint i = 0; i < newTokens.length; i++){
+
+        uint256 length = newTokens.length;
+        for(uint256 i = 0; i < length;){
             whitelistToken(newTokens[i], minRewardPerVotes[i]);
+
+            unchecked{ ++i; }
         }
     }
 
