@@ -194,7 +194,7 @@ contract MultiMerkleDistributor is Ownable {
 
         for(uint256 i; i < length;){
             require(claims[i].questID == questID, "MultiMerkle: incorrect Quest");
-            require(questMerkleRootPerPeriod[claims[i].questID][claims[i].period] != 0, "MultiMerkle: not updated yet");
+            require(questMerkleRootPerPeriod[questID][claims[i].period] != 0, "MultiMerkle: not updated yet");
             require(!isClaimed(questID, claims[i].period, claims[i].index), "MultiMerkle: already claimed");
 
             // For each period given, if the proof matches the given parameters, 
