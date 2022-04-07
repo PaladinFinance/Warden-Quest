@@ -221,7 +221,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     function getAllQuestPeriodsForQuestId(uint256 questId) external view returns(QuestPeriod[] memory) {
         uint256 nbPeriods = questPeriods[questId].length;
         QuestPeriod[] memory periods = new QuestPeriod[](nbPeriods);
-        for(uint256 i = 0; i < nbPeriods; i++){
+        for(uint256 i; i < nbPeriods; i++){
             periods[i] = periodsByQuest[questId][questPeriods[questId][i]];
         }
         return periods;
@@ -327,7 +327,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
         // Iterate on periods based on Quest duration
         uint256 periodIterator = vars.nextPeriod;
-        for(uint256 i = 0; i < duration;){
+        for(uint256 i; i < duration;){
             // Add the Quest on the list of Quests active on the period
             questsByPeriod[periodIterator].push(newQuestID);
 
@@ -414,7 +414,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         uint256 rewardPerVote = periodsByQuest[questID][lastPeriod].rewardPerVote;
 
         // Add QuestPeriods for the new added duration
-        for(uint256 i = 0; i < addedDuration;){
+        for(uint256 i; i < addedDuration;){
             questsByPeriod[periodIterator].push(questID);
 
             questPeriods[questID].push(safe48(periodIterator));
@@ -488,7 +488,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         quests[questID].totalRewardAmount += addedRewardAmount;
 
         // Update all QuestPeriods, starting with the nextPeriod one
-        for(uint256 i = 0; i < remainingDuration;){
+        for(uint256 i; i < remainingDuration;){
 
             if(periodIterator > lastPeriod) break; //Safety check, we never want to write on non-initialized QuestPeriods (that were not initialized)
 
@@ -557,7 +557,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         quests[questID].totalRewardAmount += addedRewardAmount;
 
         // Update all QuestPeriods, starting with the nextPeriod one
-        for(uint256 i = 0; i < remainingDuration;){
+        for(uint256 i; i < remainingDuration;){
 
             if(periodIterator > lastPeriod) break; //Safety check, we never want to write on non-existing QuestPeriods (that were not initialized)
 
@@ -585,12 +585,12 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(recipient != address(0), "QuestBoard: Zero Address");
 
         // Total amount available to withdraw
-        uint256 totalWithdraw = 0;
+        uint256 totalWithdraw;
 
         uint48[] memory _questPeriods = questPeriods[questID];
 
         uint256 length = _questPeriods.length;
-        for(uint256 i = 0; i < length;){
+        for(uint256 i; i < length;){
             QuestPeriod storage _questPeriod = periodsByQuest[questID][_questPeriods[i]];
 
             // We allow to withdraw unused rewards after the period was closed, or after it was distributed
@@ -635,11 +635,11 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(recipient != address(0), "QuestBoard: Zero Address");
 
         // Total amount to emergency withdraw
-        uint256 totalWithdraw = 0;
+        uint256 totalWithdraw;
 
         uint48[] memory _questPeriods = questPeriods[questID];
         uint256 length = _questPeriods.length;
-        for(uint256 i = 0; i < length;){
+        for(uint256 i; i < length;){
             QuestPeriod storage _questPeriod = periodsByQuest[questID][_questPeriods[i]];
 
             // For CLOSED or DISTRIBUTED periods
@@ -700,7 +700,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
         // For each QuestPeriod
         uint256 length = questsForPeriod.length;
-        for(uint256 i = 0; i < length;){
+        for(uint256 i; i < length;){
             Quest memory _quest = quests[questsForPeriod[i]];
             QuestPeriod memory _questPeriod = periodsByQuest[questsForPeriod[i]][period];
             _questPeriod.currentState = PeriodState.CLOSED;
@@ -767,7 +767,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
         // For each QuestPeriod
         uint256 length = questIDs.length;
-        for(uint256 i = 0; i < length;){
+        for(uint256 i; i < length;){
             // We chack that this period was not already closed
             require(
                 periodsByQuest[questIDs[i]][period].currentState == PeriodState.ACTIVE,

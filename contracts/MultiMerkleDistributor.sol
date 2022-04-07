@@ -165,7 +165,7 @@ contract MultiMerkleDistributor is Ownable {
         require(claims.length != 0, "MultiMerkle: empty parameters");
 
         uint256 length = claims.length;
-        for(uint256 i = 0; i < length;){
+        for(uint256 i; i < length;){
             claim(claims[i].questID, claims[i].period, claims[i].index, account, claims[i].amount, claims[i].merkleProof);
 
             unchecked{ ++i; }
@@ -186,11 +186,11 @@ contract MultiMerkleDistributor is Ownable {
         require(claims.length != 0, "MultiMerkle: empty parameters");
 
         // Total amount claimable, to transfer at once
-        uint256 totalClaimAmount = 0;
+        uint256 totalClaimAmount;
         address rewardToken = questRewardToken[questID];
 
         uint256 length = claims.length;
-        for(uint256 i = 0; i < length;){
+        for(uint256 i; i < length;){
             require(claims[i].questID == questID, "MultiMerkle: incorrect Quest");
             require(questMerkleRootPerPeriod[claims[i].questID][claims[i].period] != 0, "MultiMerkle: not updated yet");
             require(!isClaimed(questID, claims[i].period, claims[i].index), "MultiMerkle: already claimed");
