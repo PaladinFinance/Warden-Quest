@@ -2626,14 +2626,14 @@ describe('QuestBoard contract tests', () => {
 
             const kill_tx = await board.connect(admin).killBoard()
 
-            await expect(
-                kill_tx
-            ).to.emit(board, "Killed")
-
-            expect(await board.isKilled()).to.be.true
-
             const kill_blockNumber = (await kill_tx).blockNumber || 0
             const kill_timestamp = BigNumber.from((await provider.getBlock(kill_blockNumber)).timestamp)
+
+            await expect(
+                kill_tx
+            ).to.emit(board, "Killed").withArgs(kill_timestamp);
+
+            expect(await board.isKilled()).to.be.true
 
             expect(await board.kill_ts()).to.be.eq(kill_timestamp)
 
@@ -2735,9 +2735,14 @@ describe('QuestBoard contract tests', () => {
 
             expect(await board.isKilled()).to.be.true
 
+            const unkill_tx = await board.connect(admin).unkillBoard()
+
+            const unkill_blockNumber = (await unkill_tx).blockNumber || 0
+            const unkill_timestamp = BigNumber.from((await provider.getBlock(unkill_blockNumber)).timestamp)
+
             await expect(
-                board.connect(admin).unkillBoard()
-            ).to.emit(board, "Unkilled")
+                unkill_tx
+            ).to.emit(board, "Unkilled").withArgs(unkill_timestamp);
 
             expect(await board.isKilled()).to.be.false
 

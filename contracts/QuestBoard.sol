@@ -157,9 +157,9 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     event UpdateRewardToken(address indexed token, uint256 newMinRewardPerVote);
 
     /** @notice Event emitted when the contract is killed */
-    event Killed();
+    event Killed(uint256 killTime);
     /** @notice Event emitted when the contract is unkilled */
-    event Unkilled();
+    event Unkilled(uint256 unkillTime);
     /** @notice Event emitted when the Quest creator withdraw all unused funds (if the contract was killed) */
     event EmergencyWithdraw(uint256 indexed questID, address recipient, uint256 amount);
 
@@ -999,7 +999,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         isKilled = true;
         kill_ts = block.timestamp;
 
-        emit Killed();
+        emit Killed(kill_ts);
     }
    
     /**
@@ -1011,7 +1011,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(block.timestamp < kill_ts + KILL_DELAY, "QuestBoard: Too late");
         isKilled = false;
 
-        emit Unkilled();
+        emit Unkilled(block.timestamp);
     }
 
 
