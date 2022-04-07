@@ -237,7 +237,8 @@ contract MultiMerkleDistributor is Ownable {
     * @param token Address of the ERC20 reward token
     * @return bool : success
     */
-    function addQuest(uint256 questID, address token) external onlyAllowed returns(bool) {
+    function addQuest(uint256 questID, address token) external returns(bool) {
+        require(msg.sender == questBoard, "MultiMerkle: Not allowed");
         require(questRewardToken[questID] == address(0), "MultiMerkle: Quest already listed");
         require(token != address(0), "MultiMerkle: Incorrect reward token");
 
