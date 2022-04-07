@@ -221,8 +221,9 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     function getAllQuestPeriodsForQuestId(uint256 questId) external view returns(QuestPeriod[] memory) {
         uint256 nbPeriods = questPeriods[questId].length;
         QuestPeriod[] memory periods = new QuestPeriod[](nbPeriods);
-        for(uint256 i; i < nbPeriods; i++){
+        for(uint256 i; i < nbPeriods;){
             periods[i] = periodsByQuest[questId][questPeriods[questId][i]];
+            unchecked{ ++i; }
         }
         return periods;
     }
@@ -313,7 +314,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
         // Get the ID for that new Quest and increment the nextID counter
         uint256 newQuestID = nextID;
-        nextID += 1;
+        unchecked{ ++nextID; }
 
         // Fill the Quest struct data
         quests[newQuestID].creator = vars.creator;
