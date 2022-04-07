@@ -980,11 +980,13 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     * @notice Recovers ERC2O tokens sent by mistake to the contract
     * @dev Recovers ERC2O tokens sent by mistake to the contract
     * @param token Address tof the EC2O token
-    * @param amount Amount to recover
     * @return bool: success
     */
-    function recoverERC20(address token, uint256 amount) external onlyOwner returns(bool) {
+    function recoverERC20(address token) external onlyOwner returns(bool) {
         require(!whitelistedTokens[token], "QuestBoard: Cannot recover whitelisted token");
+
+        uint256 amount = IERC20(token).balanceOf(address(this));
+        require(amount > 0, "QuestBoard: Null amount");
         IERC20(token).safeTransfer(owner(), amount);
 
         return true;

@@ -195,7 +195,7 @@ describe('QuestBoard contract tests', () => {
         it(' should only be callable by admin', async () => {
 
             await expect(
-                board.connect(user2).recoverERC20(DAI.address, ethers.utils.parseEther('10'))
+                board.connect(user2).initiateDistributor(distributor.address)
             ).to.be.revertedWith('Ownable: caller is not the owner')
 
         });
@@ -3576,7 +3576,7 @@ describe('QuestBoard contract tests', () => {
 
             const oldBalance = await DAI.balanceOf(admin.address);
 
-            await board.connect(admin).recoverERC20(DAI.address, lost_amount)
+            await board.connect(admin).recoverERC20(DAI.address)
 
             const newBalance = await DAI.balanceOf(admin.address);
 
@@ -3589,7 +3589,7 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
 
             await expect(
-                board.connect(admin).recoverERC20(DAI.address, lost_amount)
+                board.connect(admin).recoverERC20(DAI.address)
             ).to.be.revertedWith('QuestBoard: Cannot recover whitelisted token')
 
         });
@@ -3597,7 +3597,7 @@ describe('QuestBoard contract tests', () => {
         it(' should block non-admin caller', async () => {
 
             await expect(
-                board.connect(user2).recoverERC20(DAI.address, ethers.utils.parseEther('10'))
+                board.connect(user2).recoverERC20(DAI.address)
             ).to.be.revertedWith('Ownable: caller is not the owner')
 
         });
