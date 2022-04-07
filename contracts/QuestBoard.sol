@@ -588,21 +588,24 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         uint256 totalWithdraw = 0;
 
         uint48[] memory _questPeriods = questPeriods[questID];
+
         uint256 length = _questPeriods.length;
         for(uint256 i = 0; i < length;){
+            QuestPeriod storage _questPeriod = periodsByQuest[questID][_questPeriods[i]];
+
             // We allow to withdraw unused rewards after the period was closed, or after it was distributed
-            if(periodsByQuest[questID][_questPeriods[i]].currentState == PeriodState.ACTIVE) {
+            if(_questPeriod.currentState == PeriodState.ACTIVE) {
                 unchecked{ ++i; }
                 continue;
             }
 
-            uint256 withdrawableForPeriod = periodsByQuest[questID][_questPeriods[i]].withdrawableAmount;
+            uint256 withdrawableForPeriod = _questPeriod.withdrawableAmount;
 
             // If there is token to withdraw for that period, add they to the total to withdraw,
             // and set the withdrawable amount to 0
             if(withdrawableForPeriod > 0){
                 totalWithdraw += withdrawableForPeriod;
-                periodsByQuest[questID][_questPeriods[i]].withdrawableAmount = 0;
+                _questPeriod.withdrawableAmount = 0;
             }
 
             unchecked{ ++i; }
@@ -637,20 +640,22 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         uint48[] memory _questPeriods = questPeriods[questID];
         uint256 length = _questPeriods.length;
         for(uint256 i = 0; i < length;){
+            QuestPeriod storage _questPeriod = periodsByQuest[questID][_questPeriods[i]];
+
             // For CLOSED or DISTRIBUTED periods
-            if(periodsByQuest[questID][_questPeriods[i]].currentState != PeriodState.ACTIVE){
-                uint256 withdrawableForPeriod = periodsByQuest[questID][_questPeriods[i]].withdrawableAmount;
+            if(_questPeriod.currentState != PeriodState.ACTIVE){
+                uint256 withdrawableForPeriod = _questPeriod.withdrawableAmount;
 
                 // If there is a non_null withdrawable amount for the period,
                 // add it to the total to withdraw, et set the withdrawable amount ot 0
                 if(withdrawableForPeriod > 0){
                     totalWithdraw += withdrawableForPeriod;
-                    periodsByQuest[questID][_questPeriods[i]].withdrawableAmount = 0;
+                    _questPeriod.withdrawableAmount = 0;
                 }
             } else {
                 // And for the active period, and the next ones, withdraw the total reward amount
-                totalWithdraw += periodsByQuest[questID][_questPeriods[i]].rewardAmountPerPeriod;
-                periodsByQuest[questID][_questPeriods[i]].rewardAmountPerPeriod = 0;
+                totalWithdraw += _questPeriod.rewardAmountPerPeriod;
+                _questPeriod.rewardAmountPerPeriod = 0;
             }
 
             unchecked{ ++i; }
