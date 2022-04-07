@@ -754,7 +754,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     */
     function closePartOfQuestPeriod(uint256 period, uint256[] calldata questIDs) external isAlive onlyAllowed nonReentrant {
         updatePeriod();
-        require(questIDs.length != 0, "QuestBoard: empty array");
+        uint256 questIDLength = questIDs.length;
+        require(questIDLength != 0, "QuestBoard: empty array");
         require(distributor != address(0), "QuestBoard: no Distributor set");
         require(period != 0, "QuestBoard: invalid Period");
         require(period < currentPeriod, "QuestBoard: Period still active");
@@ -766,8 +767,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         uint256 nextPeriod = ((period + WEEK) / WEEK) * WEEK;
 
         // For each QuestPeriod
-        uint256 length = questIDs.length;
-        for(uint256 i; i < length;){
+        for(uint256 i; i < questIDLength;){
             // We chack that this period was not already closed
             require(
                 periodsByQuest[questIDs[i]][period].currentState == PeriodState.ACTIVE,
@@ -857,9 +857,10 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     * @param merkleRoots List of MerkleRoots to add
     */
     function addMultipleMerkleRoot(uint256[] calldata questIDs, uint256 period, bytes32[] calldata merkleRoots) external isAlive onlyAllowed nonReentrant {
-        require(questIDs.length == merkleRoots.length, "QuestBoard: Diff list size");
-
         uint256 length = questIDs.length;
+
+        require(length == merkleRoots.length, "QuestBoard: Diff list size");
+
         for(uint256 i = 0; i < length;){
             _addMerkleRoot(questIDs[i], period, merkleRoots[i]);
 
@@ -889,10 +890,11 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     * @param newTokens List of reward tokens addresses
     */
     function whitelistMultipleTokens(address[] calldata newTokens, uint256[] calldata minRewardPerVotes) external onlyAllowed {
-        require(newTokens.length != 0, "QuestBoard: empty list");
-        require(newTokens.length == minRewardPerVotes.length, "QuestBoard: list sizes inequal");
-
         uint256 length = newTokens.length;
+
+        require(length != 0, "QuestBoard: empty list");
+        require(length == minRewardPerVotes.length, "QuestBoard: list sizes inequal");
+
         for(uint256 i = 0; i < length;){
             whitelistToken(newTokens[i], minRewardPerVotes[i]);
 

@@ -162,9 +162,10 @@ contract MultiMerkleDistributor is Ownable {
     * @param claims List of ClaimParams struct data to claim
     */
     function multiClaim(address account, ClaimParams[] calldata claims) external {
-        require(claims.length != 0, "MultiMerkle: empty parameters");
-
         uint256 length = claims.length;
+        
+        require(length != 0, "MultiMerkle: empty parameters");
+
         for(uint256 i; i < length;){
             claim(claims[i].questID, claims[i].period, claims[i].index, account, claims[i].amount, claims[i].merkleProof);
 
@@ -183,13 +184,14 @@ contract MultiMerkleDistributor is Ownable {
     * @param claims List of ClaimParams struct data to claim
     */
     function claimQuest(address account, uint256 questID, ClaimParams[] calldata claims) external {
-        require(claims.length != 0, "MultiMerkle: empty parameters");
+        uint256 length = claims.length;
+
+        require(length != 0, "MultiMerkle: empty parameters");
 
         // Total amount claimable, to transfer at once
         uint256 totalClaimAmount;
         address rewardToken = questRewardToken[questID];
 
-        uint256 length = claims.length;
         for(uint256 i; i < length;){
             require(claims[i].questID == questID, "MultiMerkle: incorrect Quest");
             require(questMerkleRootPerPeriod[claims[i].questID][claims[i].period] != 0, "MultiMerkle: not updated yet");
