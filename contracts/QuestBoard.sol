@@ -696,7 +696,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         // For each QuestPeriod
         uint256 length = questsForPeriod.length;
         for(uint256 i = 0; i < length;){
-            Quest storage _quest = quests[questsForPeriod[i]];
+            Quest memory _quest = quests[questsForPeriod[i]];
             QuestPeriod memory _questPeriod = periodsByQuest[questsForPeriod[i]][period];
             _questPeriod.currentState = PeriodState.CLOSED;
 
@@ -769,7 +769,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
                 "QuestBoard: Period already closed"
             );
 
-            Quest storage _quest = quests[questIDs[i]];
+            Quest memory _quest = quests[questIDs[i]];
             QuestPeriod memory _questPeriod = periodsByQuest[questIDs[i]][period];
             _questPeriod.currentState = PeriodState.CLOSED;
 
