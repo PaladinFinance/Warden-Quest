@@ -61,6 +61,7 @@ contract QuestTreasureChest is Ownable, ReentrancyGuard {
     * @param amount Amount to transfer
     */
     function transferERC20(address token, address recipient, uint256 amount) external onlyAllowed nonReentrant {
+        require(amount != 0, "TreasureChest: Null amount");
         IERC20(token).safeTransfer(recipient, amount);
     }
 
