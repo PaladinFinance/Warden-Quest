@@ -50,7 +50,15 @@ contract QuestTreasureChest is Ownable, ReentrancyGuard {
     * @param amount Amount to approve
     */
     function approveERC20(address token, address spender, uint256 amount) external onlyAllowed nonReentrant {
-        IERC20(token).safeApprove(spender, amount);
+        uint256 currentAllowance = IERC20(token).allowance(address(this), spender);
+
+        if(currentAllowance < amount){
+            IERC20(token).safeIncreaseAllowance(spender, amount - currentAllowance);
+        }
+        else if(currentAllowance > amount){
+            IERC20(token).safeDecreaseAllowance(spender, currentAllowance - amount);
+        }
+        // Otherwise, allowance is already the required value, no need to change
     }
    
     /**
