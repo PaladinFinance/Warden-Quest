@@ -903,7 +903,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         }
     }
 
-    function updateRewardToken(address newToken, uint256 newMinRewardPerVote) public onlyAllowed {
+    function updateRewardToken(address newToken, uint256 newMinRewardPerVote) external onlyAllowed {
         require(whitelistedTokens[newToken], "QuestBoard: Token not whitelisted");
         require(newMinRewardPerVote != 0, "QuestBoard: Null value");
 
