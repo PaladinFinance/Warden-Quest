@@ -228,7 +228,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     }
    
     /**
-    * @dev Returns the number of periods to come for a give nQuest
+    * @dev Returns the number of periods to come for a given Quest
     * @param questID ID of the Quest
     * @return uint : remaining duration (non active periods)
     */
