@@ -392,6 +392,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         //We take data from the last period of the Quest to account for any other changes in the Quest parameters
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
 
+        require(lastPeriod >= currentPeriod, "QuestBoard: Quest is over");
+
         // Check that the given amounts are correct
         uint rewardPerPeriod = periodsByQuest[questID][lastPeriod].rewardAmountPerPeriod;
 
