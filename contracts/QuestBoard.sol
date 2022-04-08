@@ -163,6 +163,14 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     /** @notice Event emitted when the Quest creator withdraw all unused funds (if the contract was killed) */
     event EmergencyWithdraw(uint256 indexed questID, address recipient, uint256 amount);
 
+    event InitDistributor(address distributor);
+    event ApprovedManager(address indexed manager);
+    event RemovedManager(address indexed manager);
+    event ChestUpdated(address oldChest, address newChest);
+    event DistributorUpdated(address oldDistributor, address newDistributor);
+    event PlatformFeeUpdated(uint256 oldfee, uint256 newFee);
+    event MinObjectiveUpdated(uint256 oldMinObjective, uint256 newMinObjective);
+
     // Modifiers
 
     /** @notice Check the caller is either the admin or an approved manager */
@@ -914,6 +922,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     function initiateDistributor(address newDistributor) external onlyOwner {
         require(distributor == address(0), "QuestBoard: Already initialized");
         distributor = newDistributor;
+
+        emit InitDistributor(newDistributor);
     }
    
     /**
@@ -924,6 +934,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     function approveManager(address newManager) external onlyOwner {
         require(newManager != address(0), "QuestBoard: Zero Address");
         approvedManagers[newManager] = true;
+
+        emit ApprovedManager(newManager);
     }
    
     /**
@@ -934,6 +946,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     function removeManager(address manager) external onlyOwner {
         require(manager != address(0), "QuestBoard: Zero Address");
         approvedManagers[manager] = false;
+
+        emit RemovedManager(manager);
     }
    
     /**
@@ -943,7 +957,10 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     */
     function updateChest(address chest) external onlyOwner {
         require(chest != address(0), "QuestBoard: Zero Address");
+        address oldChest = questChest;
         questChest = chest;
+
+        emit ChestUpdated(oldChest, chest);
     }
    
     /**
@@ -953,7 +970,10 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     */
     function updateDistributor(address newDistributor) external onlyOwner {
         require(newDistributor != address(0), "QuestBoard: Zero Address");
+        address oldDistributor = distributor;
         distributor = newDistributor;
+
+        emit DistributorUpdated(oldDistributor, distributor);
     }
    
     /**
@@ -963,7 +983,10 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     */
     function updatePlatformFee(uint256 newFee) external onlyOwner {
         require(newFee <= 500, "QuestBoard: Fee too high");
+        uint256 oldfee = platformFee;
         platformFee = newFee;
+
+        emit PlatformFeeUpdated(oldfee, newFee);
     }
    
     /**
@@ -973,7 +996,10 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     */
     function updateMinObjective(uint256 newMinObjective) external onlyOwner {
         require(newMinObjective > 0, "QuestBoard: Null value");
+        uint256 oldMinObjective = minObjective;
         minObjective = newMinObjective;
+
+        emit MinObjectiveUpdated(oldMinObjective, newMinObjective);
     }
    
     /**
