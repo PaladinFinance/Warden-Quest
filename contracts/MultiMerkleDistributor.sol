@@ -13,6 +13,7 @@ import "./oz/interfaces/IERC20.sol";
 import "./oz/libraries/SafeERC20.sol";
 import "./oz/utils/MerkleProof.sol";
 import "./oz/utils/Ownable.sol";
+import "./oz/utils/ReentrancyGuard.sol";
 
 /** @title Warden Quest Multi Merkle Distributor  */
 /// @author Paladin
@@ -21,7 +22,7 @@ import "./oz/utils/Ownable.sol";
     Can handle multiple MerkleRoots
 */
 
-contract MultiMerkleDistributor is Ownable {
+contract MultiMerkleDistributor is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /** @notice Mapping listing the reward token associated to each Quest ID */
@@ -123,7 +124,7 @@ contract MultiMerkleDistributor is Ownable {
     * @param amount Amount of rewards to claim
     * @param merkleProof Proof to claim the rewards
     */
-    function claim(uint256 questID, uint256 period, uint256 index, address account, uint256 amount, bytes32[] calldata merkleProof) public {
+    function claim(uint256 questID, uint256 period, uint256 index, address account, uint256 amount, bytes32[] calldata merkleProof) public nonReentrant {
         require(questMerkleRootPerPeriod[questID][period] != 0, "MultiMerkle: not updated yet");
         require(!isClaimed(questID, period, index), "MultiMerkle: already claimed");
 
@@ -182,7 +183,7 @@ contract MultiMerkleDistributor is Ownable {
     * @param questID ID of the Quest
     * @param claims List of ClaimParams struct data to claim
     */
-    function claimQuest(address account, uint256 questID, ClaimParams[] calldata claims) external {
+    function claimQuest(address account, uint256 questID, ClaimParams[] calldata claims) external nonReentrant {
         require(claims.length != 0, "MultiMerkle: empty parameters");
 
         // Total amount claimable, to transfer at once
@@ -292,7 +293,7 @@ contract MultiMerkleDistributor is Ownable {
     * @param token Address tof the EC2O token
     * @return bool: success
     */
-    function recoverERC20(address token) external onlyOwner returns(bool) {
+    function recoverERC20(address token) external onlyOwner nonReentrant returns(bool) {
         uint256 amount = IERC20(token).balanceOf(address(this));
         require(amount > 0, "MultiMerkle: Null amount");
         IERC20(token).safeTransfer(owner(), amount);
