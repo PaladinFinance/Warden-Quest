@@ -693,7 +693,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
             //Because we don't want to divide by 0
             // Here since the bias is 0, we consider 0% completion
             // => no rewards to be distributed
-            _questPeriod.rewardAmountDistributed = 0;
+            // We do not change _questPeriod.rewardAmountDistributed since the default value is already 0
             _questPeriod.withdrawableAmount = _questPeriod.rewardAmountPerPeriod;
         }
         else{
