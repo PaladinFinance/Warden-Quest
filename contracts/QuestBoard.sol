@@ -238,7 +238,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         // currentPeriod and the last QuestPeriod start by a WEEK.
         // If the current period is the last period of the Quest, we want to return 0
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
-        return (lastPeriod - currentPeriod) / WEEK;
+        return lastPeriod < currentPeriod ? 0: (lastPeriod - currentPeriod) / WEEK;
     }
 
 
@@ -455,6 +455,9 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(questID < nextID, "QuestBoard: Non valid ID");
         require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
         require(newRewardPerVote != 0 && addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
+    
+        uint256 remainingDuration = _getRemainingDuration(questID);
+        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
 
         // The new reward amount must be higher 
         require(newRewardPerVote > periodsByQuest[questID][currentPeriod].rewardPerVote, "QuestBoard: New reward must be higher");
@@ -466,9 +469,6 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         // (because we don't want to pay for Periods that are Closed or the current period)
         uint256 newRewardPerPeriod = (periodsByQuest[questID][currentPeriod].objectiveVotes * newRewardPerVote) / UNIT;
         uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
-
-        uint256 remainingDuration = _getRemainingDuration(questID);
-        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
 
         require((diffRewardPerPeriod * remainingDuration) == addedRewardAmount, "QuestBoard: addedRewardAmount incorrect");
         require((addedRewardAmount * platformFee)/MAX_BPS == feeAmount, "QuestBoard: feeAmount incorrect");
@@ -522,6 +522,9 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(questID < nextID, "QuestBoard: Non valid ID");
         require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
         require(addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
+    
+        uint256 remainingDuration = _getRemainingDuration(questID);
+        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
 
         // No need to compare to minObjective : the new value must be higher than current Objective
         // and current objective needs to be >= minObjective
@@ -534,9 +537,6 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         // (because we don't want to pay for Periods that are Closed or the current period)
         uint256 newRewardPerPeriod = (newObjective * periodsByQuest[questID][currentPeriod].rewardPerVote) / UNIT;
         uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
-
-        uint256 remainingDuration = _getRemainingDuration(questID);
-        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
 
         require((diffRewardPerPeriod * remainingDuration) == addedRewardAmount, "QuestBoard: addedRewardAmount incorrect");
         require((addedRewardAmount * platformFee)/MAX_BPS == feeAmount, "QuestBoard: feeAmount incorrect");
