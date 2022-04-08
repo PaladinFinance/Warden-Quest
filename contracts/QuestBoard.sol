@@ -39,8 +39,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
 
     /** @notice State of each Period for each Quest */
-    enum PeriodState { ACTIVE, CLOSED, DISTRIBUTED }
-    // All Periods are ACTIVE by default since they voters from past periods are also accounted for the future period
+    enum PeriodState { ZERO, ACTIVE, CLOSED, DISTRIBUTED }
+    // All Periods are ACTIVE at creation since they voters from past periods are also accounted for the future period
 
 
     /** @notice Struct for a Period of a Quest */
@@ -338,8 +338,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
             periodsByQuest[newQuestID][periodIterator].objectiveVotes = objective;
             periodsByQuest[newQuestID][periodIterator].rewardPerVote = rewardPerVote;
             periodsByQuest[newQuestID][periodIterator].rewardAmountPerPeriod = vars.rewardPerPeriod;
+            periodsByQuest[newQuestID][periodIterator].currentState = PeriodState.ACTIVE;
             // Rest of the struct shoud laready have the correct base data:
-            // currentState => PeriodState.ACTIVE
             // rewardAmountDistributed => 0
             // withdrawableAmount => 0
 
@@ -423,8 +423,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
             periodsByQuest[questID][periodIterator].objectiveVotes = objective;
             periodsByQuest[questID][periodIterator].rewardPerVote = rewardPerVote;
             periodsByQuest[questID][periodIterator].rewardAmountPerPeriod = rewardPerPeriod;
+            periodsByQuest[questID][periodIterator].currentState = PeriodState.ACTIVE;
             // Rest of the struct shoud laready have the correct base data:
-            // currentState => PeriodState.ACTIVE
             // rewardAmountDistributed => 0
             // redeemableAmount => 0
 

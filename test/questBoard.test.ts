@@ -345,7 +345,7 @@ describe('QuestBoard contract tests', () => {
                 expect(quest_period.rewardAmountDistributed).to.be.eq(0)
                 expect(quest_period.withdrawableAmount).to.be.eq(0)
 
-                expect(quest_period.currentState).to.be.eq(0) // => PeriodState.ACTIVE
+                expect(quest_period.currentState).to.be.eq(1) // => PeriodState.ACTIVE
 
                 const ids_for_period = await board.getQuestIdsForPeriod(expected_future_period)
                 expect(ids_for_period[ids_for_period.length - 1]).to.be.eq(expected_id)
@@ -794,7 +794,7 @@ describe('QuestBoard contract tests', () => {
                 expect(quest_period.rewardAmountDistributed).to.be.eq(0)
                 expect(quest_period.withdrawableAmount).to.be.eq(0)
 
-                expect(quest_period.currentState).to.be.eq(0) // => PeriodState.ACTIVE
+                expect(quest_period.currentState).to.be.eq(1) // => PeriodState.ACTIVE
 
                 const ids_for_period = await board.getQuestIdsForPeriod(expected_future_period)
                 expect(ids_for_period[ids_for_period.length - 1]).to.be.eq(questID)
@@ -1749,7 +1749,7 @@ describe('QuestBoard contract tests', () => {
                 const expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
-                expect(questPriod_data.currentState).to.be.eq(1)
+                expect(questPriod_data.currentState).to.be.eq(2)
                 expect(questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
                 expect(questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
 
@@ -1804,7 +1804,7 @@ describe('QuestBoard contract tests', () => {
                     let expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
                     let expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
-                    expect(questPriod_data.currentState).to.be.eq(1)
+                    expect(questPriod_data.currentState).to.be.eq(2)
                     expect(questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
                     expect(questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
 
@@ -1983,7 +1983,7 @@ describe('QuestBoard contract tests', () => {
                 const expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
-                expect(questPriod_data.currentState).to.be.eq(1)
+                expect(questPriod_data.currentState).to.be.eq(2)
                 expect(questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
                 expect(questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
 
@@ -2008,7 +2008,7 @@ describe('QuestBoard contract tests', () => {
 
             const questPriod_data = await board.periodsByQuest(questIDs[1], first_period)
 
-            expect(questPriod_data.currentState).to.be.eq(0)
+            expect(questPriod_data.currentState).to.be.eq(1)
             expect(questPriod_data.rewardAmountDistributed).to.be.eq(0)
             expect(questPriod_data.withdrawableAmount).to.be.eq(0)
 
@@ -2058,7 +2058,7 @@ describe('QuestBoard contract tests', () => {
                     let expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
                     let expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
-                    expect(questPriod_data.currentState).to.be.eq(1)
+                    expect(questPriod_data.currentState).to.be.eq(2)
                     expect(questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
                     expect(questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
 
@@ -2230,7 +2230,7 @@ describe('QuestBoard contract tests', () => {
 
             expect(await distributor.questMerkleRootPerPeriod(ID_to_distribute, first_period)).to.be.eq(mockRoot)
 
-            expect((await board.periodsByQuest(ID_to_distribute, first_period)).currentState).to.be.eq(2)
+            expect((await board.periodsByQuest(ID_to_distribute, first_period)).currentState).to.be.eq(3)
 
 
         });
@@ -2298,9 +2298,9 @@ describe('QuestBoard contract tests', () => {
             expect(await distributor.questMerkleRootPerPeriod(questIDs[1], first_period)).to.be.eq(roots[1])
             expect(await distributor.questMerkleRootPerPeriod(questIDs[2], first_period)).to.be.eq(roots[2])
 
-            expect((await board.periodsByQuest(questIDs[0], first_period)).currentState).to.be.eq(2)
-            expect((await board.periodsByQuest(questIDs[1], first_period)).currentState).to.be.eq(2)
-            expect((await board.periodsByQuest(questIDs[2], first_period)).currentState).to.be.eq(2)
+            expect((await board.periodsByQuest(questIDs[0], first_period)).currentState).to.be.eq(3)
+            expect((await board.periodsByQuest(questIDs[1], first_period)).currentState).to.be.eq(3)
+            expect((await board.periodsByQuest(questIDs[2], first_period)).currentState).to.be.eq(3)
 
 
         });
@@ -2435,7 +2435,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < old_quest_periods.length; i++) {
                 let quest_period = old_quest_periods[i]
 
-                if (quest_period.currentState != 0) {
+                if (quest_period.currentState > 1) {
                     expect(quest_period.withdrawableAmount).not.to.be.eq(0)
                     expected_withdrawable_amount = expected_withdrawable_amount.add(quest_period.withdrawableAmount)
                 }
@@ -2467,7 +2467,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < new_quest_periods.length; i++) {
                 let quest_period = new_quest_periods[i]
 
-                if (quest_period.currentState != 0) {
+                if (quest_period.currentState > 1) {
                     expect(quest_period.withdrawableAmount).to.be.eq(0) //Should have been set to 0
                 }
             }
@@ -2483,7 +2483,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < old_quest_periods.length; i++) {
                 let quest_period = old_quest_periods[i]
 
-                if (quest_period.currentState != 0) {
+                if (quest_period.currentState > 1) {
                     expect(quest_period.withdrawableAmount).not.to.be.eq(0)
                     expected_withdrawable_amount = expected_withdrawable_amount.add(quest_period.withdrawableAmount)
                 }
@@ -2515,7 +2515,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < new_quest_periods.length; i++) {
                 let quest_period = new_quest_periods[i]
 
-                if (quest_period.currentState != 0) {
+                if (quest_period.currentState > 1) {
                     expect(quest_period.withdrawableAmount).to.be.eq(0) //Should have been set to 0
                 }
             }
@@ -2531,7 +2531,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < old_quest_periods.length; i++) {
                 let quest_period = old_quest_periods[i]
 
-                if (quest_period.currentState != 0) {
+                if (quest_period.currentState > 1) {
                     expect(quest_period.withdrawableAmount).not.to.be.eq(0)
                     expect(quest_period.withdrawableAmount).to.be.eq(quest_period.rewardAmountPerPeriod)
                     expected_withdrawable_amount = expected_withdrawable_amount.add(quest_period.withdrawableAmount)
@@ -2564,7 +2564,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < new_quest_periods.length; i++) {
                 let quest_period = new_quest_periods[i]
 
-                if (quest_period.currentState != 0) {
+                if (quest_period.currentState > 1) {
                     expect(quest_period.withdrawableAmount).to.be.eq(0) //Should have been set to 0
                 }
             }
@@ -2931,7 +2931,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < old_quest_periods.length; i++) {
                 let quest_period = old_quest_periods[i]
 
-                if (quest_period.currentState != 0) {
+                if (quest_period.currentState > 1) {
                     expect(quest_period.withdrawableAmount).not.to.be.eq(0)
                     expected_withdrawable_amount = expected_withdrawable_amount.add(quest_period.withdrawableAmount)
                 }
@@ -2971,7 +2971,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < new_quest_periods.length; i++) {
                 let quest_period = new_quest_periods[i]
 
-                if (quest_period.currentState != 0) {
+                if (quest_period.currentState > 1) {
                     expect(quest_period.withdrawableAmount).to.be.eq(0) //Should have been set to 0
                 }
                 else {
@@ -2990,7 +2990,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < old_quest_periods.length; i++) {
                 let quest_period = old_quest_periods[i]
 
-                if (quest_period.currentState != 0) {
+                if (quest_period.currentState > 1) {
                     expect(quest_period.withdrawableAmount).not.to.be.eq(0)
                     expected_withdrawable_amount = expected_withdrawable_amount.add(quest_period.withdrawableAmount)
                 }
@@ -3030,7 +3030,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < new_quest_periods.length; i++) {
                 let quest_period = new_quest_periods[i]
 
-                if (quest_period.currentState != 0) {
+                if (quest_period.currentState > 1) {
                     expect(quest_period.withdrawableAmount).to.be.eq(0) //Should have been set to 0
                 }
                 else {
@@ -3049,7 +3049,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < old_quest_periods.length; i++) {
                 let quest_period = old_quest_periods[i]
 
-                if (quest_period.currentState != 0) {
+                if (quest_period.currentState > 1) {
                     expect(quest_period.withdrawableAmount).not.to.be.eq(0)
                     expect(quest_period.withdrawableAmount).to.be.eq(quest_period.rewardAmountPerPeriod)
                     expected_withdrawable_amount = expected_withdrawable_amount.add(quest_period.withdrawableAmount)
@@ -3090,7 +3090,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < new_quest_periods.length; i++) {
                 let quest_period = new_quest_periods[i]
 
-                if (quest_period.currentState != 0) {
+                if (quest_period.currentState > 1) {
                     expect(quest_period.withdrawableAmount).to.be.eq(0) //Should have been set to 0
                 }
                 else {
