@@ -1875,6 +1875,7 @@ describe('QuestBoard contract tests', () => {
 
     });
 
+    
     describe('closePartOfQuestPeriod', async () => {
 
         let gauges: string[] = []

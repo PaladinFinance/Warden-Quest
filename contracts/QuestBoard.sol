@@ -669,6 +669,55 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
 
     // Manager functions
+
+    function _closeQuestPeriod(uint256 period, uint256 questID) internal {
+        // We check that this period was not already closed
+        if(periodsByQuest[questID][period].currentState != PeriodState.ACTIVE) return;
+            
+        // We use the Gauge Point data from nextPeriod => the end of the period we are closing
+        uint256 nextPeriod = ((period + WEEK) / WEEK) * WEEK;
+
+        IGaugeController gaugeController = IGaugeController(GAUGE_CONTROLLER);
+
+        Quest memory _quest = quests[questID];
+        QuestPeriod memory _questPeriod = periodsByQuest[questID][period];
+        _questPeriod.currentState = PeriodState.CLOSED;
+
+        // Call a checkpoint on the Gauge, in case it was not written yet
+        gaugeController.checkpoint_gauge(_quest.gauge);
+
+        // Get the bias of the Gauge for the end of the period
+        uint256 periodBias = gaugeController.points_weight(_quest.gauge, nextPeriod).bias;
+
+        if(periodBias == 0) { 
+            //Because we don't want to divide by 0
+            // Here since the bias is 0, we consider 0% completion
+            // => no rewards to be distributed
+            _questPeriod.rewardAmountDistributed = 0;
+            _questPeriod.withdrawableAmount = _questPeriod.rewardAmountPerPeriod;
+        }
+        else{
+            // For here, 100% completion is 1e18 (represented by the UNIT constant).
+            // The completion percentage is calculated based on the Gauge bias for 
+            // the next period (all accrued from previous periods),
+            // and the Bias objective for this period as listed in the Quest Period.
+            // To get how much rewards to distribute, we can multiply by the completion value
+            // (that will be between 0 & UNIT), and divided by UNIT.
+
+            uint256 objectiveCompletion = periodBias >= _questPeriod.objectiveVotes ? UNIT : (periodBias * UNIT) / _questPeriod.objectiveVotes;
+
+            // Using the completion ratio, we calculate the amount to distribute
+            uint256 toDistributeAmount = (_questPeriod.rewardAmountPerPeriod * objectiveCompletion) / UNIT;
+
+            _questPeriod.rewardAmountDistributed = toDistributeAmount;
+            // And the rest is set as withdrawable amount, that the Quest creator can retrieve
+            _questPeriod.withdrawableAmount = _questPeriod.rewardAmountPerPeriod - toDistributeAmount;
+
+            IERC20(_quest.rewardToken).safeTransfer(distributor, toDistributeAmount);
+        }
+
+        periodsByQuest[questID][period] =  _questPeriod;
+    }
  
     /**
     * @notice Closes the Period, and all QuestPeriods for this period
@@ -683,57 +732,11 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(questsByPeriod[period].length != 0, "QuestBoard: empty Period");
         // We use the 1st QuestPeriod of this period to check it was not Closed
         uint256[] memory questsForPeriod = questsByPeriod[period];
-        require(
-            periodsByQuest[questsForPeriod[0]][period].currentState == PeriodState.ACTIVE,
-            "QuestBoard: Period already closed"
-        );
-
-        IGaugeController gaugeController = IGaugeController(GAUGE_CONTROLLER);
-
-        // We use the Gauge Point data from nextPeriod => the end of the period we are closing
-        uint256 nextPeriod = ((period + WEEK) / WEEK) * WEEK;
 
         // For each QuestPeriod
         uint256 length = questsForPeriod.length;
         for(uint256 i = 0; i < length;){
-            Quest storage _quest = quests[questsForPeriod[i]];
-            QuestPeriod memory _questPeriod = periodsByQuest[questsForPeriod[i]][period];
-            _questPeriod.currentState = PeriodState.CLOSED;
-
-            // Call a checkpoint on the Gauge, in case it was not written yet
-            gaugeController.checkpoint_gauge(_quest.gauge);
-
-            // Get the bias of the Gauge for the end of the period
-            uint256 periodBias = gaugeController.points_weight(_quest.gauge, nextPeriod).bias;
-
-            if(periodBias == 0) { 
-                //Because we don't want to divide by 0
-                // Here since the bias is 0, we consider 0% completion
-                // => no rewards to be distributed
-                _questPeriod.rewardAmountDistributed = 0;
-                _questPeriod.withdrawableAmount = _questPeriod.rewardAmountPerPeriod;
-            }
-            else{
-                // For here, 100% completion is 1e18 (represented by the UNIT constant).
-                // The completion percentage is calculated based on the Gauge bias for 
-                // the next period (all accrued from previous periods),
-                // and the Bias objective for this period as listed in the Quest Period.
-                // To get how much rewards to distribute, we can multiply by the completion value
-                // (that will be between 0 & UNIT), and divided by UNIT.
-
-                uint256 objectiveCompletion = periodBias >= _questPeriod.objectiveVotes ? UNIT : (periodBias * UNIT) / _questPeriod.objectiveVotes;
-
-                // Using the completion ratio, we calculate the amount to distribute
-                uint256 toDistributeAmount = (_questPeriod.rewardAmountPerPeriod * objectiveCompletion) / UNIT;
-
-                _questPeriod.rewardAmountDistributed = toDistributeAmount;
-                // And the rest is set as withdrawable amount, that the Quest creator can retrieve
-                _questPeriod.withdrawableAmount = _questPeriod.rewardAmountPerPeriod - toDistributeAmount;
-
-                IERC20(_quest.rewardToken).safeTransfer(distributor, toDistributeAmount);
-            }
-
-            periodsByQuest[questsForPeriod[i]][period] =  _questPeriod;
+            _closeQuestPeriod(period, questsForPeriod[i]);
 
             unchecked{ ++i; }
         }
@@ -755,58 +758,10 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(period < currentPeriod, "QuestBoard: Period still active");
         require(questsByPeriod[period].length != 0, "QuestBoard: empty Period");
 
-        IGaugeController gaugeController = IGaugeController(GAUGE_CONTROLLER);
-
-        // We use the Gauge Point data from nextPeriod => the end of the period we are closing
-        uint256 nextPeriod = ((period + WEEK) / WEEK) * WEEK;
-
         // For each QuestPeriod
         uint256 length = questIDs.length;
         for(uint256 i = 0; i < length;){
-            // We chack that this period was not already closed
-            require(
-                periodsByQuest[questIDs[i]][period].currentState == PeriodState.ACTIVE,
-                "QuestBoard: Period already closed"
-            );
-
-            Quest storage _quest = quests[questIDs[i]];
-            QuestPeriod memory _questPeriod = periodsByQuest[questIDs[i]][period];
-            _questPeriod.currentState = PeriodState.CLOSED;
-
-            // Call a checkpoint on the Gauge, in case it was not written yet
-            gaugeController.checkpoint_gauge(_quest.gauge);
-
-            // Get the bias of the Gauge for the end of the period
-            uint256 periodBias = gaugeController.points_weight(_quest.gauge, nextPeriod).bias;
-
-            if(periodBias == 0) { 
-                //Because we don't want to divide by 0
-                // Here since the bias is 0, we consider 0% completion
-                // => no rewards to be distributed
-                _questPeriod.rewardAmountDistributed = 0;
-                _questPeriod.withdrawableAmount = _questPeriod.rewardAmountPerPeriod;
-            }
-            else{
-                // For here, 100% completion is 1e18 (represented by the UNIT constant).
-                // The completion percentage is calculated based on the Gauge bias for 
-                // the next period (all accrued from previous periods),
-                // and the Bias objective for this period as listed in the Quest Period.
-                // To get how much rewards to distribute, we can multiply by the completion value
-                // (that will be between 0 & UNIT), and divided by UNIT.
-
-                uint256 objectiveCompletion = periodBias >= _questPeriod.objectiveVotes ? UNIT : (periodBias * UNIT) / _questPeriod.objectiveVotes;
-
-                // Using the completion ratio, we calculate the amount to distribute
-                uint256 toDistributeAmount = (_questPeriod.rewardAmountPerPeriod * objectiveCompletion) / UNIT;
-
-                _questPeriod.rewardAmountDistributed = toDistributeAmount;
-                // And the rest is set as withdrawable amount, that the Quest creator can retrieve
-                _questPeriod.withdrawableAmount = _questPeriod.rewardAmountPerPeriod - toDistributeAmount;
-
-                IERC20(_quest.rewardToken).safeTransfer(distributor, toDistributeAmount);
-            }
-
-            periodsByQuest[questIDs[i]][period] =  _questPeriod;
+            _closeQuestPeriod(period, questIDs[i]);
 
             unchecked{ ++i; }
         }
