@@ -237,6 +237,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         // We can find the number of remaining periods in the Quest simply by dividing the remaining time between
         // currentPeriod and the last QuestPeriod start by a WEEK.
         // If the current period is the last period of the Quest, we want to return 0
+        require(questPeriods[questID].length != 0, "QuestBoard: Empty Quest");
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
         return lastPeriod < currentPeriod ? 0: (lastPeriod - currentPeriod) / WEEK;
     }
@@ -390,6 +391,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(addedDuration > 0, "QuestBoard: Incorrect addedDuration");
 
         //We take data from the last period of the Quest to account for any other changes in the Quest parameters
+        require(questPeriods[questID].length != 0, "QuestBoard: Empty Quest");
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
 
         require(lastPeriod >= currentPeriod, "QuestBoard: Quest is over");
@@ -458,7 +460,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
         require(newRewardPerVote != 0 && addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
     
-        uint256 remainingDuration = _getRemainingDuration(questID);
+        uint256 remainingDuration = _getRemainingDuration(questID); //Also handles the Empty Quest check
         require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
 
         // The new reward amount must be higher 
@@ -525,7 +527,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
         require(addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
     
-        uint256 remainingDuration = _getRemainingDuration(questID);
+        uint256 remainingDuration = _getRemainingDuration(questID); //Also handles the Empty Quest check
         require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
 
         // No need to compare to minObjective : the new value must be higher than current Objective
