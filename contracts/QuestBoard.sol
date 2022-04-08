@@ -293,7 +293,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(gauge != address(0) && rewardToken != address(0), "QuestBoard: Zero Address");
         require(IGaugeController(GAUGE_CONTROLLER).gauge_types(gauge) >= 0, "QuestBoard: Invalid Gauge");
         require(whitelistedTokens[rewardToken], "QuestBoard: Token not allowed");
-        require(duration > 0, "QuestBoard: Incorrect duration");
+        require(duration != 0, "QuestBoard: Incorrect duration");
         require(objective >= minObjective, "QuestBoard: Objective too low");
         require(rewardPerVote != 0 && totalRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
         require(rewardPerVote >= minRewardPerVotePerToken[rewardToken], "QuestBoard: RewardPerVote too low");
@@ -388,7 +388,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(questID < nextID, "QuestBoard: Non valid ID");
         require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
         require(addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
-        require(addedDuration > 0, "QuestBoard: Incorrect addedDuration");
+        require(addedDuration != 0, "QuestBoard: Incorrect addedDuration");
 
         //We take data from the last period of the Quest to account for any other changes in the Quest parameters
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
@@ -469,7 +469,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
 
         uint256 remainingDuration = _getRemainingDuration(questID);
-        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
+        require(remainingDuration != 0, "QuestBoard: no more incoming QuestPeriods");
 
         require((diffRewardPerPeriod * remainingDuration) == addedRewardAmount, "QuestBoard: addedRewardAmount incorrect");
         require((addedRewardAmount * platformFee)/MAX_BPS == feeAmount, "QuestBoard: feeAmount incorrect");
@@ -537,7 +537,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
 
         uint256 remainingDuration = _getRemainingDuration(questID);
-        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
+        require(remainingDuration != 0, "QuestBoard: no more incoming QuestPeriods");
 
         require((diffRewardPerPeriod * remainingDuration) == addedRewardAmount, "QuestBoard: addedRewardAmount incorrect");
         require((addedRewardAmount * platformFee)/MAX_BPS == feeAmount, "QuestBoard: feeAmount incorrect");
@@ -604,7 +604,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
             // If there is token to withdraw for that period, add they to the total to withdraw,
             // and set the withdrawable amount to 0
-            if(withdrawableForPeriod > 0){
+            if(withdrawableForPeriod != 0){
                 totalWithdraw += withdrawableForPeriod;
                 _questPeriod.withdrawableAmount = 0;
             }
@@ -649,7 +649,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
                 // If there is a non_null withdrawable amount for the period,
                 // add it to the total to withdraw, et set the withdrawable amount ot 0
-                if(withdrawableForPeriod > 0){
+                if(withdrawableForPeriod != 0){
                     totalWithdraw += withdrawableForPeriod;
                     _questPeriod.withdrawableAmount = 0;
                 }
@@ -980,7 +980,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     * @param newMinObjective New min objective
     */
     function updateMinObjective(uint256 newMinObjective) external onlyOwner {
-        require(newMinObjective > 0, "QuestBoard: Null value");
+        require(newMinObjective != 0, "QuestBoard: Null value");
         minObjective = newMinObjective;
     }
    
