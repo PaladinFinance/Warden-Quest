@@ -13,6 +13,7 @@ import "./oz/interfaces/IERC20.sol";
 import "./oz/libraries/SafeERC20.sol";
 import "./oz/utils/MerkleProof.sol";
 import "./oz/utils/Ownable.sol";
+import "./interfaces/IQuestBoard.sol";
 
 /** @title Warden Quest Multi Merkle Distributor  */
 /// @author Paladin
@@ -294,6 +295,7 @@ contract MultiMerkleDistributor is Ownable {
     * @return bool: success
     */
     function recoverERC20(address token, uint256 amount) external onlyOwner returns(bool) {
+        require(!IQuestBoard(questBoard).whitelistedTokens(token), "MultiMerkle: Cannot recover whitelisted token");
         IERC20(token).safeTransfer(owner(), amount);
 
         return true;

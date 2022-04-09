@@ -3,6 +3,7 @@ import { ethers, waffle } from "hardhat";
 import chai from "chai";
 import { solidity } from "ethereum-waffle";
 import { MultiMerkleDistributor } from "../typechain/MultiMerkleDistributor";
+import { QuestBoard } from "../typechain/QuestBoard";
 import { IERC20 } from "../typechain/IERC20";
 import { IERC20__factory } from "../typechain/factories/IERC20__factory";
 import { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
@@ -24,6 +25,7 @@ const { expect } = chai;
 const { provider } = ethers;
 
 let distributorFactory: ContractFactory
+let boardFactory: ContractFactory
 
 let tree: BalanceTree;
 
@@ -57,6 +59,7 @@ describe('MultiMerkleDistributor contract tests', () => {
         signers = (await ethers.getSigners()).slice(2) || []; //all signers exepct the one used as admin & the mock quest address
 
         distributorFactory = await ethers.getContractFactory("MultiMerkleDistributor");
+        boardFactory = await ethers.getContractFactory("QuestBoard");
 
         const crv_amount = ethers.utils.parseEther('5000');
         const dai_amount = ethers.utils.parseEther('100000');
@@ -1106,10 +1109,27 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         const lost_amount = ethers.utils.parseEther('1000');
 
+        let mockController: SignerWithAddress
+        let mockChest: SignerWithAddress
+
+        let board: QuestBoard
+
+        let distributor2: MultiMerkleDistributor
+
+        let minDAIAmount = ethers.utils.parseEther("0.005")
+
         beforeEach(async () => {
 
+            mockController = signers[1]
+            mockChest = signers[2]
 
-            await DAI.connect(admin).transfer(distributor.address, lost_amount)
+            board = (await boardFactory.connect(admin).deploy(mockController.address, mockChest.address)) as QuestBoard;
+            await board.deployed();
+
+            distributor2 = (await distributorFactory.connect(admin).deploy(board.address)) as MultiMerkleDistributor;
+            await distributor2.deployed();
+
+            await DAI.connect(admin).transfer(distributor2.address, lost_amount)
 
         });
 
@@ -1118,7 +1138,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             const oldBalance = await DAI.balanceOf(admin.address);
 
-            await distributor.connect(admin).recoverERC20(DAI.address, lost_amount)
+            await distributor2.connect(admin).recoverERC20(DAI.address, lost_amount)
 
             const newBalance = await DAI.balanceOf(admin.address);
 
@@ -1126,10 +1146,20 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         });
 
+        it(' should fail for whitelisted tokens', async () => {
+
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+
+            await expect(
+                distributor2.connect(admin).recoverERC20(DAI.address, lost_amount)
+            ).to.be.revertedWith('MultiMerkle: Cannot recover whitelisted token')
+
+        });
+
         it(' should block non-admin caller', async () => {
 
             await expect(
-                distributor.connect(user2).recoverERC20(DAI.address, ethers.utils.parseEther('10'))
+                distributor2.connect(user2).recoverERC20(DAI.address, ethers.utils.parseEther('10'))
             ).to.be.revertedWith('Ownable: caller is not the owner')
 
         });
