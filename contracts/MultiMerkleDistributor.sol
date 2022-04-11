@@ -24,6 +24,9 @@ import "./oz/utils/Ownable.sol";
 contract MultiMerkleDistributor is Ownable {
     using SafeERC20 for IERC20;
 
+    /** @notice Seconds in a Week */
+    uint256 private constant WEEK = 604800;
+
     /** @notice Mapping listing the reward token associated to each Quest ID */
     // QuestID => reward token
     mapping(uint256 => address) public questRewardToken;
@@ -258,6 +261,7 @@ contract MultiMerkleDistributor is Ownable {
     * @return bool: success
     */
     function updateQuestPeriod(uint256 questID, uint256 period, bytes32 merkleRoot) external onlyAllowed returns(bool) {
+        period = (period / WEEK) * WEEK;
         require(questRewardToken[questID] != address(0), "MultiMerkle: Quest not listed");
         require(questMerkleRootPerPeriod[questID][period] == 0, "MultiMerkle: period already updated");
         require(merkleRoot != 0, "MultiMerkle: Empty MerkleRoot");
@@ -309,6 +313,7 @@ contract MultiMerkleDistributor is Ownable {
     * @return bool : success
     */
     function emergencyUpdatequestPeriod(uint256 questID, uint256 period, bytes32 merkleRoot) external onlyOwner returns(bool) {
+        period = (period / WEEK) * WEEK;
         // In case the given MerkleRoot was incorrect => allows to update with the correct one so users can claim
         require(questRewardToken[questID] != address(0), "MultiMerkle: Quest not listed");
         require(merkleRoot != 0, "MultiMerkle: Empty MerkleRoot");
