@@ -148,9 +148,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     event WithdrawUnusedRewards(uint256 indexed questID, address recipient, uint256 amount);
 
     /** @notice Event emitted when a Period is Closed */
-    event PeriodClosed(uint256 indexed period);
-    /** @notice Event emitted when a part of the Period is Closed */
-    event PeriodClosedPart(uint256 indexed period);
+    event PeriodClosed(uint256 indexed questID, uint256 indexed period);
 
     /** @notice Event emitted when a new reward token is whitelisted */
     event WhitelistToken(address indexed token, uint256 minRewardPerVote);
@@ -670,9 +668,9 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
     // Manager functions
 
-    function _closeQuestPeriod(uint256 period, uint256 questID) internal {
+    function _closeQuestPeriod(uint256 period, uint256 questID) internal returns(bool) {
         // We check that this period was not already closed
-        if(periodsByQuest[questID][period].currentState != PeriodState.ACTIVE) return;
+        if(periodsByQuest[questID][period].currentState != PeriodState.ACTIVE) return false;
             
         // We use the Gauge Point data from nextPeriod => the end of the period we are closing
         uint256 nextPeriod = ((period + WEEK) / WEEK) * WEEK;
@@ -717,6 +715,10 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         }
 
         periodsByQuest[questID][period] =  _questPeriod;
+
+        emit PeriodClosed(questID, period);
+
+        return true;
     }
  
     /**
@@ -724,7 +726,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     * @dev Closes all QuestPeriod for the given period, calculating rewards to distribute & send them to distributor
     * @param period Timestamp of the period
     */
-    function closeQuestPeriod(uint256 period) external isAlive onlyAllowed nonReentrant {
+    function closeQuestPeriod(uint256 period) external isAlive onlyAllowed nonReentrant returns(uint256 closed, uint256 skipped) {
         updatePeriod();
         require(distributor != address(0), "QuestBoard: no Distributor set");
         require(period != 0, "QuestBoard: invalid Period");
@@ -736,12 +738,17 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         // For each QuestPeriod
         uint256 length = questsForPeriod.length;
         for(uint256 i = 0; i < length;){
-            _closeQuestPeriod(period, questsForPeriod[i]);
+            bool result = _closeQuestPeriod(period, questsForPeriod[i]);
+
+            if(result){
+                closed++;
+            } 
+            else {
+                skipped++;
+            }
 
             unchecked{ ++i; }
         }
-
-        emit PeriodClosed(period);
     }
 
     /**
@@ -750,7 +757,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     * @param period Timestamp of the period
     * @param questIDs List of the Quest IDs to close
     */
-    function closePartOfQuestPeriod(uint256 period, uint256[] calldata questIDs) external isAlive onlyAllowed nonReentrant {
+    function closePartOfQuestPeriod(uint256 period, uint256[] calldata questIDs) external isAlive onlyAllowed nonReentrant returns(uint256 closed, uint256 skipped) {
         updatePeriod();
         require(questIDs.length != 0, "QuestBoard: empty array");
         require(distributor != address(0), "QuestBoard: no Distributor set");
@@ -761,12 +768,17 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         // For each QuestPeriod
         uint256 length = questIDs.length;
         for(uint256 i = 0; i < length;){
-            _closeQuestPeriod(period, questIDs[i]);
+            bool result = _closeQuestPeriod(period, questIDs[i]);
+
+            if(result){
+                closed++;
+            } 
+            else {
+                skipped++;
+            }
 
             unchecked{ ++i; }
         }
-
-        emit PeriodClosedPart(period);
     }
    
     /**
