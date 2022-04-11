@@ -127,7 +127,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
     /** @notice Event emitted when a new Quest is created */
     event NewQuest(
-        uint256 questID,
+        uint256 indexed questID,
         address indexed creator,
         address indexed gauge,
         address rewardToken,
