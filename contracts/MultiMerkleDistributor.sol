@@ -93,11 +93,11 @@ contract MultiMerkleDistributor is Ownable {
     * @return bool : true if already claimed
     */
     function isClaimed(uint256 questID, uint256 period, uint256 index) public view returns (bool) {
-        uint256 claimedWordIndex = index / 256;
-        uint256 claimedBitIndex = index % 256;
+        uint256 claimedWordIndex = index >> 8;
+        uint256 claimedBitIndex = index & 0xff;
         uint256 claimedWord = questPeriodClaimedBitMap[questID][period][claimedWordIndex];
         uint256 mask = (1 << claimedBitIndex);
-        return claimedWord & mask == mask;
+        return claimedWord & mask != 0;
     }
    
     /**
@@ -107,9 +107,9 @@ contract MultiMerkleDistributor is Ownable {
     * @param index Index of the claim
     */
     function _setClaimed(uint256 questID, uint256 period, uint256 index) private {
-        uint256 claimedWordIndex = index / 256;
-        uint256 claimedBitIndex = index % 256;
-        questPeriodClaimedBitMap[questID][period][claimedWordIndex] = questPeriodClaimedBitMap[questID][period][claimedWordIndex] | (1 << claimedBitIndex);
+        uint256 claimedWordIndex = index >> 8;
+        uint256 claimedBitIndex = index & 0xff;
+        questPeriodClaimedBitMap[questID][period][claimedWordIndex] |= (1 << claimedBitIndex);
     }
 
     //Basic Claim   
