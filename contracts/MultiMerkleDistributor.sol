@@ -12,7 +12,7 @@ pragma solidity 0.8.10;
 import "./oz/interfaces/IERC20.sol";
 import "./oz/libraries/SafeERC20.sol";
 import "./oz/utils/MerkleProof.sol";
-import "./oz/utils/Ownable.sol";
+import "./utils/Owner.sol";
 import "./oz/utils/ReentrancyGuard.sol";
 
 /** @title Warden Quest Multi Merkle Distributor  */
@@ -22,8 +22,11 @@ import "./oz/utils/ReentrancyGuard.sol";
     Can handle multiple MerkleRoots
 */
 
-contract MultiMerkleDistributor is Ownable, ReentrancyGuard {
+contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     using SafeERC20 for IERC20;
+
+    /** @notice Seconds in a Week */
+    uint256 private constant WEEK = 604800;
 
     /** @notice Mapping listing the reward token associated to each Quest ID */
     // QuestID => reward token
@@ -80,6 +83,8 @@ contract MultiMerkleDistributor is Ownable, ReentrancyGuard {
     // Constructor
 
     constructor(address _questBoard){
+        require(_questBoard != address(0), "MultiMerkle: Zero Address");
+
         questBoard = _questBoard;
     }
 
@@ -129,7 +134,7 @@ contract MultiMerkleDistributor is Ownable, ReentrancyGuard {
         require(!isClaimed(questID, period, index), "MultiMerkle: already claimed");
 
         // Check that the given parameters match the given Proof
-        bytes32 node = keccak256(abi.encodePacked(index, account, amount));
+        bytes32 node = keccak256(abi.encodePacked(questID, period, index, account, amount));
         require(
             MerkleProof.verify(merkleProof, questMerkleRootPerPeriod[questID][period], node),
             "MultiMerkle: Invalid proof"
@@ -198,7 +203,7 @@ contract MultiMerkleDistributor is Ownable, ReentrancyGuard {
 
             // For each period given, if the proof matches the given parameters, 
             // set as claimed and add to the to total to transfer
-            bytes32 node = keccak256(abi.encodePacked(claims[i].index, account, claims[i].amount));
+            bytes32 node = keccak256(abi.encodePacked(questID, claims[i].period, claims[i].index, account, claims[i].amount));
             require(
                 MerkleProof.verify(claims[i].merkleProof, questMerkleRootPerPeriod[questID][claims[i].period], node),
                 "MultiMerkle: Invalid proof"
@@ -238,7 +243,8 @@ contract MultiMerkleDistributor is Ownable, ReentrancyGuard {
     * @param token Address of the ERC20 reward token
     * @return bool : success
     */
-    function addQuest(uint256 questID, address token) external onlyAllowed returns(bool) {
+    function addQuest(uint256 questID, address token) external returns(bool) {
+        require(msg.sender == questBoard, "MultiMerkle: Not allowed");
         require(questRewardToken[questID] == address(0), "MultiMerkle: Quest already listed");
         require(token != address(0), "MultiMerkle: Incorrect reward token");
 
@@ -259,6 +265,7 @@ contract MultiMerkleDistributor is Ownable, ReentrancyGuard {
     * @return bool: success
     */
     function updateQuestPeriod(uint256 questID, uint256 period, bytes32 merkleRoot) external onlyAllowed returns(bool) {
+        period = (period / WEEK) * WEEK;
         require(questRewardToken[questID] != address(0), "MultiMerkle: Quest not listed");
         require(questMerkleRootPerPeriod[questID][period] == 0, "MultiMerkle: period already updated");
         require(merkleRoot != 0, "MultiMerkle: Empty MerkleRoot");
@@ -310,11 +317,13 @@ contract MultiMerkleDistributor is Ownable, ReentrancyGuard {
     * @param merkleRoot New MerkleRoot to add
     * @return bool : success
     */
-    function emergencyUpdatequestPeriod(uint256 questID, uint256 period, bytes32 merkleRoot) external onlyOwner returns(bool) {
+    function emergencyUpdateQuestPeriod(uint256 questID, uint256 period, bytes32 merkleRoot) external onlyOwner returns(bool) {
+        period = (period / WEEK) * WEEK;
         // In case the given MerkleRoot was incorrect => allows to update with the correct one so users can claim
         require(questRewardToken[questID] != address(0), "MultiMerkle: Quest not listed");
-        require(merkleRoot != 0, "MultiMerkle: Empty MerkleRoot");
         require(period != 0, "MultiMerkle: incorrect period");
+        require(questMerkleRootPerPeriod[questID][period] !=0, "MultiMerkle: Not closed yet");
+        require(merkleRoot != 0, "MultiMerkle: Empty MerkleRoot");
 
         questMerkleRootPerPeriod[questID][period] = merkleRoot;
 

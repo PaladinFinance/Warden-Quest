@@ -10,7 +10,9 @@
     "test": "npx hardhat test",
     "coverage": "npx hardhat coverage --network hardhat --solcoverjs .solcover.js",
     "gv": "ts-node scripts/utils/gaugeVotes.utils.ts",
-    "mg": "ts-node scripts/merkle/merkleGenerator.ts"
+    "mg": "ts-node scripts/merkle/merkleGenerator.ts",
+    "qu": "ts-node scripts/utils/quests.utils.ts",
+    "te": "ts-node scripts/testMerkle.ts"
   },
   "author": "",
   "license": "MIT",
