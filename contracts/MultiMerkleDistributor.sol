@@ -12,7 +12,7 @@ pragma solidity ^0.8.10;
 import "./oz/interfaces/IERC20.sol";
 import "./oz/libraries/SafeERC20.sol";
 import "./oz/utils/MerkleProof.sol";
-import "./oz/utils/Ownable.sol";
+import "./utils/Owner.sol";
 
 /** @title Warden Quest Multi Merkle Distributor  */
 /// @author Paladin
@@ -21,7 +21,7 @@ import "./oz/utils/Ownable.sol";
     Can handle multiple MerkleRoots
 */
 
-contract MultiMerkleDistributor is Ownable {
+contract MultiMerkleDistributor is Owner {
     using SafeERC20 for IERC20;
 
     /** @notice Mapping listing the reward token associated to each Quest ID */

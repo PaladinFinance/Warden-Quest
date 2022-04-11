@@ -11,7 +11,7 @@ pragma solidity ^0.8.10;
 
 import "./oz/interfaces/IERC20.sol";
 import "./oz/libraries/SafeERC20.sol";
-import "./oz/utils/Ownable.sol";
+import "./utils/Owner.sol";
 import "./oz/utils/ReentrancyGuard.sol";
 import "./MultiMerkleDistributor.sol";
 import "./interfaces/IGaugeController.sol";
@@ -24,7 +24,7 @@ import "./interfaces/IGaugeController.sol";
     And the managers to update Quests to the next period & trigger the rewards for closed periods 
 */
 
-contract QuestBoard is Ownable, ReentrancyGuard {
+contract QuestBoard is Owner, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /** @notice Address of the Curve Gauge Controller */

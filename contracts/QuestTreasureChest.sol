@@ -11,7 +11,7 @@ pragma solidity ^0.8.10;
 
 import "./oz/interfaces/IERC20.sol";
 import "./oz/libraries/SafeERC20.sol";
-import "./oz/utils/Ownable.sol";
+import "./utils/Owner.sol";
 import "./oz/utils/ReentrancyGuard.sol";
 
 /** @title Warden Quest Treasure Chest  */
@@ -20,7 +20,7 @@ import "./oz/utils/ReentrancyGuard.sol";
     Contract holding protocol fees from Quest creations
 */
 
-contract QuestTreasureChest is Ownable, ReentrancyGuard {
+contract QuestTreasureChest is Owner, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /** @notice Address approved to use methods to manage funds */
