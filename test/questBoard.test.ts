@@ -195,7 +195,7 @@ describe('QuestBoard contract tests', () => {
         it(' should only be callable by admin', async () => {
 
             await expect(
-                board.connect(user2).recoverERC20(DAI.address, ethers.utils.parseEther('10'))
+                board.connect(user2).initiateDistributor(distributor.address)
             ).to.be.revertedWith('Ownable: caller is not the owner')
 
         });
@@ -2677,14 +2677,14 @@ describe('QuestBoard contract tests', () => {
 
             const kill_tx = await board.connect(admin).killBoard()
 
-            await expect(
-                kill_tx
-            ).to.emit(board, "Killed")
-
-            expect(await board.isKilled()).to.be.true
-
             const kill_blockNumber = (await kill_tx).blockNumber || 0
             const kill_timestamp = BigNumber.from((await provider.getBlock(kill_blockNumber)).timestamp)
+
+            await expect(
+                kill_tx
+            ).to.emit(board, "Killed").withArgs(kill_timestamp);
+
+            expect(await board.isKilled()).to.be.true
 
             expect(await board.kill_ts()).to.be.eq(kill_timestamp)
 
@@ -2786,9 +2786,14 @@ describe('QuestBoard contract tests', () => {
 
             expect(await board.isKilled()).to.be.true
 
+            const unkill_tx = await board.connect(admin).unkillBoard()
+
+            const unkill_blockNumber = (await unkill_tx).blockNumber || 0
+            const unkill_timestamp = BigNumber.from((await provider.getBlock(unkill_blockNumber)).timestamp)
+
             await expect(
-                board.connect(admin).unkillBoard()
-            ).to.emit(board, "Unkilled")
+                unkill_tx
+            ).to.emit(board, "Unkilled").withArgs(unkill_timestamp);
 
             expect(await board.isKilled()).to.be.false
 
@@ -3622,7 +3627,7 @@ describe('QuestBoard contract tests', () => {
 
             const oldBalance = await DAI.balanceOf(admin.address);
 
-            await board.connect(admin).recoverERC20(DAI.address, lost_amount)
+            await board.connect(admin).recoverERC20(DAI.address)
 
             const newBalance = await DAI.balanceOf(admin.address);
 
@@ -3635,7 +3640,7 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
 
             await expect(
-                board.connect(admin).recoverERC20(DAI.address, lost_amount)
+                board.connect(admin).recoverERC20(DAI.address)
             ).to.be.revertedWith('QuestBoard: Cannot recover whitelisted token')
 
         });
@@ -3643,7 +3648,7 @@ describe('QuestBoard contract tests', () => {
         it(' should block non-admin caller', async () => {
 
             await expect(
-                board.connect(user2).recoverERC20(DAI.address, ethers.utils.parseEther('10'))
+                board.connect(user2).recoverERC20(DAI.address)
             ).to.be.revertedWith('Ownable: caller is not the owner')
 
         });

@@ -1301,7 +1301,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             const oldBalance = await DAI.balanceOf(admin.address);
 
-            await distributor.connect(admin).recoverERC20(DAI.address, lost_amount)
+            await distributor.connect(admin).recoverERC20(DAI.address)
 
             const newBalance = await DAI.balanceOf(admin.address);
 
@@ -1312,7 +1312,7 @@ describe('MultiMerkleDistributor contract tests', () => {
         it(' should block non-admin caller', async () => {
 
             await expect(
-                distributor.connect(user2).recoverERC20(DAI.address, ethers.utils.parseEther('10'))
+                distributor.connect(user2).recoverERC20(DAI.address)
             ).to.be.revertedWith('Ownable: caller is not the owner')
 
         });

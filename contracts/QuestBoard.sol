@@ -7,7 +7,7 @@
  
 
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.10;
+pragma solidity 0.8.10;
 
 import "./oz/interfaces/IERC20.sol";
 import "./oz/libraries/SafeERC20.sol";
@@ -155,11 +155,19 @@ contract QuestBoard is Owner, ReentrancyGuard {
     event UpdateRewardToken(address indexed token, uint256 newMinRewardPerVote);
 
     /** @notice Event emitted when the contract is killed */
-    event Killed();
+    event Killed(uint256 killTime);
     /** @notice Event emitted when the contract is unkilled */
-    event Unkilled();
+    event Unkilled(uint256 unkillTime);
     /** @notice Event emitted when the Quest creator withdraw all unused funds (if the contract was killed) */
     event EmergencyWithdraw(uint256 indexed questID, address recipient, uint256 amount);
+
+    event InitDistributor(address distributor);
+    event ApprovedManager(address indexed manager);
+    event RemovedManager(address indexed manager);
+    event ChestUpdated(address oldChest, address newChest);
+    event DistributorUpdated(address oldDistributor, address newDistributor);
+    event PlatformFeeUpdated(uint256 oldfee, uint256 newFee);
+    event MinObjectiveUpdated(uint256 oldMinObjective, uint256 newMinObjective);
 
     // Modifiers
 
@@ -232,7 +240,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
     }
    
     /**
-    * @dev Returns the number of periods to come for a give nQuest
+    * @dev Returns the number of periods to come for a given Quest
     * @param questID ID of the Quest
     * @return uint : remaining duration (non active periods)
     */
@@ -895,6 +903,8 @@ contract QuestBoard is Owner, ReentrancyGuard {
     function initiateDistributor(address newDistributor) external onlyOwner {
         require(distributor == address(0), "QuestBoard: Already initialized");
         distributor = newDistributor;
+
+        emit InitDistributor(newDistributor);
     }
    
     /**
@@ -905,6 +915,8 @@ contract QuestBoard is Owner, ReentrancyGuard {
     function approveManager(address newManager) external onlyOwner {
         require(newManager != address(0), "QuestBoard: Zero Address");
         approvedManagers[newManager] = true;
+
+        emit ApprovedManager(newManager);
     }
    
     /**
@@ -915,6 +927,8 @@ contract QuestBoard is Owner, ReentrancyGuard {
     function removeManager(address manager) external onlyOwner {
         require(manager != address(0), "QuestBoard: Zero Address");
         approvedManagers[manager] = false;
+
+        emit RemovedManager(manager);
     }
    
     /**
@@ -924,7 +938,10 @@ contract QuestBoard is Owner, ReentrancyGuard {
     */
     function updateChest(address chest) external onlyOwner {
         require(chest != address(0), "QuestBoard: Zero Address");
+        address oldChest = questChest;
         questChest = chest;
+
+        emit ChestUpdated(oldChest, chest);
     }
    
     /**
@@ -934,7 +951,10 @@ contract QuestBoard is Owner, ReentrancyGuard {
     */
     function updateDistributor(address newDistributor) external onlyOwner {
         require(newDistributor != address(0), "QuestBoard: Zero Address");
+        address oldDistributor = distributor;
         distributor = newDistributor;
+
+        emit DistributorUpdated(oldDistributor, distributor);
     }
    
     /**
@@ -944,7 +964,10 @@ contract QuestBoard is Owner, ReentrancyGuard {
     */
     function updatePlatformFee(uint256 newFee) external onlyOwner {
         require(newFee <= 500, "QuestBoard: Fee too high");
+        uint256 oldfee = platformFee;
         platformFee = newFee;
+
+        emit PlatformFeeUpdated(oldfee, newFee);
     }
    
     /**
@@ -954,18 +977,23 @@ contract QuestBoard is Owner, ReentrancyGuard {
     */
     function updateMinObjective(uint256 newMinObjective) external onlyOwner {
         require(newMinObjective > 0, "QuestBoard: Null value");
+        uint256 oldMinObjective = minObjective;
         minObjective = newMinObjective;
+
+        emit MinObjectiveUpdated(oldMinObjective, newMinObjective);
     }
    
     /**
     * @notice Recovers ERC2O tokens sent by mistake to the contract
     * @dev Recovers ERC2O tokens sent by mistake to the contract
     * @param token Address tof the EC2O token
-    * @param amount Amount to recover
     * @return bool: success
     */
-    function recoverERC20(address token, uint256 amount) external onlyOwner returns(bool) {
+    function recoverERC20(address token) external onlyOwner returns(bool) {
         require(!whitelistedTokens[token], "QuestBoard: Cannot recover whitelisted token");
+
+        uint256 amount = IERC20(token).balanceOf(address(this));
+        require(amount > 0, "QuestBoard: Null amount");
         IERC20(token).safeTransfer(owner(), amount);
 
         return true;
@@ -980,7 +1008,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         isKilled = true;
         kill_ts = block.timestamp;
 
-        emit Killed();
+        emit Killed(kill_ts);
     }
    
     /**
@@ -992,7 +1020,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         require(block.timestamp < kill_ts + KILL_DELAY, "QuestBoard: Too late");
         isKilled = false;
 
-        emit Unkilled();
+        emit Unkilled(block.timestamp);
     }
 
 
