@@ -28,7 +28,11 @@ const generateMerkleScore = async (quest: Quest, votesEvents:ethers.utils.LogDes
             bias: voteBias.toString(),
             reward: voteReward.toString()
         }
-        balance[vote.user] = voteReward.toString();
+        balance[vote.user] = {
+            questID:quest.questID,
+            period:quest.startPeriod,
+            earning:voteReward.toString()
+        }
     }
 
     try{
