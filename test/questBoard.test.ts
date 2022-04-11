@@ -1818,17 +1818,6 @@ describe('QuestBoard contract tests', () => {
 
         });
 
-        it(' 1 period - should not be able to close the same period twice', async () => {
-            await advanceTime(WEEK.mul(2).toNumber())
-
-            await board.connect(manager).closeQuestPeriod(first_period)
-
-            await expect(
-                board.connect(manager).closeQuestPeriod(first_period)
-            ).to.be.revertedWith('QuestBoard: Period already closed')
-
-        });
-
         it(' 1 period - should fail on current active period', async () => {
             await advanceTime(WEEK.toNumber())
 
@@ -2063,21 +2052,6 @@ describe('QuestBoard contract tests', () => {
             expect(questPriod_data.currentState).to.be.eq(1)
             expect(questPriod_data.rewardAmountDistributed).to.be.eq(0)
             expect(questPriod_data.withdrawableAmount).to.be.eq(0)
-
-        });
-
-        it(' 1 period - should not be able to close the same QuestPeriods twice', async () => {
-            await advanceTime(WEEK.mul(2).toNumber())
-
-            await board.connect(manager).closePartOfQuestPeriod(first_period, toCloseIDs)
-
-            await expect(
-                board.connect(manager).closePartOfQuestPeriod(first_period, toCloseIDs)
-            ).to.be.revertedWith('QuestBoard: Period already closed')
-
-            await expect(
-                board.connect(manager).closePartOfQuestPeriod(first_period, [questIDs[1], questIDs[2]])
-            ).to.be.revertedWith('QuestBoard: Period already closed')
 
         });
 
