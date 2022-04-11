@@ -68,13 +68,6 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         await getERC20(admin, BIG_HOLDER2, DAI, admin.address, dai_amount);
 
-        tree = new BalanceTree([
-            { account: user1.address, amount: user1_claim_amount },
-            { account: user2.address, amount: user2_claim_amount },
-            { account: user3.address, amount: user3_claim_amount },
-            { account: user4.address, amount: user4_claim_amount },
-        ]);
-
     })
 
     beforeEach(async () => {
@@ -164,6 +157,13 @@ describe('MultiMerkleDistributor contract tests', () => {
         let tree_root: string
 
         beforeEach(async () => {
+            
+            tree = new BalanceTree([
+                { account: user1.address, amount: user1_claim_amount, questID: quest_id1, period: period },
+                { account: user2.address, amount: user2_claim_amount, questID: quest_id1, period: period },
+                { account: user3.address, amount: user3_claim_amount, questID: quest_id1, period: period },
+                { account: user4.address, amount: user4_claim_amount, questID: quest_id1, period: period },
+            ]); 
 
             await distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
 
@@ -221,15 +221,15 @@ describe('MultiMerkleDistributor contract tests', () => {
         it(' should allow to update multiple periods for the same Quest', async () => {
 
             let tree2 = new BalanceTree([
-                { account: user1.address, amount: user1_claim_amount },
-                { account: user2.address, amount: user2_claim_amount },
-                { account: user3.address, amount: user3_claim_amount },
+                { account: user1.address, amount: user1_claim_amount, questID: quest_id1, period: next_period },
+                { account: user2.address, amount: user2_claim_amount, questID: quest_id1, period: next_period },
+                { account: user3.address, amount: user3_claim_amount, questID: quest_id1, period: next_period },
             ]);
 
             let tree3 = new BalanceTree([
-                { account: user1.address, amount: user1_claim_amount },
-                { account: user3.address, amount: user3_claim_amount },
-                { account: user4.address, amount: user4_claim_amount },
+                { account: user1.address, amount: user1_claim_amount, questID: quest_id1, period: next_period },
+                { account: user3.address, amount: user3_claim_amount, questID: quest_id1, period: next_period },
+                { account: user4.address, amount: user4_claim_amount, questID: quest_id1, period: next_period },
             ]);
 
             await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree_root)
@@ -278,6 +278,13 @@ describe('MultiMerkleDistributor contract tests', () => {
         describe('claim - small tree', async () => {
     
             beforeEach(async () => {
+            
+                tree = new BalanceTree([
+                    { account: user1.address, amount: user1_claim_amount, questID: quest_id1, period: period },
+                    { account: user2.address, amount: user2_claim_amount, questID: quest_id1, period: period },
+                    { account: user3.address, amount: user3_claim_amount, questID: quest_id1, period: period },
+                    { account: user4.address, amount: user4_claim_amount, questID: quest_id1, period: period },
+                ]);
     
                 await distributor.connect(mockQuestBoard).addQuest(quest_id, CRV.address)
 
@@ -446,6 +453,10 @@ describe('MultiMerkleDistributor contract tests', () => {
             let new_tree: BalanceTree;
     
             let total_claim = 0;
+
+            const quest_id = 1011
+
+            const period = BigNumber.from(1639612800)
     
             beforeEach(async () => {
     
@@ -453,7 +464,7 @@ describe('MultiMerkleDistributor contract tests', () => {
                     signers.map((s, i) => {
                         total_claim += i + 1
     
-                        return { account: s.address, amount: BigNumber.from(i + 1) };
+                        return { account: s.address, amount: BigNumber.from(i + 1), questID: quest_id, period: period };
                     })
                 );
 
@@ -550,6 +561,10 @@ describe('MultiMerkleDistributor contract tests', () => {
     
     
         describe('claim - tree 10 000 users', async () => {
+
+            const quest_id = 1011
+
+            const period = BigNumber.from(1639612800)
     
             let new_tree: BalanceTree;
             const nb_leaves = 10000;
@@ -565,7 +580,7 @@ describe('MultiMerkleDistributor contract tests', () => {
             beforeEach(async () => {
     
                 for (let i = 0; i < nb_leaves; i++) {
-                    const n = { account: user1.address, amount: claim_amount };
+                    const n = { account: user1.address, amount: claim_amount, questID: quest_id, period: period };
                     user_claims.push(n);
                 }
     
@@ -650,21 +665,28 @@ describe('MultiMerkleDistributor contract tests', () => {
         ]
     
         beforeEach(async () => {
+            
+            tree = new BalanceTree([
+                { account: user1.address, amount: user1_claim_amount, questID: quest_id1, period: period },
+                { account: user2.address, amount: user2_claim_amount, questID: quest_id1, period: period },
+                { account: user3.address, amount: user3_claim_amount, questID: quest_id1, period: period },
+                { account: user4.address, amount: user4_claim_amount, questID: quest_id1, period: period },
+            ]); 
 
             await distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
             await distributor.connect(mockQuestBoard).addQuest(quest_id2, CRV.address)
             await distributor.connect(mockQuestBoard).addQuest(quest_id3, DAI.address)
 
             tree2 = new BalanceTree([
-                { account: user1.address, amount: user_claims[0][1] },
-                { account: user2.address, amount: user_claims[1][1] },
-                { account: user4.address, amount: user_claims[3][1] },
+                { account: user1.address, amount: user_claims[0][1], questID: quest_id2, period: period },
+                { account: user2.address, amount: user_claims[1][1], questID: quest_id2, period: period },
+                { account: user4.address, amount: user_claims[3][1], questID: quest_id2, period: period },
             ]);
 
             tree3 = new BalanceTree([
-                { account: user1.address, amount: user_claims[0][2] },
-                { account: user2.address, amount: user_claims[1][2] },
-                { account: user3.address, amount: user_claims[2][2] },
+                { account: user1.address, amount: user_claims[0][2], questID: quest_id3, period: next_period },
+                { account: user2.address, amount: user_claims[1][2], questID: quest_id3, period: next_period },
+                { account: user3.address, amount: user_claims[2][2], questID: quest_id3, period: next_period },
             ]);
 
             await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree.getHexRoot())
@@ -709,9 +731,9 @@ describe('MultiMerkleDistributor contract tests', () => {
         it(' should claim from different periods from same Quest', async () => {
 
             let tree4 = new BalanceTree([
-                { account: user1.address, amount: ethers.utils.parseEther('20') },
-                { account: user2.address, amount: ethers.utils.parseEther('4') },
-                { account: user4.address, amount: ethers.utils.parseEther('15') },
+                { account: user1.address, amount: ethers.utils.parseEther('20'), questID: quest_id2, period: next_period },
+                { account: user2.address, amount: ethers.utils.parseEther('4'), questID: quest_id2, period: next_period },
+                { account: user4.address, amount: ethers.utils.parseEther('15'), questID: quest_id2, period: next_period },
             ]);
 
             await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id2, next_period, tree4.getHexRoot())
@@ -796,6 +818,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         let tree2: BalanceTree;
         let tree3: BalanceTree;
+        let tree4: BalanceTree;
 
         const user_claims = [
             [user1_claim_amount, ethers.utils.parseEther('15'), ethers.utils.parseEther('12')],
@@ -805,27 +828,41 @@ describe('MultiMerkleDistributor contract tests', () => {
         ]
     
         beforeEach(async () => {
+            
+            tree = new BalanceTree([
+                { account: user1.address, amount: user1_claim_amount, questID: quest_id, period: period },
+                { account: user2.address, amount: user2_claim_amount, questID: quest_id, period: period },
+                { account: user3.address, amount: user3_claim_amount, questID: quest_id, period: period },
+                { account: user4.address, amount: user4_claim_amount, questID: quest_id, period: period },
+            ]); 
 
             await distributor.connect(mockQuestBoard).addQuest(quest_id, CRV.address)
             await distributor.connect(mockQuestBoard).addQuest(quest_id2, DAI.address)
 
             tree2 = new BalanceTree([
-                { account: user1.address, amount: user_claims[0][1] },
-                { account: user2.address, amount: user_claims[1][1] },
-                { account: user4.address, amount: user_claims[3][1] },
+                { account: user1.address, amount: user_claims[0][1], questID: quest_id, period: next_period },
+                { account: user2.address, amount: user_claims[1][1], questID: quest_id, period: next_period },
+                { account: user4.address, amount: user_claims[3][1], questID: quest_id, period: next_period },
             ]);
 
             tree3 = new BalanceTree([
-                { account: user1.address, amount: user_claims[0][2] },
-                { account: user2.address, amount: user_claims[1][2] },
-                { account: user3.address, amount: user_claims[2][2] },
+                { account: user1.address, amount: user_claims[0][2], questID: quest_id, period: next_period },
+                { account: user2.address, amount: user_claims[1][2], questID: quest_id, period: next_period },
+                { account: user3.address, amount: user_claims[2][2], questID: quest_id, period: next_period },
             ]);
+            
+            tree4 = new BalanceTree([
+                { account: user1.address, amount: user1_claim_amount, questID: quest_id2, period: period },
+                { account: user2.address, amount: user2_claim_amount, questID: quest_id2, period: period },
+                { account: user3.address, amount: user3_claim_amount, questID: quest_id2, period: period },
+                { account: user4.address, amount: user4_claim_amount, questID: quest_id2, period: period },
+            ]); 
 
             await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id, period, tree.getHexRoot())
             await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id, next_period, tree2.getHexRoot())
             await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id, next_period2, tree3.getHexRoot())
 
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id2, period, tree.getHexRoot())
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id2, period, tree4.getHexRoot())
 
             await CRV.connect(admin).transfer(distributor.address, distrib_amount.mul(3))
             await DAI.connect(admin).transfer(distributor.address, distrib_amount)

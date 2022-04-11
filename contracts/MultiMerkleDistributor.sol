@@ -128,7 +128,7 @@ contract MultiMerkleDistributor is Ownable {
         require(!isClaimed(questID, period, index), "MultiMerkle: already claimed");
 
         // Check that the given parameters match the given Proof
-        bytes32 node = keccak256(abi.encodePacked(index, account, amount));
+        bytes32 node = keccak256(abi.encodePacked(questID, period, index, account, amount));
         require(
             MerkleProof.verify(merkleProof, questMerkleRootPerPeriod[questID][period], node),
             "MultiMerkle: Invalid proof"
@@ -197,7 +197,7 @@ contract MultiMerkleDistributor is Ownable {
 
             // For each period given, if the proof matches the given parameters, 
             // set as claimed and add to the to total to transfer
-            bytes32 node = keccak256(abi.encodePacked(claims[i].index, account, claims[i].amount));
+            bytes32 node = keccak256(abi.encodePacked(questID, claims[i].period, claims[i].index, account, claims[i].amount));
             require(
                 MerkleProof.verify(claims[i].merkleProof, questMerkleRootPerPeriod[questID][claims[i].period], node),
                 "MultiMerkle: Invalid proof"
