@@ -206,7 +206,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         });
 
-        it(' should fail if empry MerkleRoot', async () => {
+        it(' should fail if empty MerkleRoot', async () => {
 
             await expect(
                 distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, "0x0000000000000000000000000000000000000000000000000000000000000000")
@@ -1172,6 +1172,112 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(user2).updateQuestManager(user2.address)
+            ).to.be.revertedWith('Ownable: caller is not the owner')
+
+        });
+
+    });
+
+    describe('emergencyUpdateQuestPeriod', async () => {
+
+        let new_tree: BalanceTree;
+
+        const quest_id1 = BigNumber.from(1011)
+        const quest_id2 = BigNumber.from(1012)
+
+        const period = BigNumber.from(1639612800)
+
+        let tree_root: string
+        let new_tree_root: string
+
+        beforeEach(async () => {
+
+            tree = new BalanceTree([
+                { account: user1.address, amount: user1_claim_amount, questID: quest_id1, period: period },
+                { account: user2.address, amount: user2_claim_amount, questID: quest_id1, period: period },
+                { account: user3.address, amount: user3_claim_amount, questID: quest_id1, period: period },
+                { account: user4.address, amount: user4_claim_amount, questID: quest_id1, period: period },
+            ]); 
+
+            await distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
+
+            new_tree = new BalanceTree([
+                { account: user1.address, amount: user1_claim_amount, questID: quest_id1, period: period },
+                { account: user2.address, amount: user2_claim_amount, questID: quest_id1, period: period },
+                { account: user3.address, amount: user3_claim_amount, questID: quest_id1, period: period }
+            ]);
+
+            tree_root = tree.getHexRoot()   
+            new_tree_root = new_tree.getHexRoot()
+
+        });
+
+        it(' should replace the root for the given QuestID & period', async () => {
+
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree_root)
+
+            expect(await distributor.questMerkleRootPerPeriod(quest_id1, period)).to.be.eq(tree_root)
+
+            expect(await distributor.questClosedPeriods(quest_id1, 0)).to.be.eq(period)
+
+            await expect(
+                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, new_tree_root)
+            ).to.emit(distributor, "QuestPeriodUpdated")
+            .withArgs(quest_id1, period, new_tree_root);
+
+            expect(await distributor.questMerkleRootPerPeriod(quest_id1, period)).to.be.eq(new_tree_root)
+
+            expect(await distributor.questClosedPeriods(quest_id1, 0)).to.be.eq(period)
+
+        });
+
+
+        it(' should fail if Quest not listed', async () => {
+
+            await expect(
+                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id2, period, new_tree_root)
+            ).to.be.revertedWith('MultiMerkle: Quest not listed')
+
+        });
+
+
+        it(' should fail if Quest period was not closed', async () => {
+
+            await expect(
+                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, new_tree_root)
+            ).to.be.revertedWith('MultiMerkle: Not closed yet')
+
+        });
+
+
+        it(' should fail if given an incorrect period', async () => {
+
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree_root)
+
+            await expect(
+                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, 0, new_tree_root)
+            ).to.be.revertedWith('MultiMerkle: incorrect period')
+
+        });
+
+
+        it(' should fail if given an empty root', async () => {
+
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree_root)
+
+            await expect(
+                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, "0x0000000000000000000000000000000000000000000000000000000000000000")
+            ).to.be.revertedWith('MultiMerkle: Empty MerkleRoot')
+
+        });
+
+
+        it(' should block non-admin caller', async () => {
+
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree_root)
+
+            await expect(
+                distributor.connect(user2).emergencyUpdateQuestPeriod(quest_id1, period, new_tree_root)
             ).to.be.revertedWith('Ownable: caller is not the owner')
 
         });

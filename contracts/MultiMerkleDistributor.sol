@@ -315,12 +315,13 @@ contract MultiMerkleDistributor is Owner {
     * @param merkleRoot New MerkleRoot to add
     * @return bool : success
     */
-    function emergencyUpdatequestPeriod(uint256 questID, uint256 period, bytes32 merkleRoot) external onlyOwner returns(bool) {
+    function emergencyUpdateQuestPeriod(uint256 questID, uint256 period, bytes32 merkleRoot) external onlyOwner returns(bool) {
         period = (period / WEEK) * WEEK;
         // In case the given MerkleRoot was incorrect => allows to update with the correct one so users can claim
         require(questRewardToken[questID] != address(0), "MultiMerkle: Quest not listed");
-        require(merkleRoot != 0, "MultiMerkle: Empty MerkleRoot");
         require(period != 0, "MultiMerkle: incorrect period");
+        require(questMerkleRootPerPeriod[questID][period] !=0, "MultiMerkle: Not closed yet");
+        require(merkleRoot != 0, "MultiMerkle: Empty MerkleRoot");
 
         questMerkleRootPerPeriod[questID][period] = merkleRoot;
 
