@@ -31,11 +31,11 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     address public immutable GAUGE_CONTROLLER;
 
     /** @notice Seconds in a Week */
-    uint256 public constant WEEK = 604800;
+    uint256 public WEEK = 604800;
     /** @notice 1e18 scale */
-    uint256 public constant UNIT = 1e18;
+    uint256 public UNIT = 1e18;
     /** @notice Max BPS value (100%) */
-    uint256 public constant MAX_BPS = 10000;
+    uint256 public MAX_BPS = 10000;
 
 
     /** @notice State of each Period for each Quest */
