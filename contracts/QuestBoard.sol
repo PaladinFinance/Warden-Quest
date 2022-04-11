@@ -31,11 +31,11 @@ contract QuestBoard is Owner, ReentrancyGuard {
     address public immutable GAUGE_CONTROLLER;
 
     /** @notice Seconds in a Week */
-    uint256 public constant WEEK = 604800;
+    uint256 private constant WEEK = 604800;
     /** @notice 1e18 scale */
-    uint256 public constant UNIT = 1e18;
+    uint256 private constant UNIT = 1e18;
     /** @notice Max BPS value (100%) */
-    uint256 public constant MAX_BPS = 10000;
+    uint256 private constant MAX_BPS = 10000;
 
 
     /** @notice State of each Period for each Quest */
@@ -233,8 +233,9 @@ contract QuestBoard is Owner, ReentrancyGuard {
     function getAllQuestPeriodsForQuestId(uint256 questId) external view returns(QuestPeriod[] memory) {
         uint256 nbPeriods = questPeriods[questId].length;
         QuestPeriod[] memory periods = new QuestPeriod[](nbPeriods);
-        for(uint256 i = 0; i < nbPeriods; i++){
+        for(uint256 i; i < nbPeriods;){
             periods[i] = periodsByQuest[questId][questPeriods[questId][i]];
+            unchecked{ ++i; }
         }
         return periods;
     }
@@ -305,7 +306,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         require(gauge != address(0) && rewardToken != address(0), "QuestBoard: Zero Address");
         require(IGaugeController(GAUGE_CONTROLLER).gauge_types(gauge) >= 0, "QuestBoard: Invalid Gauge");
         require(whitelistedTokens[rewardToken], "QuestBoard: Token not allowed");
-        require(duration > 0, "QuestBoard: Incorrect duration");
+        require(duration != 0, "QuestBoard: Incorrect duration");
         require(objective >= minObjective, "QuestBoard: Objective too low");
         require(rewardPerVote != 0 && totalRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
         require(rewardPerVote >= minRewardPerVotePerToken[rewardToken], "QuestBoard: RewardPerVote too low");
@@ -326,7 +327,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
 
         // Get the ID for that new Quest and increment the nextID counter
         uint256 newQuestID = nextID;
-        nextID += 1;
+        unchecked{ ++nextID; }
 
         // Fill the Quest struct data
         quests[newQuestID].creator = vars.creator;
@@ -340,7 +341,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
 
         // Iterate on periods based on Quest duration
         uint256 periodIterator = vars.nextPeriod;
-        for(uint256 i = 0; i < duration;){
+        for(uint256 i; i < duration;){
             // Add the Quest on the list of Quests active on the period
             questsByPeriod[periodIterator].push(newQuestID);
 
@@ -400,7 +401,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         require(questID < nextID, "QuestBoard: Non valid ID");
         require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
         require(addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
-        require(addedDuration > 0, "QuestBoard: Incorrect addedDuration");
+        require(addedDuration != 0, "QuestBoard: Incorrect addedDuration");
 
         //We take data from the last period of the Quest to account for any other changes in the Quest parameters
         require(questPeriods[questID].length != 0, "QuestBoard: Empty Quest");
@@ -430,7 +431,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         uint256 rewardPerVote = periodsByQuest[questID][lastPeriod].rewardPerVote;
 
         // Add QuestPeriods for the new added duration
-        for(uint256 i = 0; i < addedDuration;){
+        for(uint256 i; i < addedDuration;){
             questsByPeriod[periodIterator].push(questID);
 
             questPeriods[questID].push(safe48(periodIterator));
@@ -473,7 +474,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         require(newRewardPerVote != 0 && addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
     
         uint256 remainingDuration = _getRemainingDuration(questID); //Also handles the Empty Quest check
-        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
+        require(remainingDuration != 0, "QuestBoard: no more incoming QuestPeriods");
 
         // The new reward amount must be higher 
         require(newRewardPerVote > periodsByQuest[questID][currentPeriod].rewardPerVote, "QuestBoard: New reward must be higher");
@@ -504,7 +505,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         quests[questID].totalRewardAmount += addedRewardAmount;
 
         // Update all QuestPeriods, starting with the nextPeriod one
-        for(uint256 i = 0; i < remainingDuration;){
+        for(uint256 i; i < remainingDuration;){
 
             if(periodIterator > lastPeriod) break; //Safety check, we never want to write on non-initialized QuestPeriods (that were not initialized)
 
@@ -540,7 +541,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         require(addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
     
         uint256 remainingDuration = _getRemainingDuration(questID); //Also handles the Empty Quest check
-        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
+        require(remainingDuration != 0, "QuestBoard: no more incoming QuestPeriods");
 
         // No need to compare to minObjective : the new value must be higher than current Objective
         // and current objective needs to be >= minObjective
@@ -573,7 +574,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         quests[questID].totalRewardAmount += addedRewardAmount;
 
         // Update all QuestPeriods, starting with the nextPeriod one
-        for(uint256 i = 0; i < remainingDuration;){
+        for(uint256 i; i < remainingDuration;){
 
             if(periodIterator > lastPeriod) break; //Safety check, we never want to write on non-existing QuestPeriods (that were not initialized)
 
@@ -601,24 +602,27 @@ contract QuestBoard is Owner, ReentrancyGuard {
         require(recipient != address(0), "QuestBoard: Zero Address");
 
         // Total amount available to withdraw
-        uint256 totalWithdraw = 0;
+        uint256 totalWithdraw;
 
         uint48[] memory _questPeriods = questPeriods[questID];
+
         uint256 length = _questPeriods.length;
-        for(uint256 i = 0; i < length;){
+        for(uint256 i; i < length;){
+            QuestPeriod storage _questPeriod = periodsByQuest[questID][_questPeriods[i]];
+
             // We allow to withdraw unused rewards after the period was closed, or after it was distributed
-            if(periodsByQuest[questID][_questPeriods[i]].currentState == PeriodState.ACTIVE) {
+            if(_questPeriod.currentState == PeriodState.ACTIVE) {
                 unchecked{ ++i; }
                 continue;
             }
 
-            uint256 withdrawableForPeriod = periodsByQuest[questID][_questPeriods[i]].withdrawableAmount;
+            uint256 withdrawableForPeriod = _questPeriod.withdrawableAmount;
 
             // If there is token to withdraw for that period, add they to the total to withdraw,
             // and set the withdrawable amount to 0
-            if(withdrawableForPeriod > 0){
+            if(withdrawableForPeriod != 0){
                 totalWithdraw += withdrawableForPeriod;
-                periodsByQuest[questID][_questPeriods[i]].withdrawableAmount = 0;
+                _questPeriod.withdrawableAmount = 0;
             }
 
             unchecked{ ++i; }
@@ -648,25 +652,27 @@ contract QuestBoard is Owner, ReentrancyGuard {
         require(recipient != address(0), "QuestBoard: Zero Address");
 
         // Total amount to emergency withdraw
-        uint256 totalWithdraw = 0;
+        uint256 totalWithdraw;
 
         uint48[] memory _questPeriods = questPeriods[questID];
         uint256 length = _questPeriods.length;
-        for(uint256 i = 0; i < length;){
+        for(uint256 i; i < length;){
+            QuestPeriod storage _questPeriod = periodsByQuest[questID][_questPeriods[i]];
+
             // For CLOSED or DISTRIBUTED periods
-            if(periodsByQuest[questID][_questPeriods[i]].currentState != PeriodState.ACTIVE){
-                uint256 withdrawableForPeriod = periodsByQuest[questID][_questPeriods[i]].withdrawableAmount;
+            if(_questPeriod.currentState != PeriodState.ACTIVE){
+                uint256 withdrawableForPeriod = _questPeriod.withdrawableAmount;
 
                 // If there is a non_null withdrawable amount for the period,
                 // add it to the total to withdraw, et set the withdrawable amount ot 0
-                if(withdrawableForPeriod > 0){
+                if(withdrawableForPeriod != 0){
                     totalWithdraw += withdrawableForPeriod;
-                    periodsByQuest[questID][_questPeriods[i]].withdrawableAmount = 0;
+                    _questPeriod.withdrawableAmount = 0;
                 }
             } else {
                 // And for the active period, and the next ones, withdraw the total reward amount
-                totalWithdraw += periodsByQuest[questID][_questPeriods[i]].rewardAmountPerPeriod;
-                periodsByQuest[questID][_questPeriods[i]].rewardAmountPerPeriod = 0;
+                totalWithdraw += _questPeriod.rewardAmountPerPeriod;
+                _questPeriod.rewardAmountPerPeriod = 0;
             }
 
             unchecked{ ++i; }
@@ -779,15 +785,15 @@ contract QuestBoard is Owner, ReentrancyGuard {
     function closePartOfQuestPeriod(uint256 period, uint256[] calldata questIDs) external isAlive onlyAllowed nonReentrant returns(uint256 closed, uint256 skipped) {
         updatePeriod();
         period = (period / WEEK) * WEEK;
-        require(questIDs.length != 0, "QuestBoard: empty array");
+        uint256 questIDLength = questIDs.length;
+        require(questIDLength != 0, "QuestBoard: empty array");
         require(distributor != address(0), "QuestBoard: no Distributor set");
         require(period != 0, "QuestBoard: invalid Period");
         require(period < currentPeriod, "QuestBoard: Period still active");
         require(questsByPeriod[period].length != 0, "QuestBoard: empty Period");
 
         // For each QuestPeriod
-        uint256 length = questIDs.length;
-        for(uint256 i = 0; i < length;){
+        for(uint256 i = 0; i < questIDLength;){
             bool result = _closeQuestPeriod(period, questIDs[i]);
 
             if(result){
@@ -841,9 +847,10 @@ contract QuestBoard is Owner, ReentrancyGuard {
     */
     function addMultipleMerkleRoot(uint256[] calldata questIDs, uint256 period, bytes32[] calldata merkleRoots) external isAlive onlyAllowed nonReentrant {
         period = (period / WEEK) * WEEK;
-        require(questIDs.length == merkleRoots.length, "QuestBoard: Diff list size");
-
         uint256 length = questIDs.length;
+
+        require(length == merkleRoots.length, "QuestBoard: Diff list size");
+
         for(uint256 i = 0; i < length;){
             _addMerkleRoot(questIDs[i], period, merkleRoots[i]);
 
@@ -873,10 +880,11 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @param newTokens List of reward tokens addresses
     */
     function whitelistMultipleTokens(address[] calldata newTokens, uint256[] calldata minRewardPerVotes) external onlyAllowed {
-        require(newTokens.length != 0, "QuestBoard: empty list");
-        require(newTokens.length == minRewardPerVotes.length, "QuestBoard: list sizes inequal");
-
         uint256 length = newTokens.length;
+
+        require(length != 0, "QuestBoard: empty list");
+        require(length == minRewardPerVotes.length, "QuestBoard: list sizes inequal");
+
         for(uint256 i = 0; i < length;){
             whitelistToken(newTokens[i], minRewardPerVotes[i]);
 
@@ -884,7 +892,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         }
     }
 
-    function updateRewardToken(address newToken, uint256 newMinRewardPerVote) public onlyAllowed {
+    function updateRewardToken(address newToken, uint256 newMinRewardPerVote) external onlyAllowed {
         require(whitelistedTokens[newToken], "QuestBoard: Token not whitelisted");
         require(newMinRewardPerVote != 0, "QuestBoard: Null value");
 
@@ -976,7 +984,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @param newMinObjective New min objective
     */
     function updateMinObjective(uint256 newMinObjective) external onlyOwner {
-        require(newMinObjective > 0, "QuestBoard: Null value");
+        require(newMinObjective != 0, "QuestBoard: Null value");
         uint256 oldMinObjective = minObjective;
         minObjective = newMinObjective;
 

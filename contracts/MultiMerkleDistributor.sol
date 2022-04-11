@@ -99,11 +99,11 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     * @return bool : true if already claimed
     */
     function isClaimed(uint256 questID, uint256 period, uint256 index) public view returns (bool) {
-        uint256 claimedWordIndex = index / 256;
-        uint256 claimedBitIndex = index % 256;
+        uint256 claimedWordIndex = index >> 8;
+        uint256 claimedBitIndex = index & 0xff;
         uint256 claimedWord = questPeriodClaimedBitMap[questID][period][claimedWordIndex];
         uint256 mask = (1 << claimedBitIndex);
-        return claimedWord & mask == mask;
+        return claimedWord & mask != 0;
     }
    
     /**
@@ -113,9 +113,9 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     * @param index Index of the claim
     */
     function _setClaimed(uint256 questID, uint256 period, uint256 index) private {
-        uint256 claimedWordIndex = index / 256;
-        uint256 claimedBitIndex = index % 256;
-        questPeriodClaimedBitMap[questID][period][claimedWordIndex] = questPeriodClaimedBitMap[questID][period][claimedWordIndex] | (1 << claimedBitIndex);
+        uint256 claimedWordIndex = index >> 8;
+        uint256 claimedBitIndex = index & 0xff;
+        questPeriodClaimedBitMap[questID][period][claimedWordIndex] |= (1 << claimedBitIndex);
     }
 
     //Basic Claim   
@@ -168,10 +168,11 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     * @param claims List of ClaimParams struct data to claim
     */
     function multiClaim(address account, ClaimParams[] calldata claims) external {
-        require(claims.length != 0, "MultiMerkle: empty parameters");
-
         uint256 length = claims.length;
-        for(uint256 i = 0; i < length;){
+        
+        require(length != 0, "MultiMerkle: empty parameters");
+
+        for(uint256 i; i < length;){
             claim(claims[i].questID, claims[i].period, claims[i].index, account, claims[i].amount, claims[i].merkleProof);
 
             unchecked{ ++i; }
@@ -189,16 +190,17 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     * @param claims List of ClaimParams struct data to claim
     */
     function claimQuest(address account, uint256 questID, ClaimParams[] calldata claims) external nonReentrant {
-        require(claims.length != 0, "MultiMerkle: empty parameters");
+        uint256 length = claims.length;
+
+        require(length != 0, "MultiMerkle: empty parameters");
 
         // Total amount claimable, to transfer at once
-        uint256 totalClaimAmount = 0;
+        uint256 totalClaimAmount;
         address rewardToken = questRewardToken[questID];
 
-        uint256 length = claims.length;
-        for(uint256 i = 0; i < length;){
+        for(uint256 i; i < length;){
             require(claims[i].questID == questID, "MultiMerkle: incorrect Quest");
-            require(questMerkleRootPerPeriod[claims[i].questID][claims[i].period] != 0, "MultiMerkle: not updated yet");
+            require(questMerkleRootPerPeriod[questID][claims[i].period] != 0, "MultiMerkle: not updated yet");
             require(!isClaimed(questID, claims[i].period, claims[i].index), "MultiMerkle: already claimed");
 
             // For each period given, if the proof matches the given parameters, 
