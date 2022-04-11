@@ -934,6 +934,23 @@ describe('QuestBoard contract tests', () => {
 
         });
 
+        it(' should fail if Quest is already over', async () => {
+
+            await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
+
+            await advanceTime(WEEK.mul(duration + 2).toNumber())
+
+            await expect(
+                board.connect(creator1).increaseQuestDuration(
+                    questID,
+                    extend_duration,
+                    added_total_rewards_amount,
+                    added_total_fees
+                )
+            ).to.be.revertedWith('QuestBoard: Quest is over')
+
+        });
+
         it(' should fail if not Quest creator', async () => {
 
             await DAI.connect(creator2).approve(board.address, added_total_rewards_amount.add(added_total_fees))
@@ -1228,6 +1245,23 @@ describe('QuestBoard contract tests', () => {
                     lower_total_fees
                 )
             ).to.be.revertedWith('QuestBoard: New reward must be higher')
+
+        });
+
+        it(' should fail if Quest is already over', async () => {
+
+            await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
+
+            await advanceTime(WEEK.mul(duration + 1).toNumber())
+
+            await expect(
+                board.connect(creator1).increaseQuestReward(
+                    questID,
+                    new_reward_per_vote,
+                    added_total_rewards_amount,
+                    added_total_fees
+                )
+            ).to.be.revertedWith('QuestBoard: no more incoming QuestPeriods')
 
         });
 
@@ -1550,6 +1584,23 @@ describe('QuestBoard contract tests', () => {
                     lower_total_fees
                 )
             ).to.be.revertedWith('QuestBoard: New objective must be higher')
+
+        });
+
+        it(' should fail if Quest is already over', async () => {
+
+            await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
+
+            await advanceTime(WEEK.mul(duration + 1).toNumber())
+
+            await expect(
+                board.connect(creator1).increaseQuestObjective(
+                    questID,
+                    new_target_votes,
+                    added_total_rewards_amount,
+                    added_total_fees
+                )
+            ).to.be.revertedWith('QuestBoard: no more incoming QuestPeriods')
 
         });
 

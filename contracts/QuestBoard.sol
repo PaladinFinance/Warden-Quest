@@ -238,8 +238,9 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         // We can find the number of remaining periods in the Quest simply by dividing the remaining time between
         // currentPeriod and the last QuestPeriod start by a WEEK.
         // If the current period is the last period of the Quest, we want to return 0
+        require(questPeriods[questID].length != 0, "QuestBoard: Empty Quest");
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
-        return (lastPeriod - currentPeriod) / WEEK;
+        return lastPeriod < currentPeriod ? 0: (lastPeriod - currentPeriod) / WEEK;
     }
 
 
@@ -391,7 +392,10 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(addedDuration > 0, "QuestBoard: Incorrect addedDuration");
 
         //We take data from the last period of the Quest to account for any other changes in the Quest parameters
+        require(questPeriods[questID].length != 0, "QuestBoard: Empty Quest");
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
+
+        require(lastPeriod >= currentPeriod, "QuestBoard: Quest is over");
 
         // Check that the given amounts are correct
         uint rewardPerPeriod = periodsByQuest[questID][lastPeriod].rewardAmountPerPeriod;
@@ -456,6 +460,9 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(questID < nextID, "QuestBoard: Non valid ID");
         require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
         require(newRewardPerVote != 0 && addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
+    
+        uint256 remainingDuration = _getRemainingDuration(questID); //Also handles the Empty Quest check
+        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
 
         // The new reward amount must be higher 
         require(newRewardPerVote > periodsByQuest[questID][currentPeriod].rewardPerVote, "QuestBoard: New reward must be higher");
@@ -467,9 +474,6 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         // (because we don't want to pay for Periods that are Closed or the current period)
         uint256 newRewardPerPeriod = (periodsByQuest[questID][currentPeriod].objectiveVotes * newRewardPerVote) / UNIT;
         uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
-
-        uint256 remainingDuration = _getRemainingDuration(questID);
-        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
 
         require((diffRewardPerPeriod * remainingDuration) == addedRewardAmount, "QuestBoard: addedRewardAmount incorrect");
         require((addedRewardAmount * platformFee)/MAX_BPS == feeAmount, "QuestBoard: feeAmount incorrect");
@@ -523,6 +527,9 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(questID < nextID, "QuestBoard: Non valid ID");
         require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
         require(addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
+    
+        uint256 remainingDuration = _getRemainingDuration(questID); //Also handles the Empty Quest check
+        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
 
         // No need to compare to minObjective : the new value must be higher than current Objective
         // and current objective needs to be >= minObjective
@@ -535,9 +542,6 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         // (because we don't want to pay for Periods that are Closed or the current period)
         uint256 newRewardPerPeriod = (newObjective * periodsByQuest[questID][currentPeriod].rewardPerVote) / UNIT;
         uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
-
-        uint256 remainingDuration = _getRemainingDuration(questID);
-        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
 
         require((diffRewardPerPeriod * remainingDuration) == addedRewardAmount, "QuestBoard: addedRewardAmount incorrect");
         require((addedRewardAmount * platformFee)/MAX_BPS == feeAmount, "QuestBoard: feeAmount incorrect");
