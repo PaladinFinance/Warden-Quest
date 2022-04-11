@@ -139,7 +139,11 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         });
 
-        it(' should only be callable by allowed managers', async () => {
+        it(' should only be callable by the QuestBoard', async () => {
+
+            await expect(
+                distributor.connect(admin).addQuest(quest_id1, CRV.address)
+            ).to.be.revertedWith('MultiMerkle: Not allowed')
 
             await expect(
                 distributor.connect(user1).addQuest(quest_id1, CRV.address)
