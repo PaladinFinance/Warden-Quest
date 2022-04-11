@@ -180,6 +180,11 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
     // Constructor
     constructor(address _gaugeController, address _chest){
+        require(_gaugeController != address(0), "QuestBoard: Zero Address");
+        require(_chest != address(0), "QuestBoard: Zero Address");
+        require(_gaugeController != _chest, "QuestBoard: Duplicate address");
+
+
         GAUGE_CONTROLLER = _gaugeController;
 
         questChest = _chest;

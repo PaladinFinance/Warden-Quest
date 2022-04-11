@@ -82,6 +82,8 @@ contract MultiMerkleDistributor is Ownable {
     // Constructor
 
     constructor(address _questBoard){
+        require(_questBoard != address(0), "MultiMerkle: Zero Address");
+
         questBoard = _questBoard;
     }
 
