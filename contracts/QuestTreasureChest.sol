@@ -11,7 +11,7 @@ pragma solidity ^0.8.10;
 
 import "./oz/interfaces/IERC20.sol";
 import "./oz/libraries/SafeERC20.sol";
-import "./oz/utils/Ownable.sol";
+import "./utils/Owner.sol";
 import "./oz/utils/ReentrancyGuard.sol";
 
 /** @title Warden Quest Treasure Chest  */
@@ -20,7 +20,7 @@ import "./oz/utils/ReentrancyGuard.sol";
     Contract holding protocol fees from Quest creations
 */
 
-contract QuestTreasureChest is Ownable, ReentrancyGuard {
+contract QuestTreasureChest is Owner, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /** @notice Address approved to use methods to manage funds */
@@ -50,7 +50,15 @@ contract QuestTreasureChest is Ownable, ReentrancyGuard {
     * @param amount Amount to approve
     */
     function approveERC20(address token, address spender, uint256 amount) external onlyAllowed nonReentrant {
-        IERC20(token).safeApprove(spender, amount);
+        uint256 currentAllowance = IERC20(token).allowance(address(this), spender);
+
+        if(currentAllowance < amount){
+            IERC20(token).safeIncreaseAllowance(spender, amount - currentAllowance);
+        }
+        else if(currentAllowance > amount){
+            IERC20(token).safeDecreaseAllowance(spender, currentAllowance - amount);
+        }
+        // Otherwise, allowance is already the required value, no need to change
     }
    
     /**

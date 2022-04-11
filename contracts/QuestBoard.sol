@@ -11,7 +11,7 @@ pragma solidity ^0.8.10;
 
 import "./oz/interfaces/IERC20.sol";
 import "./oz/libraries/SafeERC20.sol";
-import "./oz/utils/Ownable.sol";
+import "./utils/Owner.sol";
 import "./oz/utils/ReentrancyGuard.sol";
 import "./MultiMerkleDistributor.sol";
 import "./interfaces/IGaugeController.sol";
@@ -24,7 +24,7 @@ import "./interfaces/IGaugeController.sol";
     And the managers to update Quests to the next period & trigger the rewards for closed periods 
 */
 
-contract QuestBoard is Ownable, ReentrancyGuard {
+contract QuestBoard is Owner, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /** @notice Address of the Curve Gauge Controller */
@@ -39,8 +39,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
 
     /** @notice State of each Period for each Quest */
-    enum PeriodState { ACTIVE, CLOSED, DISTRIBUTED }
-    // All Periods are ACTIVE by default since they voters from past periods are also accounted for the future period
+    enum PeriodState { ZERO, ACTIVE, CLOSED, DISTRIBUTED }
+    // All Periods are ACTIVE at creation since they voters from past periods are also accounted for the future period
 
 
     /** @notice Struct for a Period of a Quest */
@@ -127,7 +127,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
     /** @notice Event emitted when a new Quest is created */
     event NewQuest(
-        uint256 questID,
+        uint256 indexed questID,
         address indexed creator,
         address indexed gauge,
         address rewardToken,
@@ -180,6 +180,11 @@ contract QuestBoard is Ownable, ReentrancyGuard {
 
     // Constructor
     constructor(address _gaugeController, address _chest){
+        require(_gaugeController != address(0), "QuestBoard: Zero Address");
+        require(_chest != address(0), "QuestBoard: Zero Address");
+        require(_gaugeController != _chest, "QuestBoard: Duplicate address");
+
+
         GAUGE_CONTROLLER = _gaugeController;
 
         questChest = _chest;
@@ -199,6 +204,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     * @return uint256[] : Quest IDs for the period
     */
     function getQuestIdsForPeriod(uint256 period) external view returns(uint256[] memory) {
+        period = (period / WEEK) * WEEK;
         return questsByPeriod[period];
     }
    
@@ -237,8 +243,9 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         // We can find the number of remaining periods in the Quest simply by dividing the remaining time between
         // currentPeriod and the last QuestPeriod start by a WEEK.
         // If the current period is the last period of the Quest, we want to return 0
+        require(questPeriods[questID].length != 0, "QuestBoard: Empty Quest");
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
-        return (lastPeriod - currentPeriod) / WEEK;
+        return lastPeriod < currentPeriod ? 0: (lastPeriod - currentPeriod) / WEEK;
     }
 
 
@@ -338,8 +345,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
             periodsByQuest[newQuestID][periodIterator].objectiveVotes = objective;
             periodsByQuest[newQuestID][periodIterator].rewardPerVote = rewardPerVote;
             periodsByQuest[newQuestID][periodIterator].rewardAmountPerPeriod = vars.rewardPerPeriod;
+            periodsByQuest[newQuestID][periodIterator].currentState = PeriodState.ACTIVE;
             // Rest of the struct shoud laready have the correct base data:
-            // currentState => PeriodState.ACTIVE
             // rewardAmountDistributed => 0
             // withdrawableAmount => 0
 
@@ -390,7 +397,10 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(addedDuration > 0, "QuestBoard: Incorrect addedDuration");
 
         //We take data from the last period of the Quest to account for any other changes in the Quest parameters
+        require(questPeriods[questID].length != 0, "QuestBoard: Empty Quest");
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
+
+        require(lastPeriod >= currentPeriod, "QuestBoard: Quest is over");
 
         // Check that the given amounts are correct
         uint rewardPerPeriod = periodsByQuest[questID][lastPeriod].rewardAmountPerPeriod;
@@ -423,8 +433,8 @@ contract QuestBoard is Ownable, ReentrancyGuard {
             periodsByQuest[questID][periodIterator].objectiveVotes = objective;
             periodsByQuest[questID][periodIterator].rewardPerVote = rewardPerVote;
             periodsByQuest[questID][periodIterator].rewardAmountPerPeriod = rewardPerPeriod;
+            periodsByQuest[questID][periodIterator].currentState = PeriodState.ACTIVE;
             // Rest of the struct shoud laready have the correct base data:
-            // currentState => PeriodState.ACTIVE
             // rewardAmountDistributed => 0
             // redeemableAmount => 0
 
@@ -455,6 +465,9 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(questID < nextID, "QuestBoard: Non valid ID");
         require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
         require(newRewardPerVote != 0 && addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
+    
+        uint256 remainingDuration = _getRemainingDuration(questID); //Also handles the Empty Quest check
+        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
 
         // The new reward amount must be higher 
         require(newRewardPerVote > periodsByQuest[questID][currentPeriod].rewardPerVote, "QuestBoard: New reward must be higher");
@@ -466,9 +479,6 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         // (because we don't want to pay for Periods that are Closed or the current period)
         uint256 newRewardPerPeriod = (periodsByQuest[questID][currentPeriod].objectiveVotes * newRewardPerVote) / UNIT;
         uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
-
-        uint256 remainingDuration = _getRemainingDuration(questID);
-        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
 
         require((diffRewardPerPeriod * remainingDuration) == addedRewardAmount, "QuestBoard: addedRewardAmount incorrect");
         require((addedRewardAmount * platformFee)/MAX_BPS == feeAmount, "QuestBoard: feeAmount incorrect");
@@ -522,6 +532,9 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         require(questID < nextID, "QuestBoard: Non valid ID");
         require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
         require(addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
+    
+        uint256 remainingDuration = _getRemainingDuration(questID); //Also handles the Empty Quest check
+        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
 
         // No need to compare to minObjective : the new value must be higher than current Objective
         // and current objective needs to be >= minObjective
@@ -534,9 +547,6 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         // (because we don't want to pay for Periods that are Closed or the current period)
         uint256 newRewardPerPeriod = (newObjective * periodsByQuest[questID][currentPeriod].rewardPerVote) / UNIT;
         uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
-
-        uint256 remainingDuration = _getRemainingDuration(questID);
-        require(remainingDuration > 0, "QuestBoard: no more incoming QuestPeriods");
 
         require((diffRewardPerPeriod * remainingDuration) == addedRewardAmount, "QuestBoard: addedRewardAmount incorrect");
         require((addedRewardAmount * platformFee)/MAX_BPS == feeAmount, "QuestBoard: feeAmount incorrect");
@@ -677,6 +687,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     */
     function closeQuestPeriod(uint256 period) external isAlive onlyAllowed nonReentrant {
         updatePeriod();
+        period = (period / WEEK) * WEEK;
         require(distributor != address(0), "QuestBoard: no Distributor set");
         require(period != 0, "QuestBoard: invalid Period");
         require(period < currentPeriod, "QuestBoard: Period still active");
@@ -691,7 +702,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         IGaugeController gaugeController = IGaugeController(GAUGE_CONTROLLER);
 
         // We use the Gauge Point data from nextPeriod => the end of the period we are closing
-        uint256 nextPeriod = ((period + WEEK) / WEEK) * WEEK;
+        uint256 nextPeriod = period + WEEK;
 
         // For each QuestPeriod
         uint256 length = questsForPeriod.length;
@@ -749,6 +760,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     */
     function closePartOfQuestPeriod(uint256 period, uint256[] calldata questIDs) external isAlive onlyAllowed nonReentrant {
         updatePeriod();
+        period = (period / WEEK) * WEEK;
         require(questIDs.length != 0, "QuestBoard: empty array");
         require(distributor != address(0), "QuestBoard: no Distributor set");
         require(period != 0, "QuestBoard: invalid Period");
@@ -758,7 +770,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         IGaugeController gaugeController = IGaugeController(GAUGE_CONTROLLER);
 
         // We use the Gauge Point data from nextPeriod => the end of the period we are closing
-        uint256 nextPeriod = ((period + WEEK) / WEEK) * WEEK;
+        uint256 nextPeriod = period + WEEK;
 
         // For each QuestPeriod
         uint256 length = questIDs.length;
@@ -841,6 +853,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     * @param merkleRoot MerkleRoot to add
     */
     function addMerkleRoot(uint256 questID, uint256 period, bytes32 merkleRoot) external isAlive onlyAllowed nonReentrant {
+        period = (period / WEEK) * WEEK;
         _addMerkleRoot(questID, period, merkleRoot);
     }
 
@@ -852,6 +865,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     * @param merkleRoots List of MerkleRoots to add
     */
     function addMultipleMerkleRoot(uint256[] calldata questIDs, uint256 period, bytes32[] calldata merkleRoots) external isAlive onlyAllowed nonReentrant {
+        period = (period / WEEK) * WEEK;
         require(questIDs.length == merkleRoots.length, "QuestBoard: Diff list size");
 
         uint256 length = questIDs.length;
