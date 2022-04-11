@@ -199,6 +199,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     * @return uint256[] : Quest IDs for the period
     */
     function getQuestIdsForPeriod(uint256 period) external view returns(uint256[] memory) {
+        period = (period / WEEK) * WEEK;
         return questsByPeriod[period];
     }
    
@@ -677,6 +678,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     */
     function closeQuestPeriod(uint256 period) external isAlive onlyAllowed nonReentrant {
         updatePeriod();
+        period = (period / WEEK) * WEEK;
         require(distributor != address(0), "QuestBoard: no Distributor set");
         require(period != 0, "QuestBoard: invalid Period");
         require(period < currentPeriod, "QuestBoard: Period still active");
@@ -691,7 +693,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         IGaugeController gaugeController = IGaugeController(GAUGE_CONTROLLER);
 
         // We use the Gauge Point data from nextPeriod => the end of the period we are closing
-        uint256 nextPeriod = ((period + WEEK) / WEEK) * WEEK;
+        uint256 nextPeriod = period + WEEK;
 
         // For each QuestPeriod
         uint256 length = questsForPeriod.length;
@@ -749,6 +751,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     */
     function closePartOfQuestPeriod(uint256 period, uint256[] calldata questIDs) external isAlive onlyAllowed nonReentrant {
         updatePeriod();
+        period = (period / WEEK) * WEEK;
         require(questIDs.length != 0, "QuestBoard: empty array");
         require(distributor != address(0), "QuestBoard: no Distributor set");
         require(period != 0, "QuestBoard: invalid Period");
@@ -758,7 +761,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
         IGaugeController gaugeController = IGaugeController(GAUGE_CONTROLLER);
 
         // We use the Gauge Point data from nextPeriod => the end of the period we are closing
-        uint256 nextPeriod = ((period + WEEK) / WEEK) * WEEK;
+        uint256 nextPeriod = period + WEEK;
 
         // For each QuestPeriod
         uint256 length = questIDs.length;
@@ -841,6 +844,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     * @param merkleRoot MerkleRoot to add
     */
     function addMerkleRoot(uint256 questID, uint256 period, bytes32 merkleRoot) external isAlive onlyAllowed nonReentrant {
+        period = (period / WEEK) * WEEK;
         _addMerkleRoot(questID, period, merkleRoot);
     }
 
@@ -852,6 +856,7 @@ contract QuestBoard is Ownable, ReentrancyGuard {
     * @param merkleRoots List of MerkleRoots to add
     */
     function addMultipleMerkleRoot(uint256[] calldata questIDs, uint256 period, bytes32[] calldata merkleRoots) external isAlive onlyAllowed nonReentrant {
+        period = (period / WEEK) * WEEK;
         require(questIDs.length == merkleRoots.length, "QuestBoard: Diff list size");
 
         uint256 length = questIDs.length;
