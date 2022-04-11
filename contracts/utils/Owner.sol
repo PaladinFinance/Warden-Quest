@@ -8,26 +8,27 @@ import "../oz/utils/Ownable.sol";
 
 contract Owner is Ownable {
 
-    address private _pendingOwner;
+    address public pendingOwner;
 
     event NewPendingOwner(address indexed previousPendingOwner, address indexed newPendingOwner);
 
-    function pendingOwner() public view virtual returns (address) {
-        return _pendingOwner;
-    }
-
     function transferOwnership(address newOwner) public override virtual onlyOwner {
         require(newOwner != address(0), "Owner: new owner is the zero address");
-        address oldPendingOwner = _pendingOwner;
+        require(newOwner != owner(), "Owner: new owner cannot be current owner");
+        address oldPendingOwner = pendingOwner;
 
-        _pendingOwner = newOwner;
+        pendingOwner = newOwner;
 
         emit NewPendingOwner(oldPendingOwner, newOwner);
     }
 
     function acceptOwnership() public virtual {
-        require(msg.sender == _pendingOwner, "Owner: caller is not pending owner");
-        _transferOwnership(_pendingOwner);
+        require(msg.sender == pendingOwner, "Owner: caller is not pending owner");
+        address newOwner = pendingOwner;
+        _transferOwnership(pendingOwner);
+        pendingOwner = address(0);
+
+        emit NewPendingOwner(newOwner, address(0));
     }
 
 }

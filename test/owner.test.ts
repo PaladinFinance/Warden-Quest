@@ -57,6 +57,8 @@ describe('Owner contract tests', () => {
         expect(chest.address).to.properAddress
 
         expect(await chest.owner()).to.be.eq(admin.address)
+        expect(await board.owner()).to.be.eq(admin.address)
+        expect(await distributor.owner()).to.be.eq(admin.address)
 
     });
 
@@ -116,6 +118,22 @@ describe('Owner contract tests', () => {
 
         });
 
+        it(' should fail if giving the current owner as parameter', async () => {
+
+            await expect(
+                chest.connect(admin).transferOwnership(admin.address)
+            ).to.be.revertedWith('Owner: new owner cannot be current owner')
+
+            await expect(
+                board.connect(admin).transferOwnership(admin.address)
+            ).to.be.revertedWith('Owner: new owner cannot be current owner')
+
+            await expect(
+                distributor.connect(admin).transferOwnership(admin.address)
+            ).to.be.revertedWith('Owner: new owner cannot be current owner')
+
+        });
+
     });
 
 
@@ -137,6 +155,11 @@ describe('Owner contract tests', () => {
                 tx
             ).to.emit(chest, "OwnershipTransferred")
             .withArgs(admin.address, newOwner.address);
+
+            await expect(
+                tx
+            ).to.emit(chest, "NewPendingOwner")
+            .withArgs(newOwner.address, ethers.constants.AddressZero);
 
             expect(await chest.owner()).to.be.eq(newOwner.address)
 
