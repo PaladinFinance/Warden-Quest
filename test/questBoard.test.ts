@@ -1809,12 +1809,12 @@ describe('QuestBoard contract tests', () => {
                 ).to.emit(rewardToken[i], "Transfer")
                     .withArgs(board.address, distributor.address, expected_distribute_amount);
 
-            }
+                await expect(
+                    close_tx
+                ).to.emit(board, "PeriodClosed")
+                    .withArgs(questIDs[i], first_period);
 
-            await expect(
-                close_tx
-            ).to.emit(board, "PeriodClosed")
-                .withArgs(first_period);
+            }
 
         });
 
@@ -1864,12 +1864,12 @@ describe('QuestBoard contract tests', () => {
                     ).to.emit(rewardToken[i], "Transfer")
                         .withArgs(board.address, distributor.address, expected_distribute_amount);
 
-                }
+                    await expect(
+                        close_tx
+                    ).to.emit(board, "PeriodClosed")
+                        .withArgs(questIDs[i], toClose_period);
 
-                await expect(
-                    close_tx
-                ).to.emit(board, "PeriodClosed")
-                    .withArgs(toClose_period);
+                }
 
             }
 
@@ -1926,6 +1926,7 @@ describe('QuestBoard contract tests', () => {
 
     });
 
+    
     describe('closePartOfQuestPeriod', async () => {
 
         let gauges: string[] = []
@@ -2043,12 +2044,12 @@ describe('QuestBoard contract tests', () => {
                 ).to.emit(rewardToken[i], "Transfer")
                     .withArgs(board.address, distributor.address, expected_distribute_amount);
 
-            }
+                await expect(
+                    close_tx
+                ).to.emit(board, "PeriodClosed")
+                    .withArgs(questIDs[i], first_period);
 
-            await expect(
-                close_tx
-            ).to.emit(board, "PeriodClosedPart")
-                .withArgs(first_period);
+            }
 
         });
 
@@ -2118,12 +2119,11 @@ describe('QuestBoard contract tests', () => {
                     ).to.emit(rewardToken[i], "Transfer")
                         .withArgs(board.address, distributor.address, expected_distribute_amount);
 
+                    await expect(
+                        close_tx
+                    ).to.emit(board, "PeriodClosed")
+                        .withArgs(questIDs[i], toClose_period);
                 }
-
-                await expect(
-                    close_tx
-                ).to.emit(board, "PeriodClosedPart")
-                    .withArgs(toClose_period);
 
             }
 
