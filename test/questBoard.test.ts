@@ -118,7 +118,7 @@ describe('QuestBoard contract tests', () => {
         const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
         const expected_period = current_ts.div(WEEK).mul(WEEK)
 
-        expect(await board.currentPeriod()).to.be.eq(expected_period)
+        expect(await board.getCurrentPeriod()).to.be.eq(expected_period)
 
         expect(await board.isKilled()).to.be.false
         expect(await board.kill_ts()).to.be.eq(0)
@@ -130,7 +130,7 @@ describe('QuestBoard contract tests', () => {
 
     });
 
-    describe('updatePeriod', async () => {
+    /*describe('updatePeriod', async () => {
 
 
         it(' should update the period correctly', async () => {
@@ -139,7 +139,7 @@ describe('QuestBoard contract tests', () => {
             const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
             const expected_period = current_ts.div(WEEK).mul(WEEK)
 
-            expect(await board.currentPeriod()).to.be.eq(expected_period)
+            expect(await board.getCurrentPeriod()).to.be.eq(expected_period)
 
             await advanceTime(WEEK.toNumber())
 
@@ -147,7 +147,7 @@ describe('QuestBoard contract tests', () => {
 
             await board.updatePeriod()
 
-            expect(await board.currentPeriod()).to.be.eq(next_expected_period)
+            expect(await board.getCurrentPeriod()).to.be.eq(next_expected_period)
 
         });
 
@@ -157,7 +157,7 @@ describe('QuestBoard contract tests', () => {
             const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
             const expected_period = current_ts.div(WEEK).mul(WEEK)
 
-            expect(await board.currentPeriod()).to.be.eq(expected_period)
+            expect(await board.getCurrentPeriod()).to.be.eq(expected_period)
 
             await advanceTime(WEEK.mul(3).toNumber())
 
@@ -165,11 +165,11 @@ describe('QuestBoard contract tests', () => {
 
             await board.updatePeriod()
 
-            expect(await board.currentPeriod()).to.be.eq(next_expected_period)
+            expect(await board.getCurrentPeriod()).to.be.eq(next_expected_period)
 
         });
 
-    });
+    });*/
 
 
     describe('initiateDistributor', async () => {
@@ -248,7 +248,7 @@ describe('QuestBoard contract tests', () => {
                 total_fees
             )
 
-            expect(await board.currentPeriod()).to.be.eq(expected_period)
+            expect(await board.getCurrentPeriod()).to.be.eq(expected_period)
 
         });
 
@@ -1093,7 +1093,7 @@ describe('QuestBoard contract tests', () => {
                 added_total_fees
             )
 
-            const current_period = await board.currentPeriod()
+            const current_period = await board.getCurrentPeriod()
             const applied_period = current_period.add(WEEK).div(WEEK).mul(WEEK)
 
             await expect(
@@ -1204,7 +1204,7 @@ describe('QuestBoard contract tests', () => {
                 added_total_fees
             )
 
-            const current_period = await board.currentPeriod()
+            const current_period = await board.getCurrentPeriod()
 
             const new_quest_periods = await board.getAllQuestPeriodsForQuestId(questID)
 
@@ -1432,7 +1432,7 @@ describe('QuestBoard contract tests', () => {
                 added_total_fees
             )
 
-            const current_period = await board.currentPeriod()
+            const current_period = await board.getCurrentPeriod()
             const applied_period = current_period.add(WEEK).div(WEEK).mul(WEEK)
 
             await expect(
@@ -1543,7 +1543,7 @@ describe('QuestBoard contract tests', () => {
                 added_total_fees
             )
 
-            const current_period = await board.currentPeriod()
+            const current_period = await board.getCurrentPeriod()
 
             const new_quest_periods = await board.getAllQuestPeriodsForQuestId(questID)
 
@@ -1739,7 +1739,7 @@ describe('QuestBoard contract tests', () => {
             await controller.add_gauge(gauge2.address, 1)
             await controller.add_gauge(gauge3.address, 2)
 
-            first_period = (await board.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+            first_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
@@ -1784,7 +1784,7 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(manager).closeQuestPeriod(first_period)
 
-            expect(await board.currentPeriod()).to.be.eq(current_period)
+            expect(await board.getCurrentPeriod()).to.be.eq(current_period)
 
         });
 
@@ -1891,7 +1891,7 @@ describe('QuestBoard contract tests', () => {
 
             await otherBoard.connect(admin).whitelistToken(DAI.address, minDAIAmount)
 
-            first_period = (await otherBoard.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+            first_period = (await otherBoard.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             await advanceTime(WEEK.mul(2).toNumber())
 
@@ -1959,7 +1959,7 @@ describe('QuestBoard contract tests', () => {
             await controller.add_gauge(gauge2.address, 1)
             await controller.add_gauge(gauge3.address, 2)
 
-            first_period = (await board.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+            first_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
@@ -2006,7 +2006,7 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(manager).closePartOfQuestPeriod(first_period, toCloseIDs)
 
-            expect(await board.currentPeriod()).to.be.eq(current_period)
+            expect(await board.getCurrentPeriod()).to.be.eq(current_period)
 
         });
 
@@ -2139,7 +2139,7 @@ describe('QuestBoard contract tests', () => {
 
             await otherBoard.connect(admin).whitelistToken(DAI.address, minDAIAmount)
 
-            first_period = (await otherBoard.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+            first_period = (await otherBoard.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             await advanceTime(WEEK.mul(2).toNumber())
 
@@ -2209,7 +2209,7 @@ describe('QuestBoard contract tests', () => {
             await controller.add_gauge(gauge2.address, 1)
             await controller.add_gauge(gauge3.address, 2)
 
-            first_period = (await board.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+            first_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
@@ -2404,7 +2404,7 @@ describe('QuestBoard contract tests', () => {
             await controller.add_gauge(gauge2.address, 1)
             await controller.add_gauge(gauge3.address, 2)
 
-            first_period = (await board.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+            first_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
@@ -2713,9 +2713,9 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(admin).killBoard()
 
-            await expect(
+            /*await expect(
                 board.connect(manager).updatePeriod()
-            ).to.not.be.reverted
+            ).to.not.be.reverted*/
 
             await expect(
                 board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
@@ -2891,7 +2891,7 @@ describe('QuestBoard contract tests', () => {
             await controller.add_gauge(gauge2.address, 1)
             await controller.add_gauge(gauge3.address, 2)
 
-            first_period = (await board.currentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+            first_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)

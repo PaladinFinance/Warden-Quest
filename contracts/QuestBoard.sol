@@ -80,8 +80,6 @@ contract QuestBoard is Owner, ReentrancyGuard {
         uint256 totalRewardAmount;
     }
 
-    /** @notice Current active period timestamp */
-    uint256 public currentPeriod;
     /** @notice ID for the next Quest to be created */
     uint256 public nextID;
 
@@ -196,13 +194,19 @@ contract QuestBoard is Owner, ReentrancyGuard {
 
         questChest = _chest;
 
-        currentPeriod = (block.timestamp / WEEK) * WEEK;
-
         minObjective = 1000 * UNIT;
     }
 
 
     // View Functions
+   
+    /**
+    * @notice Returns the current Period for the contract
+    * @dev Returns the current Period for the contract
+    */
+    function getCurrentPeriod() public view returns(uint256) {
+        return (block.timestamp / WEEK) * WEEK;
+    }
    
     /**
     * @notice Returns the list of all Quest IDs active on a given period
@@ -253,21 +257,12 @@ contract QuestBoard is Owner, ReentrancyGuard {
         // If the current period is the last period of the Quest, we want to return 0
         if(questPeriods[questID].length == 0) revert Errors.EmptyQuest();
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
+        uint256 currentPeriod = getCurrentPeriod();
         return lastPeriod < currentPeriod ? 0: (lastPeriod - currentPeriod) / WEEK;
     }
 
 
     // Functions
-   
-    /**
-    * @notice Updates the current Period for the contract
-    * @dev Updates the current Period for the contract
-    */
-    function updatePeriod() public {
-        if (block.timestamp >= currentPeriod + WEEK) {
-            currentPeriod = (block.timestamp / WEEK) * WEEK;
-        }
-    }
 
 
     struct CreateVars {
@@ -297,7 +292,6 @@ contract QuestBoard is Owner, ReentrancyGuard {
         uint256 totalRewardAmount,
         uint256 feeAmount
     ) external isAlive nonReentrant returns(uint256) {
-        updatePeriod();
         if(distributor == address(0)) revert Errors.NoDistributorSet();
         // Local memory variables
         CreateVars memory vars;
@@ -324,7 +318,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         IERC20(rewardToken).safeTransferFrom(vars.creator, questChest, feeAmount);
 
         // Quest will start on next period
-        vars.nextPeriod = ((currentPeriod + WEEK) / WEEK) * WEEK;
+        vars.nextPeriod = getCurrentPeriod() + WEEK;
 
         // Get the ID for that new Quest and increment the nextID counter
         uint256 newQuestID = nextID;
@@ -398,7 +392,6 @@ contract QuestBoard is Owner, ReentrancyGuard {
         uint256 addedRewardAmount,
         uint256 feeAmount
     ) external isAlive nonReentrant {
-        updatePeriod();
         if(questID >= nextID) revert Errors.InvalidQuestID();
         if(msg.sender != quests[questID].creator) revert Errors.CallerNotAllowed();
         if(addedRewardAmount == 0 || feeAmount == 0) revert Errors.NullAmount();
@@ -408,7 +401,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         if(questPeriods[questID].length == 0) revert Errors.EmptyQuest();
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
 
-        if(lastPeriod < currentPeriod) revert Errors.ExpiredQuest();
+        if(lastPeriod < getCurrentPeriod()) revert Errors.ExpiredQuest();
 
         // Check that the given amounts are correct
         uint rewardPerPeriod = periodsByQuest[questID][lastPeriod].rewardAmountPerPeriod;
@@ -469,7 +462,6 @@ contract QuestBoard is Owner, ReentrancyGuard {
         uint256 addedRewardAmount,
         uint256 feeAmount
     ) external isAlive nonReentrant {
-        updatePeriod();
         if(questID >= nextID) revert Errors.InvalidQuestID();
         if(msg.sender != quests[questID].creator) revert Errors.CallerNotAllowed();
         if(newRewardPerVote == 0 || addedRewardAmount == 0 || feeAmount == 0) revert Errors.NullAmount();
@@ -478,6 +470,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         if(remainingDuration == 0) revert Errors.ExpiredQuest();
 
         // The new reward amount must be higher 
+        uint256 currentPeriod = getCurrentPeriod();
         if(newRewardPerVote <= periodsByQuest[questID][currentPeriod].rewardPerVote) revert Errors.LowerRewardPerVote();
 
         // For all non active QuestPeriods (non Closed, nor the current Active one)
@@ -497,7 +490,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         // And transfer the fees from the Quest creator to the Chest contract
         IERC20(rewardToken).safeTransferFrom(msg.sender, questChest, feeAmount);
 
-        uint256 nextPeriod = ((currentPeriod + WEEK) / WEEK) * WEEK;
+        uint256 nextPeriod = currentPeriod + WEEK;
         uint256 periodIterator = nextPeriod;
 
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
@@ -536,7 +529,6 @@ contract QuestBoard is Owner, ReentrancyGuard {
         uint256 addedRewardAmount,
         uint256 feeAmount
     ) external isAlive nonReentrant {
-        updatePeriod();
         if(questID >= nextID) revert Errors.InvalidQuestID();
         if(msg.sender != quests[questID].creator) revert Errors.CallerNotAllowed();
         if(addedRewardAmount == 0 || feeAmount == 0) revert Errors.NullAmount();
@@ -546,6 +538,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
 
         // No need to compare to minObjective : the new value must be higher than current Objective
         // and current objective needs to be >= minObjective
+        uint256 currentPeriod = getCurrentPeriod();
         if(newObjective <= periodsByQuest[questID][currentPeriod].objectiveVotes) revert Errors.LowerObjective();
 
         // For all non active QuestPeriods (non Closed, nor the current Active one)
@@ -566,7 +559,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         IERC20(rewardToken).safeTransferFrom(msg.sender, questChest, feeAmount);
 
 
-        uint256 nextPeriod = ((currentPeriod + WEEK) / WEEK) * WEEK;
+        uint256 nextPeriod = currentPeriod + WEEK;
         uint256 periodIterator = nextPeriod;
 
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
@@ -752,11 +745,10 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @param period Timestamp of the period
     */
     function closeQuestPeriod(uint256 period) external isAlive onlyAllowed nonReentrant returns(uint256 closed, uint256 skipped) {
-        updatePeriod();
         period = (period / WEEK) * WEEK;
         if(distributor == address(0)) revert Errors.NoDistributorSet();
         if(period == 0) revert Errors.InvalidPeriod();
-        if(period >= currentPeriod) revert Errors.PeriodStillActive();
+        if(period >= getCurrentPeriod()) revert Errors.PeriodStillActive();
         if(questsByPeriod[period].length == 0) revert Errors.EmptyPeriod();
         // We use the 1st QuestPeriod of this period to check it was not Closed
         uint256[] memory questsForPeriod = questsByPeriod[period];
@@ -784,13 +776,12 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @param questIDs List of the Quest IDs to close
     */
     function closePartOfQuestPeriod(uint256 period, uint256[] calldata questIDs) external isAlive onlyAllowed nonReentrant returns(uint256 closed, uint256 skipped) {
-        updatePeriod();
         period = (period / WEEK) * WEEK;
         uint256 questIDLength = questIDs.length;
         if(questIDLength == 0) revert Errors.EmptyArray();
         if(distributor == address(0)) revert Errors.NoDistributorSet();
         if(period == 0) revert Errors.InvalidPeriod();
-        if(period >= currentPeriod) revert Errors.PeriodStillActive();
+        if(period >= getCurrentPeriod()) revert Errors.PeriodStillActive();
         if(questsByPeriod[period].length == 0) revert Errors.EmptyPeriod();
 
         // For each QuestPeriod
