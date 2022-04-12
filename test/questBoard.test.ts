@@ -188,7 +188,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(admin).initiateDistributor(distributor.address)
-            ).to.be.revertedWith('QuestBoard: Already initialized')
+            ).to.be.revertedWith('AlreadyInitialized')
 
         });
 
@@ -517,7 +517,7 @@ describe('QuestBoard contract tests', () => {
                     total_rewards_amount,
                     total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: no Distributor set')
+            ).to.be.revertedWith('NoDistributorSet')
 
         });
 
@@ -535,7 +535,7 @@ describe('QuestBoard contract tests', () => {
                     total_rewards_amount,
                     total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Zero Address')
+            ).to.be.revertedWith('ZeroAddress')
 
             await expect(
                 board.connect(creator1).createQuest(
@@ -547,7 +547,7 @@ describe('QuestBoard contract tests', () => {
                     total_rewards_amount,
                     total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Zero Address')
+            ).to.be.revertedWith('ZeroAddress')
 
             await expect(
                 board.connect(creator1).createQuest(
@@ -559,7 +559,7 @@ describe('QuestBoard contract tests', () => {
                     total_rewards_amount,
                     total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Incorrect duration')
+            ).to.be.revertedWith('IncorrectDuration')
 
             await expect(
                 board.connect(creator1).createQuest(
@@ -571,7 +571,7 @@ describe('QuestBoard contract tests', () => {
                     total_rewards_amount,
                     total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Objective too low')
+            ).to.be.revertedWith('ObjectiveTooLow')
 
             await expect(
                 board.connect(creator1).createQuest(
@@ -583,7 +583,7 @@ describe('QuestBoard contract tests', () => {
                     total_rewards_amount,
                     total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Objective too low')
+            ).to.be.revertedWith('ObjectiveTooLow')
 
             await expect(
                 board.connect(creator1).createQuest(
@@ -595,7 +595,7 @@ describe('QuestBoard contract tests', () => {
                     total_rewards_amount,
                     total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
             await expect(
                 board.connect(creator1).createQuest(
@@ -607,7 +607,7 @@ describe('QuestBoard contract tests', () => {
                     total_rewards_amount,
                     total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: RewardPerVote too low')
+            ).to.be.revertedWith('RewardPerVoteTooLow')
 
             await expect(
                 board.connect(creator1).createQuest(
@@ -619,7 +619,7 @@ describe('QuestBoard contract tests', () => {
                     0,
                     total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
             await expect(
                 board.connect(creator1).createQuest(
@@ -631,7 +631,7 @@ describe('QuestBoard contract tests', () => {
                     total_rewards_amount,
                     0
                 )
-            ).to.be.revertedWith('QuestBoard: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
         });
 
@@ -649,7 +649,7 @@ describe('QuestBoard contract tests', () => {
                     total_rewards_amount,
                     total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Token not allowed')
+            ).to.be.revertedWith('TokenNotWhitelisted')
 
         });
 
@@ -667,7 +667,7 @@ describe('QuestBoard contract tests', () => {
                     total_rewards_amount,
                     total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Invalid Gauge')
+            ).to.be.revertedWith('InvalidGauge')
 
         });
 
@@ -688,7 +688,7 @@ describe('QuestBoard contract tests', () => {
                     wrong_total_rewards_amount,
                     total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: totalRewardAmount incorrect')
+            ).to.be.revertedWith('IncorrectTotalRewardAmount')
 
             await expect(
                 board.connect(creator1).createQuest(
@@ -700,7 +700,7 @@ describe('QuestBoard contract tests', () => {
                     total_rewards_amount,
                     wrong_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: feeAmount incorrect')
+            ).to.be.revertedWith('IncorrectFeeAmount')
 
         });
 
@@ -930,7 +930,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Non valid ID')
+            ).to.be.revertedWith('InvalidQuestID')
 
         });
 
@@ -947,7 +947,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Quest is over')
+            ).to.be.revertedWith('ExpiredQuest')
 
         });
 
@@ -962,7 +962,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -977,7 +977,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Incorrect addedDuration')
+            ).to.be.revertedWith('IncorrectAddDuration')
 
             await expect(
                 board.connect(creator1).increaseQuestDuration(
@@ -986,7 +986,7 @@ describe('QuestBoard contract tests', () => {
                     0,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
             await expect(
                 board.connect(creator1).increaseQuestDuration(
@@ -995,7 +995,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     0
                 )
-            ).to.be.revertedWith('QuestBoard: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
         });
 
@@ -1013,7 +1013,7 @@ describe('QuestBoard contract tests', () => {
                     wrong_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: addedRewardAmount incorrect')
+            ).to.be.revertedWith('IncorrectAddedRewardAmount')
 
             await expect(
                 board.connect(creator1).increaseQuestDuration(
@@ -1022,7 +1022,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     wrong_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: feeAmount incorrect')
+            ).to.be.revertedWith('IncorrectFeeAmount')
 
         });
 
@@ -1244,7 +1244,7 @@ describe('QuestBoard contract tests', () => {
                     lower_total_rewards_amount,
                     lower_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: New reward must be higher')
+            ).to.be.revertedWith('LowerRewardPerVote')
 
         });
 
@@ -1261,7 +1261,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: no more incoming QuestPeriods')
+            ).to.be.revertedWith('ExpiredQuest')
 
         });
 
@@ -1278,7 +1278,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -1297,7 +1297,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Non valid ID')
+            ).to.be.revertedWith('InvalidQuestID')
 
         });
 
@@ -1314,7 +1314,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
             await expect(
                 board.connect(creator1).increaseQuestReward(
@@ -1323,7 +1323,7 @@ describe('QuestBoard contract tests', () => {
                     0,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
             await expect(
                 board.connect(creator1).increaseQuestReward(
@@ -1332,7 +1332,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     0
                 )
-            ).to.be.revertedWith('QuestBoard: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
         });
 
@@ -1352,7 +1352,7 @@ describe('QuestBoard contract tests', () => {
                     wrong_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: addedRewardAmount incorrect')
+            ).to.be.revertedWith('IncorrectAddedRewardAmount')
 
             await expect(
                 board.connect(creator1).increaseQuestReward(
@@ -1361,7 +1361,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     wrong_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: feeAmount incorrect')
+            ).to.be.revertedWith('IncorrectFeeAmount')
 
         });
 
@@ -1583,7 +1583,7 @@ describe('QuestBoard contract tests', () => {
                     lower_total_rewards_amount,
                     lower_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: New objective must be higher')
+            ).to.be.revertedWith('LowerObjective')
 
         });
 
@@ -1600,7 +1600,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: no more incoming QuestPeriods')
+            ).to.be.revertedWith('ExpiredQuest')
 
         });
 
@@ -1617,7 +1617,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -1636,7 +1636,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Non valid ID')
+            ).to.be.revertedWith('InvalidQuestID')
 
         });
 
@@ -1653,7 +1653,7 @@ describe('QuestBoard contract tests', () => {
                     0,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
             await expect(
                 board.connect(creator1).increaseQuestObjective(
@@ -1662,7 +1662,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     0
                 )
-            ).to.be.revertedWith('QuestBoard: Null amount')
+            ).to.be.revertedWith('NullAmount')
 
         });
 
@@ -1682,7 +1682,7 @@ describe('QuestBoard contract tests', () => {
                     wrong_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: addedRewardAmount incorrect')
+            ).to.be.revertedWith('IncorrectAddedRewardAmount')
 
             await expect(
                 board.connect(creator1).increaseQuestObjective(
@@ -1691,7 +1691,7 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     wrong_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: feeAmount incorrect')
+            ).to.be.revertedWith('IncorrectFeeAmount')
 
         });
 
@@ -1823,7 +1823,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).closeQuestPeriod(first_period)
-            ).to.be.revertedWith('QuestBoard: Period still active')
+            ).to.be.revertedWith('PeriodStillActive')
 
         });
 
@@ -1869,7 +1869,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).closeQuestPeriod(0)
-            ).to.be.revertedWith('QuestBoard: invalid Period')
+            ).to.be.revertedWith('InvalidPeriod')
 
         });
 
@@ -1880,7 +1880,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).closeQuestPeriod(previous_period)
-            ).to.be.revertedWith('QuestBoard: empty Period')
+            ).to.be.revertedWith('EmptyPeriod')
 
         });
 
@@ -1897,7 +1897,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 otherBoard.connect(admin).closeQuestPeriod(first_period)
-            ).to.be.revertedWith('QuestBoard: no Distributor set')
+            ).to.be.revertedWith('NoDistributorSet')
 
         });
 
@@ -1905,11 +1905,11 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager2).closeQuestPeriod(first_period)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
                 board.connect(user1).closeQuestPeriod(first_period)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -2060,7 +2060,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).closePartOfQuestPeriod(first_period, toCloseIDs)
-            ).to.be.revertedWith('QuestBoard: Period still active')
+            ).to.be.revertedWith('PeriodStillActive')
 
         });
 
@@ -2108,7 +2108,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).closePartOfQuestPeriod(first_period, [])
-            ).to.be.revertedWith('QuestBoard: empty array')
+            ).to.be.revertedWith('EmptyArray')
 
         });
 
@@ -2117,7 +2117,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).closePartOfQuestPeriod(0, toCloseIDs)
-            ).to.be.revertedWith('QuestBoard: invalid Period')
+            ).to.be.revertedWith('InvalidPeriod')
 
         });
 
@@ -2128,7 +2128,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).closePartOfQuestPeriod(previous_period, toCloseIDs)
-            ).to.be.revertedWith('QuestBoard: empty Period')
+            ).to.be.revertedWith('EmptyPeriod')
 
         });
 
@@ -2145,7 +2145,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 otherBoard.connect(admin).closePartOfQuestPeriod(first_period, toCloseIDs)
-            ).to.be.revertedWith('QuestBoard: no Distributor set')
+            ).to.be.revertedWith('NoDistributorSet')
 
         });
 
@@ -2153,11 +2153,11 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager2).closePartOfQuestPeriod(first_period, toCloseIDs)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
                 board.connect(user1).closePartOfQuestPeriod(first_period, toCloseIDs)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -2274,7 +2274,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).addMerkleRoot(ID_to_distribute, first_period, "0x0000000000000000000000000000000000000000000000000000000000000000")
-            ).to.be.revertedWith('QuestBoard: Empty MerkleRoot')
+            ).to.be.revertedWith('EmptyMerkleRoot')
 
         });
 
@@ -2284,7 +2284,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).addMerkleRoot(invalid_id, first_period, mockRoot)
-            ).to.be.revertedWith('QuestBoard: Non valid ID')
+            ).to.be.revertedWith('InvalidQuestID')
 
         });
 
@@ -2294,7 +2294,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).addMerkleRoot(ID_to_distribute, next_period, mockRoot)
-            ).to.be.revertedWith('QuestBoard: Quest Period not closed')
+            ).to.be.revertedWith('PeriodNotClosed')
 
         });
 
@@ -2302,11 +2302,11 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager2).addMerkleRoot(ID_to_distribute, first_period, mockRoot)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
                 board.connect(user1).addMerkleRoot(ID_to_distribute, first_period, mockRoot)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -2338,7 +2338,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).addMultipleMerkleRoot(questIDs, first_period, roots)
-            ).to.be.revertedWith('QuestBoard: Diff list size')
+            ).to.be.revertedWith('InequalArraySizes')
 
         });
 
@@ -2351,11 +2351,11 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager2).addMultipleMerkleRoot(questIDs, first_period, roots)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
                 board.connect(user1).addMultipleMerkleRoot(questIDs, first_period, roots)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -2618,7 +2618,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(creator1).withdrawUnusedRewards(incorrectID, receiver.address)
-            ).to.be.revertedWith('QuestBoard: Non valid ID')
+            ).to.be.revertedWith('InvalidQuestID')
 
         });
 
@@ -2626,11 +2626,11 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(creator2).withdrawUnusedRewards(questIDs[0], receiver.address)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
                 board.connect(user1).withdrawUnusedRewards(questIDs[0], user1.address)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -2638,7 +2638,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(creator1).withdrawUnusedRewards(questIDs[0], ethers.constants.AddressZero)
-            ).to.be.revertedWith('QuestBoard: Zero Address')
+            ).to.be.revertedWith('ZeroAddress')
 
         });
 
@@ -2692,7 +2692,7 @@ describe('QuestBoard contract tests', () => {
                     total_rewards_amount,
                     total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Killed')
+            ).to.be.revertedWith('Killed')
 
             await expect(
                 board.connect(creator1).increaseQuestDuration(
@@ -2701,11 +2701,11 @@ describe('QuestBoard contract tests', () => {
                     added_total_rewards_amount,
                     added_total_fees
                 )
-            ).to.be.revertedWith('QuestBoard: Killed')
+            ).to.be.revertedWith('Killed')
 
             await expect(
                 board.connect(creator1).withdrawUnusedRewards(0, receiver.address)
-            ).to.be.revertedWith('QuestBoard: Killed')
+            ).to.be.revertedWith('Killed')
 
         });
 
@@ -2731,7 +2731,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(admin).killBoard()
-            ).to.be.revertedWith('QuestBoard: Already killed')
+            ).to.be.revertedWith('AlreadyKilled')
 
             expect(await board.isKilled()).to.be.true
 
@@ -2817,7 +2817,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(admin).unkillBoard()
-            ).to.be.revertedWith('QuestBoard: Not killed')
+            ).to.be.revertedWith('NotKilled')
 
         });
 
@@ -2829,7 +2829,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(admin).unkillBoard()
-            ).to.be.revertedWith('QuestBoard: Too late')
+            ).to.be.revertedWith('KillDelayExpired')
 
         });
 
@@ -2942,13 +2942,13 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(creator1).emergencyWithdraw(questIDs[0], user1.address)
-            ).to.be.revertedWith('QuestBoard: Not killed')
+            ).to.be.revertedWith('NotKilled')
 
             await board.connect(admin).killBoard()
 
             await expect(
                 board.connect(creator1).emergencyWithdraw(questIDs[0], user1.address)
-            ).to.be.revertedWith('QuestBoard: Wait kill delay')
+            ).to.be.revertedWith('KillDelayNotExpired')
 
         });
 
@@ -3160,7 +3160,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(creator1).emergencyWithdraw(incorrectID, receiver.address)
-            ).to.be.revertedWith('QuestBoard: Non valid ID')
+            ).to.be.revertedWith('InvalidQuestID')
 
         });
 
@@ -3172,11 +3172,11 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(creator2).emergencyWithdraw(questIDs[0], receiver.address)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
                 board.connect(user1).emergencyWithdraw(questIDs[0], user1.address)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -3188,7 +3188,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(creator1).emergencyWithdraw(questIDs[0], ethers.constants.AddressZero)
-            ).to.be.revertedWith('QuestBoard: Zero Address')
+            ).to.be.revertedWith('ZeroAddress')
 
         });
 
@@ -3235,7 +3235,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).whitelistToken(CRV.address, 0)
-            ).to.be.revertedWith('QuestBoard: Null value')
+            ).to.be.revertedWith('InvalidParameter')
 
         });
 
@@ -3243,7 +3243,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).whitelistToken(ethers.constants.AddressZero, 100)
-            ).to.be.revertedWith('QuestBoard: Zero Address')
+            ).to.be.revertedWith('ZeroAddress')
 
         });
 
@@ -3251,11 +3251,11 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(user1).whitelistToken(CRV.address, minCRVAmount)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
                 board.connect(user2).whitelistToken(DAI.address, minDAIAmount)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -3294,7 +3294,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).whitelistMultipleTokens([], [])
-            ).to.be.revertedWith('QuestBoard: empty list')
+            ).to.be.revertedWith('EmptyArray')
 
         });
 
@@ -3302,7 +3302,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).whitelistMultipleTokens([CRV.address, DAI.address], [minCRVAmount])
-            ).to.be.revertedWith('QuestBoard: list sizes inequal')
+            ).to.be.revertedWith('InequalArraySizes')
 
         });
 
@@ -3310,11 +3310,11 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).whitelistMultipleTokens([ethers.constants.AddressZero, DAI.address], [minCRVAmount, minDAIAmount])
-            ).to.be.revertedWith('QuestBoard: Zero Address')
+            ).to.be.revertedWith('ZeroAddress')
 
             await expect(
                 board.connect(manager).whitelistMultipleTokens([CRV.address, ethers.constants.AddressZero], [minCRVAmount, minDAIAmount])
-            ).to.be.revertedWith('QuestBoard: Zero Address')
+            ).to.be.revertedWith('ZeroAddress')
 
         });
 
@@ -3322,11 +3322,11 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(user1).whitelistMultipleTokens([CRV.address, DAI.address], [minCRVAmount, minDAIAmount])
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
                 board.connect(user2).whitelistMultipleTokens([CRV.address, DAI.address], [minCRVAmount, minDAIAmount])
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -3360,7 +3360,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).updateRewardToken(CRV.address, 0)
-            ).to.be.revertedWith('QuestBoard: Null value')
+            ).to.be.revertedWith('InvalidParameter')
 
         });
 
@@ -3368,7 +3368,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).updateRewardToken(DAI.address, 100)
-            ).to.be.revertedWith('QuestBoard: Token not whitelisted')
+            ).to.be.revertedWith('TokenNotWhitelisted')
 
         });
 
@@ -3376,11 +3376,11 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(user1).updateRewardToken(CRV.address, newMinCRVAmount)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
                 board.connect(user2).updateRewardToken(DAI.address, newMinCRVAmount)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -3401,7 +3401,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(admin).updateChest(ethers.constants.AddressZero)
-            ).to.be.revertedWith('QuestBoard: Zero Address')
+            ).to.be.revertedWith('ZeroAddress')
 
         });
 
@@ -3430,7 +3430,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(admin).updateDistributor(ethers.constants.AddressZero)
-            ).to.be.revertedWith('QuestBoard: Zero Address')
+            ).to.be.revertedWith('ZeroAddress')
 
         });
 
@@ -3461,7 +3461,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(admin).updatePlatformFee(1000)
-            ).to.be.revertedWith('QuestBoard: Fee too high')
+            ).to.be.revertedWith('InvalidParameter')
 
         });
 
@@ -3492,7 +3492,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(admin).updateMinObjective(0)
-            ).to.be.revertedWith('QuestBoard: Null value')
+            ).to.be.revertedWith('InvalidParameter')
 
         });
 
@@ -3513,7 +3513,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).whitelistToken(DAI.address, minDAIAmount)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
             await board.connect(admin).approveManager(manager.address)
 
@@ -3557,7 +3557,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(manager).whitelistToken(CRV.address, minCRVAmount)
-            ).to.be.revertedWith('QuestBoard: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -3615,7 +3615,7 @@ describe('QuestBoard contract tests', () => {
 
             await expect(
                 board.connect(admin).recoverERC20(DAI.address)
-            ).to.be.revertedWith('QuestBoard: Cannot recover whitelisted token')
+            ).to.be.revertedWith('CannotRecoverToken')
 
         });
 

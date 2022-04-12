@@ -12,9 +12,13 @@ contract Owner is Ownable {
 
     event NewPendingOwner(address indexed previousPendingOwner, address indexed newPendingOwner);
 
+    error CannotBeOwner();
+    error CallerNotPendingOwner();
+    error ZeroAddress();
+
     function transferOwnership(address newOwner) public override virtual onlyOwner {
-        require(newOwner != address(0), "Owner: new owner is the zero address");
-        require(newOwner != owner(), "Owner: new owner cannot be current owner");
+        if(newOwner == address(0)) revert ZeroAddress();
+        if(newOwner == owner()) revert CannotBeOwner();
         address oldPendingOwner = pendingOwner;
 
         pendingOwner = newOwner;
@@ -23,7 +27,7 @@ contract Owner is Ownable {
     }
 
     function acceptOwnership() public virtual {
-        require(msg.sender == pendingOwner, "Owner: caller is not pending owner");
+        if(msg.sender != pendingOwner) revert CallerNotPendingOwner();
         address newOwner = pendingOwner;
         _transferOwnership(pendingOwner);
         pendingOwner = address(0);

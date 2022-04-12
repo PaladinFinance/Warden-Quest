@@ -14,6 +14,7 @@ import "./oz/libraries/SafeERC20.sol";
 import "./oz/utils/MerkleProof.sol";
 import "./utils/Owner.sol";
 import "./oz/utils/ReentrancyGuard.sol";
+import "./utils/Errors.sol";
 
 /** @title Warden Quest Multi Merkle Distributor  */
 /// @author Paladin
@@ -75,7 +76,7 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
 
     /** @notice Check the caller is either the admin or the QuestBoard contract */
     modifier onlyAllowed(){
-        require(msg.sender == questBoard || msg.sender == owner(), "MultiMerkle: Not allowed");
+        if(msg.sender != questBoard && msg.sender != owner()) revert Errors.CallerNotAllowed();
         _;
     }
 
@@ -83,7 +84,7 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     // Constructor
 
     constructor(address _questBoard){
-        require(_questBoard != address(0), "MultiMerkle: Zero Address");
+        if(_questBoard == address(0)) revert Errors.ZeroAddress();
 
         questBoard = _questBoard;
     }
@@ -130,15 +131,12 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     * @param merkleProof Proof to claim the rewards
     */
     function claim(uint256 questID, uint256 period, uint256 index, address account, uint256 amount, bytes32[] calldata merkleProof) public nonReentrant {
-        require(questMerkleRootPerPeriod[questID][period] != 0, "MultiMerkle: not updated yet");
-        require(!isClaimed(questID, period, index), "MultiMerkle: already claimed");
+        if(questMerkleRootPerPeriod[questID][period] == 0) revert Errors.MerkleRootNotUpdated();
+        if(isClaimed(questID, period, index)) revert Errors.AlreadyClaimed();
 
         // Check that the given parameters match the given Proof
         bytes32 node = keccak256(abi.encodePacked(questID, period, index, account, amount));
-        require(
-            MerkleProof.verify(merkleProof, questMerkleRootPerPeriod[questID][period], node),
-            "MultiMerkle: Invalid proof"
-        );
+        if(!MerkleProof.verify(merkleProof, questMerkleRootPerPeriod[questID][period], node)) revert Errors.InvalidProof();
 
         // Set the rewards as claimed for that period
         // And transfer the rewards to the user
@@ -170,7 +168,7 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     function multiClaim(address account, ClaimParams[] calldata claims) external {
         uint256 length = claims.length;
         
-        require(length != 0, "MultiMerkle: empty parameters");
+        if(length == 0) revert Errors.EmptyParameters();
 
         for(uint256 i; i < length;){
             claim(claims[i].questID, claims[i].period, claims[i].index, account, claims[i].amount, claims[i].merkleProof);
@@ -192,24 +190,21 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     function claimQuest(address account, uint256 questID, ClaimParams[] calldata claims) external nonReentrant {
         uint256 length = claims.length;
 
-        require(length != 0, "MultiMerkle: empty parameters");
+        if(length == 0) revert Errors.EmptyParameters();
 
         // Total amount claimable, to transfer at once
         uint256 totalClaimAmount;
         address rewardToken = questRewardToken[questID];
 
         for(uint256 i; i < length;){
-            require(claims[i].questID == questID, "MultiMerkle: incorrect Quest");
-            require(questMerkleRootPerPeriod[questID][claims[i].period] != 0, "MultiMerkle: not updated yet");
-            require(!isClaimed(questID, claims[i].period, claims[i].index), "MultiMerkle: already claimed");
+            if(claims[i].questID != questID) revert Errors.IncorrectQuestID();
+            if(questMerkleRootPerPeriod[questID][claims[i].period] == 0) revert Errors.MerkleRootNotUpdated();
+            if(isClaimed(questID, claims[i].period, claims[i].index)) revert Errors.AlreadyClaimed();
 
             // For each period given, if the proof matches the given parameters, 
             // set as claimed and add to the to total to transfer
             bytes32 node = keccak256(abi.encodePacked(questID, claims[i].period, claims[i].index, account, claims[i].amount));
-            require(
-                MerkleProof.verify(claims[i].merkleProof, questMerkleRootPerPeriod[questID][claims[i].period], node),
-                "MultiMerkle: Invalid proof"
-            );
+            if(!MerkleProof.verify(claims[i].merkleProof, questMerkleRootPerPeriod[questID][claims[i].period], node)) revert Errors.InvalidProof();
 
             _setClaimed(questID, claims[i].period, claims[i].index);
             totalClaimAmount += claims[i].amount;
@@ -246,9 +241,9 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     * @return bool : success
     */
     function addQuest(uint256 questID, address token) external returns(bool) {
-        require(msg.sender == questBoard, "MultiMerkle: Not allowed");
-        require(questRewardToken[questID] == address(0), "MultiMerkle: Quest already listed");
-        require(token != address(0), "MultiMerkle: Incorrect reward token");
+        if(msg.sender != questBoard) revert Errors.CallerNotAllowed();
+        if(questRewardToken[questID] != address(0)) revert Errors.QuestAlreadyListed();
+        if(token == address(0)) revert Errors.TokenNotWhitelisted();
 
         // Add a new Quest using the QuestID, and list the reward token for that Quest
         questRewardToken[questID] = token;
@@ -268,12 +263,12 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     */
     function updateQuestPeriod(uint256 questID, uint256 period, bytes32 merkleRoot) external onlyAllowed returns(bool) {
         period = (period / WEEK) * WEEK;
-        require(questRewardToken[questID] != address(0), "MultiMerkle: Quest not listed");
-        require(questMerkleRootPerPeriod[questID][period] == 0, "MultiMerkle: period already updated");
-        require(merkleRoot != 0, "MultiMerkle: Empty MerkleRoot");
+        if(questRewardToken[questID] == address(0)) revert Errors.QuestNotListed();
+        if(questMerkleRootPerPeriod[questID][period] != 0) revert Errors.PeriodAlreadyUpdated();
+        if(merkleRoot == 0) revert Errors.EmptyMerkleRoot();
 
         // Add a new Closed Period for the Quest
-        require(period != 0, "MultiMerkle: incorrect period");
+        if(period == 0) revert Errors.IncorrectPeriod();
         questClosedPeriods[questID].push(period);
 
         // Add the new MerkleRoot for that Closed Period
@@ -304,7 +299,7 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     */
     function recoverERC20(address token) external onlyOwner nonReentrant returns(bool) {
         uint256 amount = IERC20(token).balanceOf(address(this));
-        require(amount > 0, "MultiMerkle: Null amount");
+        if(amount == 0) revert Errors.NullAmount();
         IERC20(token).safeTransfer(owner(), amount);
 
         return true;
@@ -322,10 +317,10 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     function emergencyUpdateQuestPeriod(uint256 questID, uint256 period, bytes32 merkleRoot) external onlyOwner returns(bool) {
         period = (period / WEEK) * WEEK;
         // In case the given MerkleRoot was incorrect => allows to update with the correct one so users can claim
-        require(questRewardToken[questID] != address(0), "MultiMerkle: Quest not listed");
-        require(period != 0, "MultiMerkle: incorrect period");
-        require(questMerkleRootPerPeriod[questID][period] !=0, "MultiMerkle: Not closed yet");
-        require(merkleRoot != 0, "MultiMerkle: Empty MerkleRoot");
+        if(questRewardToken[questID] == address(0)) revert Errors.QuestNotListed();
+        if(period == 0) revert Errors.IncorrectPeriod();
+        if(questMerkleRootPerPeriod[questID][period] ==0) revert Errors.PeriodNotClosed();
+        if(merkleRoot == 0) revert Errors.EmptyMerkleRoot();
 
         questMerkleRootPerPeriod[questID][period] = merkleRoot;
 

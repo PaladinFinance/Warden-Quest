@@ -120,7 +120,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
-            ).to.be.revertedWith('MultiMerkle: Quest already listed')
+            ).to.be.revertedWith('QuestAlreadyListed')
 
         });
 
@@ -128,7 +128,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(mockQuestBoard).addQuest(quest_id1, ethers.constants.AddressZero)
-            ).to.be.revertedWith('MultiMerkle: Incorrect reward token')
+            ).to.be.revertedWith('TokenNotWhitelisted')
 
         });
 
@@ -136,15 +136,15 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(admin).addQuest(quest_id1, CRV.address)
-            ).to.be.revertedWith('MultiMerkle: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
                 distributor.connect(user1).addQuest(quest_id1, CRV.address)
-            ).to.be.revertedWith('MultiMerkle: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
                 distributor.connect(user2).addQuest(quest_id1, CRV.address)
-            ).to.be.revertedWith('MultiMerkle: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -194,7 +194,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree_root)
-            ).to.be.revertedWith('MultiMerkle: period already updated')
+            ).to.be.revertedWith('PeriodAlreadyUpdated')
 
         });
 
@@ -202,7 +202,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id2, period, tree_root)
-            ).to.be.revertedWith('MultiMerkle: Quest not listed')
+            ).to.be.revertedWith('QuestNotListed')
 
         });
 
@@ -210,7 +210,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, "0x0000000000000000000000000000000000000000000000000000000000000000")
-            ).to.be.revertedWith('MultiMerkle: Empty MerkleRoot')
+            ).to.be.revertedWith('EmptyMerkleRoot')
 
         });
 
@@ -218,7 +218,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, 0, tree_root)
-            ).to.be.revertedWith('MultiMerkle: incorrect period')
+            ).to.be.revertedWith('IncorrectPeriod')
 
         });
 
@@ -263,11 +263,11 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(user1).updateQuestPeriod(quest_id1, period, tree_root)
-            ).to.be.revertedWith('MultiMerkle: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
                 distributor.connect(user2).updateQuestPeriod(quest_id1, period, tree_root)
-            ).to.be.revertedWith('MultiMerkle: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -339,7 +339,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     
                 await expect(
                     distributor.connect(user1).claim(quest_id, period, 0, user1.address, user1_claim_amount, proof)
-                ).to.be.revertedWith('MultiMerkle: already claimed')
+                ).to.be.revertedWith('AlreadyClaimed')
     
             });
     
@@ -351,7 +351,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     
                 await expect(
                     distributor.connect(user1).claim(quest_id, next_period, 0, user1.address, user1_claim_amount, proof)
-                ).to.be.revertedWith('MultiMerkle: not updated yet')
+                ).to.be.revertedWith('MerkleRootNotUpdated')
     
             });
     
@@ -362,7 +362,7 @@ describe('MultiMerkleDistributor contract tests', () => {
                 //empty proof
                 await expect(
                     distributor.connect(user1).claim(quest_id, period, 0, user1.address, user1_claim_amount, [])
-                ).to.be.revertedWith('MultiMerkle: Invalid proof')
+                ).to.be.revertedWith('InvalidProof')
     
                 //wrong proof
                 await expect(
@@ -374,12 +374,12 @@ describe('MultiMerkleDistributor contract tests', () => {
                         user1_claim_amount,
                         tree.getProof(quest_id, period, 2, user3.address, user3_claim_amount)
                     )
-                ).to.be.revertedWith('MultiMerkle: Invalid proof')
+                ).to.be.revertedWith('InvalidProof')
     
                 //incorrect index
                 await expect(
                     distributor.connect(user1).claim(quest_id, period, 1, user1.address, user1_claim_amount, proof)
-                ).to.be.revertedWith('MultiMerkle: Invalid proof')
+                ).to.be.revertedWith('InvalidProof')
     
             });
     
@@ -389,7 +389,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     
                 await expect(
                     distributor.connect(user1).claim(quest_id, period, 0, user1.address, user3_claim_amount, proof)
-                ).to.be.revertedWith('MultiMerkle: Invalid proof')
+                ).to.be.revertedWith('InvalidProof')
     
             });
     
@@ -399,7 +399,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     
                 await expect(
                     distributor.connect(user2).claim(quest_id, period, 0, user2.address, user1_claim_amount, proof)
-                ).to.be.revertedWith('MultiMerkle: Invalid proof')
+                ).to.be.revertedWith('InvalidProof')
     
             });
     
@@ -409,7 +409,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     
                 await expect(
                     distributor.connect(user1).claim(quest_id2, period2, 0, user1.address, user1_claim_amount, proof)
-                ).to.be.revertedWith('MultiMerkle: Invalid proof')
+                ).to.be.revertedWith('InvalidProof')
     
             });
     
@@ -419,7 +419,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     
                 await expect(
                     distributor.connect(user1).claim(quest_id2, period2, 0, user1.address, user1_claim_amount, proof)
-                ).to.be.revertedWith('MultiMerkle: Invalid proof')
+                ).to.be.revertedWith('InvalidProof')
     
             });
     
@@ -434,7 +434,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     
                 await expect(
                     distributor.connect(user1).claim(quest_id, period, 0, user1.address, user1_claim_amount, proof_1)
-                ).to.be.revertedWith('MultiMerkle: already claimed')
+                ).to.be.revertedWith('AlreadyClaimed')
     
             });
     
@@ -449,7 +449,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     
                 await expect(
                     distributor.connect(user2).claim(quest_id, period, 1, user2.address, user2_claim_amount, proof_2)
-                ).to.be.revertedWith('MultiMerkle: already claimed')
+                ).to.be.revertedWith('AlreadyClaimed')
     
             });
     
@@ -464,7 +464,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     
                 await expect(
                     distributor.connect(user1).claim(quest_id, period, 0, user1.address, user1_claim_amount, proof_1)
-                ).to.be.revertedWith('MultiMerkle: already claimed')
+                ).to.be.revertedWith('AlreadyClaimed')
     
             });
     
@@ -479,7 +479,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     
                 await expect(
                     distributor.connect(user3).claim(quest_id, period, 2, user3.address, user3_claim_amount, proof_3)
-                ).to.be.revertedWith('MultiMerkle: already claimed')
+                ).to.be.revertedWith('AlreadyClaimed')
     
             });
     
@@ -537,7 +537,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     
                 await expect(
                     distributor.connect(signers[index]).claim(quest_id, period, index, signers[index].address, claim_amount, proof)
-                ).to.be.revertedWith('MultiMerkle: already claimed')
+                ).to.be.revertedWith('AlreadyClaimed')
     
             });
     
@@ -564,7 +564,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     
                 await expect(
                     distributor.connect(signers[index]).claim(quest_id, period, index, signers[index].address, claim_amount, proof)
-                ).to.be.revertedWith('MultiMerkle: already claimed')
+                ).to.be.revertedWith('AlreadyClaimed')
     
             });
     
@@ -591,7 +591,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     
                 await expect(
                     distributor.connect(signers[index]).claim(quest_id, period, index, signers[index].address, claim_amount, proof)
-                ).to.be.revertedWith('MultiMerkle: already claimed')
+                ).to.be.revertedWith('AlreadyClaimed')
     
             });
     
@@ -675,7 +675,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     
                     await expect(
                         distributor.connect(user1).claim(quest_id, period, index, user1.address, claim_amount, proof)
-                    ).to.be.revertedWith('MultiMerkle: already claimed')
+                    ).to.be.revertedWith('AlreadyClaimed')
                 }
     
             });
@@ -840,7 +840,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(user1).multiClaim(user1.address, [])
-            ).to.be.revertedWith("MultiMerkle: empty parameters")
+            ).to.be.revertedWith("EmptyParameters")
 
         });
 
@@ -1016,7 +1016,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(user1).claimQuest(user1.address, quest_id2, claim_params)
-            ).to.be.revertedWith("MultiMerkle: incorrect Quest")
+            ).to.be.revertedWith("IncorrectQuestID")
 
         });
 
@@ -1048,7 +1048,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(user1).claimQuest(user1.address, quest_id, claim_params)
-            ).to.be.revertedWith("MultiMerkle: not updated yet")
+            ).to.be.revertedWith("MerkleRootNotUpdated")
 
         });
 
@@ -1082,7 +1082,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(user1).claimQuest(user1.address, quest_id, claim_params)
-            ).to.be.revertedWith("MultiMerkle: already claimed")
+            ).to.be.revertedWith("AlreadyClaimed")
 
         });
 
@@ -1090,7 +1090,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(user1).claimQuest(user1.address, quest_id, [])
-            ).to.be.revertedWith("MultiMerkle: empty parameters")
+            ).to.be.revertedWith("EmptyParameters")
 
         });
 
@@ -1146,11 +1146,11 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(user1).claimQuest(user1.address, quest_id, wrong_claim_params1)
-            ).to.be.revertedWith("MultiMerkle: Invalid proof")
+            ).to.be.revertedWith("InvalidProof")
 
             await expect(
                 distributor.connect(user1).claimQuest(user1.address, quest_id, wrong_claim_params2)
-            ).to.be.revertedWith("MultiMerkle: Invalid proof")
+            ).to.be.revertedWith("InvalidProof")
 
         });
 
@@ -1236,7 +1236,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id2, period, new_tree_root)
-            ).to.be.revertedWith('MultiMerkle: Quest not listed')
+            ).to.be.revertedWith('QuestNotListed')
 
         });
 
@@ -1245,7 +1245,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, new_tree_root)
-            ).to.be.revertedWith('MultiMerkle: Not closed yet')
+            ).to.be.revertedWith('PeriodNotClosed')
 
         });
 
@@ -1256,7 +1256,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, 0, new_tree_root)
-            ).to.be.revertedWith('MultiMerkle: incorrect period')
+            ).to.be.revertedWith('IncorrectPeriod')
 
         });
 
@@ -1267,7 +1267,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await expect(
                 distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, "0x0000000000000000000000000000000000000000000000000000000000000000")
-            ).to.be.revertedWith('MultiMerkle: Empty MerkleRoot')
+            ).to.be.revertedWith('EmptyMerkleRoot')
 
         });
 

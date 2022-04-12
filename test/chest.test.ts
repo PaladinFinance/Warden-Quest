@@ -147,7 +147,7 @@ describe('QuestTreasureChest contract tests', () => {
 
             await expect(
                 chest.connect(manager2).approveERC20(DAI.address, manager2.address, approve_amount)
-            ).to.be.revertedWith('TreasureChest: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -225,7 +225,7 @@ describe('QuestTreasureChest contract tests', () => {
 
             await expect(
                 chest.connect(manager2).transferERC20(DAI.address, manager2.address, dai_transfer)
-            ).to.be.revertedWith('TreasureChest: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
@@ -248,7 +248,7 @@ describe('QuestTreasureChest contract tests', () => {
 
             await expect(
                 chest.connect(manager1).transferERC20(DAI.address, manager1.address, withdraw_amount)
-            ).to.be.revertedWith('TreasureChest: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
             await chest.connect(admin).approveManager(manager1.address)
 
@@ -298,7 +298,7 @@ describe('QuestTreasureChest contract tests', () => {
 
             await expect(
                 chest.connect(manager1).transferERC20(DAI.address, manager1.address, withdraw_amount)
-            ).to.be.revertedWith('TreasureChest: Not allowed')
+            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
