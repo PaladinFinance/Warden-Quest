@@ -52,7 +52,7 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     mapping(uint256 => mapping(uint256 => mapping(uint256 => uint256))) private questPeriodClaimedBitMap;
 
     /** @notice Address of the QuestBoard contract */
-    address public questBoard;
+    address public immutable questBoard;
 
 
     // Events
@@ -281,15 +281,6 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
 
 
     //  Admin functions
-       
-    /**
-    * @notice Updates the QuestBoard contract address
-    * @dev Updates the QuestBoard contract address
-    * @param newQuestBoard Address of the new QuestBoard contract
-    */
-    function updateQuestManager(address newQuestBoard) external onlyOwner {
-        questBoard = newQuestBoard;
-    }
    
     /**
     * @notice Recovers ERC2O tokens sent by mistake to the contract

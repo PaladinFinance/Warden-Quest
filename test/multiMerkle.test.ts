@@ -1157,7 +1157,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     });
 
 
-    describe('updateQuestManager', async () => {
+    /*describe('updateQuestManager', async () => {
 
         it(' should update the QuestBoard address', async () => {
 
@@ -1176,7 +1176,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         });
 
-    });
+    });*/
 
     describe('emergencyUpdateQuestPeriod', async () => {
 
