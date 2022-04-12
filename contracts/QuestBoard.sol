@@ -735,7 +735,9 @@ contract QuestBoard is Owner, ReentrancyGuard {
             // And the rest is set as withdrawable amount, that the Quest creator can retrieve
             _questPeriod.withdrawableAmount = _questPeriod.rewardAmountPerPeriod - toDistributeAmount;
 
-            IERC20(_quest.rewardToken).safeTransfer(questDistributors[questID], toDistributeAmount);
+            address questDistributor = questDistributors[questID];
+            if(!MultiMerkleDistributor(questDistributor).addQuestPeriod(questID, period, toDistributeAmount)) revert Errors.DisitributorFail();
+            IERC20(_quest.rewardToken).safeTransfer(questDistributor, toDistributeAmount);
         }
 
         periodsByQuest[questID][period] =  _questPeriod;
@@ -809,17 +811,19 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @dev Sets the QuestPeriod as disitrbuted, and adds the MerkleRoot to the Distributor contract
     * @param questID ID of the Quest
     * @param period Timestamp of the period
+    * @param totalAmount sum of all rewards for the Merkle Tree
     * @param merkleRoot MerkleRoot to add
     */
-    function _addMerkleRoot(uint256 questID, uint256 period, bytes32 merkleRoot) internal {
+    function _addMerkleRoot(uint256 questID, uint256 period, uint256 totalAmount, bytes32 merkleRoot) internal {
         if(questID >= nextID) revert Errors.InvalidQuestID();
         if(merkleRoot == 0) revert Errors.EmptyMerkleRoot();
+        if(totalAmount == 0) revert Errors.NullAmount();
 
         // This also allows to check if the given period is correct => If not, the currentState is never set to CLOSED for the QuestPeriod
         if(periodsByQuest[questID][period].currentState != PeriodState.CLOSED) revert Errors.PeriodNotClosed();
 
         // Add the MerkleRoot to the Distributor & set the QuestPeriod as DISTRIBUTED
-        if(!MultiMerkleDistributor(distributor).updateQuestPeriod(questID, period, merkleRoot)) revert Errors.DisitributorFail();
+        if(!MultiMerkleDistributor(questDistributors[questID]).updateQuestPeriod(questID, period, totalAmount, merkleRoot)) revert Errors.DisitributorFail();
 
         periodsByQuest[questID][period].currentState = PeriodState.DISTRIBUTED;
     }
@@ -829,11 +833,12 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @dev internal call to _addMerkleRoot()
     * @param questID ID of the Quest
     * @param period Timestamp of the period
+    * @param totalAmount sum of all rewards for the Merkle Tree
     * @param merkleRoot MerkleRoot to add
     */
-    function addMerkleRoot(uint256 questID, uint256 period, bytes32 merkleRoot) external isAlive onlyAllowed nonReentrant {
+    function addMerkleRoot(uint256 questID, uint256 period, uint256 totalAmount, bytes32 merkleRoot) external isAlive onlyAllowed nonReentrant {
         period = (period / WEEK) * WEEK;
-        _addMerkleRoot(questID, period, merkleRoot);
+        _addMerkleRoot(questID, period, totalAmount, merkleRoot);
     }
 
     /**
@@ -841,16 +846,23 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @dev Loop and internal call to _addMerkleRoot()
     * @param questIDs List of Quest IDs
     * @param period Timestamp of the period
+    * @param totalAmounts List of sums of all rewards for the Merkle Tree
     * @param merkleRoots List of MerkleRoots to add
     */
-    function addMultipleMerkleRoot(uint256[] calldata questIDs, uint256 period, bytes32[] calldata merkleRoots) external isAlive onlyAllowed nonReentrant {
+    function addMultipleMerkleRoot(
+        uint256[] calldata questIDs,
+        uint256 period,
+        uint256[] calldata totalAmounts,
+        bytes32[] calldata merkleRoots
+    ) external isAlive onlyAllowed nonReentrant {
         period = (period / WEEK) * WEEK;
         uint256 length = questIDs.length;
 
         if(length != merkleRoots.length) revert Errors.InequalArraySizes();
+        if(length != totalAmounts.length) revert Errors.InequalArraySizes();
 
         for(uint256 i = 0; i < length;){
-            _addMerkleRoot(questIDs[i], period, merkleRoots[i]);
+            _addMerkleRoot(questIDs[i], period, totalAmounts[i], merkleRoots[i]);
 
             unchecked{ ++i; }
         }

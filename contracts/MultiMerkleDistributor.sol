@@ -50,6 +50,10 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     // QuestID => period => merkleRoot
     mapping(uint256 => mapping(uint256 => bytes32)) public questMerkleRootPerPeriod;
 
+    /** @notice Amount of rewards for each period of a Quest (indexed by Quest ID) */
+    // QuestID => period => totalRewardsAmount
+    mapping(uint256 => mapping(uint256 => uint256)) public questRewardsPerPeriod;
+
     /** @notice BitMap of claims for each period of a Quest */
     // QuestID => period => claimedBitMap
     // This is a packed array of booleans.
@@ -258,24 +262,49 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
 
         return true;
     }
+
+    /**
+    * @notice Adds a new period & the rewards of this period for a Quest
+    * @dev Adds a new period & the rewards of this period for a Quest
+    * @param questID ID of the Quest
+    * @param period Timestamp of the period
+    * @param totalRewardAmount Total amount of rewards to distribute for the period
+    * @return bool : success
+    */
+    function addQuestPeriod(uint256 questID, uint256 period, uint256 totalRewardAmount) external returns(bool) {
+        period = (period / WEEK) * WEEK;
+        if(msg.sender != questBoard) revert Errors.CallerNotAllowed();
+        if(questRewardToken[questID] == address(0)) revert Errors.QuestNotListed();
+        if(questRewardsPerPeriod[questID][period] != 0) revert Errors.PeriodAlreadyUpdated();
+        if(period == 0) revert Errors.IncorrectPeriod();
+        if(totalRewardAmount == 0) revert Errors.NullAmount();
+
+        questRewardsPerPeriod[questID][period] = totalRewardAmount;
+
+        return true;
+    }
    
     /**
     * @notice Updates the period of a Quest by adding the Merkle Root
     * @dev Add the Merkle Root for the eriod of the given Quest
     * @param questID ID of the Quest
     * @param period timestamp of the period
+    * @param totalAmount sum of all rewards for the Merkle Tree
     * @param merkleRoot MerkleRoot to add
     * @return bool: success
     */
-    function updateQuestPeriod(uint256 questID, uint256 period, bytes32 merkleRoot) external onlyAllowed returns(bool) {
+    function updateQuestPeriod(uint256 questID, uint256 period, uint256 totalAmount, bytes32 merkleRoot) external onlyAllowed returns(bool) {
         period = (period / WEEK) * WEEK;
         if(questRewardToken[questID] == address(0)) revert Errors.QuestNotListed();
+        if(period == 0) revert Errors.IncorrectPeriod();
+        if(questRewardsPerPeriod[questID][period] == 0) revert Errors.PeriodNotListed();
         if(questMerkleRootPerPeriod[questID][period] != 0) revert Errors.PeriodAlreadyUpdated();
         if(merkleRoot == 0) revert Errors.EmptyMerkleRoot();
 
         // Add a new Closed Period for the Quest
-        if(period == 0) revert Errors.IncorrectPeriod();
         questClosedPeriods[questID].push(period);
+
+        if(totalAmount != questRewardsPerPeriod[questID][period]) revert Errors.IncorrectRewardAmount();
 
         // Add the new MerkleRoot for that Closed Period
         questMerkleRootPerPeriod[questID][period] = merkleRoot;

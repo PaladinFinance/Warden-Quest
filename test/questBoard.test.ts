@@ -968,6 +968,16 @@ describe('QuestBoard contract tests', () => {
 
         it(' should not change previous QuestPeriod (CLOSED or DISTRIBUTED)', async () => {
 
+            const gauge1_biases = [ethers.utils.parseEther('8000'), ethers.utils.parseEther('10000'), ethers.utils.parseEther('12000')]
+
+            const start_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+
+            for (let i = 0; i < gauge1_biases.length; i++) {
+                let period_end_to_set = start_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
+
+                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_biases[i])
+            }
+
             await advanceTime(WEEK.mul(3).toNumber())
 
             const periods_list = await board.getAllPeriodsForQuestId(questID)
@@ -979,7 +989,8 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).closeQuestPeriod(second_period)
 
             const mockRoot = "0x7849a18e2c98b65ae515d22c2344ac1b515a7016e86b320c78ed07d0f1fa8cc3"
-            await board.connect(admin).addMerkleRoot(questID, first_period, mockRoot)
+            const period_rewards = (await board.periodsByQuest(questID, first_period)).rewardAmountDistributed
+            await board.connect(admin).addMerkleRoot(questID, first_period, period_rewards, mockRoot)
 
             await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
 
@@ -1277,6 +1288,16 @@ describe('QuestBoard contract tests', () => {
 
         it(' should not change previous QuestPeriod (CLOSED or DISTRIBUTED)', async () => {
 
+            const gauge1_biases = [ethers.utils.parseEther('8000'), ethers.utils.parseEther('10000'), ethers.utils.parseEther('12000')]
+
+            const start_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+
+            for (let i = 0; i < gauge1_biases.length; i++) {
+                let period_end_to_set = start_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
+
+                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_biases[i])
+            }
+
             await advanceTime(WEEK.mul(ellapsedDuration).toNumber())
 
             const periods_list = await board.getAllPeriodsForQuestId(questID)
@@ -1288,7 +1309,8 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).closeQuestPeriod(second_period)
 
             const mockRoot = "0x7849a18e2c98b65ae515d22c2344ac1b515a7016e86b320c78ed07d0f1fa8cc3"
-            await board.connect(admin).addMerkleRoot(questID, first_period, mockRoot)
+            const period_rewards = (await board.periodsByQuest(questID, first_period)).rewardAmountDistributed
+            await board.connect(admin).addMerkleRoot(questID, first_period, period_rewards, mockRoot)
 
             await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
 
@@ -1616,6 +1638,16 @@ describe('QuestBoard contract tests', () => {
 
         it(' should not change previous QuestPeriod (CLOSED or DISTRIBUTED)', async () => {
 
+            const gauge1_biases = [ethers.utils.parseEther('8000'), ethers.utils.parseEther('10000'), ethers.utils.parseEther('12000')]
+
+            const start_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+
+            for (let i = 0; i < gauge1_biases.length; i++) {
+                let period_end_to_set = start_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
+
+                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_biases[i])
+            }
+
             await advanceTime(WEEK.mul(ellapsedDuration).toNumber())
 
             const periods_list = await board.getAllPeriodsForQuestId(questID)
@@ -1627,7 +1659,8 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).closeQuestPeriod(second_period)
 
             const mockRoot = "0x7849a18e2c98b65ae515d22c2344ac1b515a7016e86b320c78ed07d0f1fa8cc3"
-            await board.connect(admin).addMerkleRoot(questID, first_period, mockRoot)
+            const period_rewards = (await board.periodsByQuest(questID, first_period)).rewardAmountDistributed
+            await board.connect(admin).addMerkleRoot(questID, first_period, period_rewards, mockRoot)
 
             await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
 
@@ -1901,6 +1934,8 @@ describe('QuestBoard contract tests', () => {
                 expect(questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
                 expect(questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
 
+                expect(await distributor.questRewardsPerPeriod(questIDs[i], first_period)).to.be.eq(questPriod_data.rewardAmountDistributed)
+
                 await expect(
                     close_tx
                 ).to.emit(rewardToken[i], "Transfer")
@@ -1944,6 +1979,8 @@ describe('QuestBoard contract tests', () => {
                     expect(questPriod_data.currentState).to.be.eq(2)
                     expect(questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
                     expect(questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
+
+                    expect(await distributor.questRewardsPerPeriod(questIDs[i], toClose_period)).to.be.eq(questPriod_data.rewardAmountDistributed)
 
                     await expect(
                         close_tx
@@ -2125,6 +2162,8 @@ describe('QuestBoard contract tests', () => {
                 expect(questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
                 expect(questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
 
+                expect(await distributor.questRewardsPerPeriod(questIDs[i], first_period)).to.be.eq(questPriod_data.rewardAmountDistributed)
+
                 await expect(
                     close_tx
                 ).to.emit(rewardToken[i], "Transfer")
@@ -2184,6 +2223,8 @@ describe('QuestBoard contract tests', () => {
                     expect(questPriod_data.currentState).to.be.eq(2)
                     expect(questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
                     expect(questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
+
+                    expect(await distributor.questRewardsPerPeriod(questIDs[i], toClose_period)).to.be.eq(questPriod_data.rewardAmountDistributed)
 
                     await expect(
                         close_tx
@@ -2365,6 +2406,15 @@ describe('QuestBoard contract tests', () => {
                 expect(questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
                 expect(questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
 
+                if(questDistributor == distributor.address) {
+                    expect(await distributor.questRewardsPerPeriod(questIDs[i], first_period)).to.be.eq(questPriod_data.rewardAmountDistributed)
+                    expect(await otherDistributor.questRewardsPerPeriod(questIDs[i], first_period)).to.be.eq(0)
+                }
+                else {
+                    expect(await distributor.questRewardsPerPeriod(questIDs[i], first_period)).to.be.eq(0)
+                    expect(await otherDistributor.questRewardsPerPeriod(questIDs[i], first_period)).to.be.eq(questPriod_data.rewardAmountDistributed)
+                }
+
                 await expect(
                     close_tx
                 ).to.emit(rewardToken[i], "Transfer")
@@ -2398,6 +2448,15 @@ describe('QuestBoard contract tests', () => {
                 expect(questPriod_data.currentState).to.be.eq(2)
                 expect(questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
                 expect(questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
+
+                if(questDistributor == distributor.address) {
+                    expect(await distributor.questRewardsPerPeriod(questIDs[i], first_period)).to.be.eq(questPriod_data.rewardAmountDistributed)
+                    expect(await otherDistributor.questRewardsPerPeriod(questIDs[i], first_period)).to.be.eq(0)
+                }
+                else {
+                    expect(await distributor.questRewardsPerPeriod(questIDs[i], first_period)).to.be.eq(0)
+                    expect(await otherDistributor.questRewardsPerPeriod(questIDs[i], first_period)).to.be.eq(questPriod_data.rewardAmountDistributed)
+                }
 
                 await expect(
                     close_tx
@@ -2442,6 +2501,8 @@ describe('QuestBoard contract tests', () => {
         let rewards_per_period: BigNumber[] = []
         let total_rewards_amount: BigNumber[] = []
         let total_fees: BigNumber[] = []
+
+        let total_distributed_rewards: BigNumber[] = []
 
         beforeEach(async () => {
 
@@ -2497,13 +2558,17 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(manager).closeQuestPeriod(first_period)
 
+            for (let i = 0; i < questIDs.length; i++) {
+                total_distributed_rewards[i] = await distributor.questRewardsPerPeriod(questIDs[i], first_period)
+            }
+
             ID_to_distribute = questIDs[0]
 
         });
 
         it(' should set the QuestPeriod as DISTRIBUTED and add the MerkleRoot to the Distributor', async () => {
 
-            await board.connect(manager).addMerkleRoot(ID_to_distribute, first_period, mockRoot)
+            await board.connect(manager).addMerkleRoot(ID_to_distribute, first_period, total_distributed_rewards[0], mockRoot)
 
             expect(await distributor.questMerkleRootPerPeriod(ID_to_distribute, first_period)).to.be.eq(mockRoot)
 
@@ -2514,10 +2579,10 @@ describe('QuestBoard contract tests', () => {
 
         it(' should fail if tried twice', async () => {
 
-            await board.connect(manager).addMerkleRoot(ID_to_distribute, first_period, mockRoot)
+            await board.connect(manager).addMerkleRoot(ID_to_distribute, first_period, total_distributed_rewards[0], mockRoot)
 
             await expect(
-                board.connect(manager).addMerkleRoot(ID_to_distribute, first_period, mockRoot)
+                board.connect(manager).addMerkleRoot(ID_to_distribute, first_period, total_distributed_rewards[0], mockRoot)
             ).to.be.reverted
 
         });
@@ -2525,8 +2590,16 @@ describe('QuestBoard contract tests', () => {
         it(' should fail if empty Merkle Root', async () => {
 
             await expect(
-                board.connect(manager).addMerkleRoot(ID_to_distribute, first_period, "0x0000000000000000000000000000000000000000000000000000000000000000")
+                board.connect(manager).addMerkleRoot(ID_to_distribute, first_period, total_distributed_rewards[0], "0x0000000000000000000000000000000000000000000000000000000000000000")
             ).to.be.revertedWith('EmptyMerkleRoot')
+
+        });
+
+        it(' should fail if totalAmount is null', async () => {
+
+            await expect(
+                board.connect(manager).addMerkleRoot(ID_to_distribute, first_period, 0, mockRoot)
+            ).to.be.revertedWith('NullAmount')
 
         });
 
@@ -2535,7 +2608,7 @@ describe('QuestBoard contract tests', () => {
             const invalid_id = (await board.nextID()).add(15)
 
             await expect(
-                board.connect(manager).addMerkleRoot(invalid_id, first_period, mockRoot)
+                board.connect(manager).addMerkleRoot(invalid_id, first_period, total_distributed_rewards[0], mockRoot)
             ).to.be.revertedWith('InvalidQuestID')
 
         });
@@ -2545,7 +2618,7 @@ describe('QuestBoard contract tests', () => {
             const next_period = first_period.add(WEEK).div(WEEK).mul(WEEK)
 
             await expect(
-                board.connect(manager).addMerkleRoot(ID_to_distribute, next_period, mockRoot)
+                board.connect(manager).addMerkleRoot(ID_to_distribute, next_period, total_distributed_rewards[0], mockRoot)
             ).to.be.revertedWith('PeriodNotClosed')
 
         });
@@ -2553,11 +2626,11 @@ describe('QuestBoard contract tests', () => {
         it(' should only be allowed for admin and managers', async () => {
 
             await expect(
-                board.connect(manager2).addMerkleRoot(ID_to_distribute, first_period, mockRoot)
+                board.connect(manager2).addMerkleRoot(ID_to_distribute, first_period, total_distributed_rewards[0], mockRoot)
             ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
-                board.connect(user1).addMerkleRoot(ID_to_distribute, first_period, mockRoot)
+                board.connect(user1).addMerkleRoot(ID_to_distribute, first_period, total_distributed_rewards[0], mockRoot)
             ).to.be.revertedWith('CallerNotAllowed')
 
         });
@@ -2569,7 +2642,7 @@ describe('QuestBoard contract tests', () => {
 
             const roots = [mockRoot, mockRoot2, mockRoot3]
 
-            await board.connect(manager).addMultipleMerkleRoot(questIDs, first_period, roots)
+            await board.connect(manager).addMultipleMerkleRoot(questIDs, first_period, total_distributed_rewards, roots)
 
             expect(await distributor.questMerkleRootPerPeriod(questIDs[0], first_period)).to.be.eq(roots[0])
             expect(await distributor.questMerkleRootPerPeriod(questIDs[1], first_period)).to.be.eq(roots[1])
@@ -2585,11 +2658,19 @@ describe('QuestBoard contract tests', () => {
         it(' addMultipleMerkleRoot - should fail if given inequal list sizes', async () => {
 
             let mockRoot2 = "0x7849a18e2c98b65ae515d22c2344ac1b515a7016e86b320c78ed07d0f1fa8cd4"
+            let mockRoot3 = "0x7849a18e2c98b65ae515d22c2344ac1b515a7016e86b320c78ed07d0f1fa8ca6"
 
             const roots = [mockRoot, mockRoot2]
 
             await expect(
-                board.connect(manager).addMultipleMerkleRoot(questIDs, first_period, roots)
+                board.connect(manager).addMultipleMerkleRoot(questIDs, first_period, total_distributed_rewards, roots)
+            ).to.be.revertedWith('InequalArraySizes')
+
+            const rewards = [total_distributed_rewards[0], total_distributed_rewards[1]]
+            const correct_roots = [mockRoot, mockRoot2, mockRoot3]
+
+            await expect(
+                board.connect(manager).addMultipleMerkleRoot(questIDs, first_period, rewards, correct_roots)
             ).to.be.revertedWith('InequalArraySizes')
 
         });
@@ -2602,11 +2683,11 @@ describe('QuestBoard contract tests', () => {
             const roots = [mockRoot, mockRoot2, mockRoot3]
 
             await expect(
-                board.connect(manager2).addMultipleMerkleRoot(questIDs, first_period, roots)
+                board.connect(manager2).addMultipleMerkleRoot(questIDs, first_period, total_distributed_rewards, roots)
             ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
-                board.connect(user1).addMultipleMerkleRoot(questIDs, first_period, roots)
+                board.connect(user1).addMultipleMerkleRoot(questIDs, first_period, total_distributed_rewards, roots)
             ).to.be.revertedWith('CallerNotAllowed')
 
         });
@@ -2696,10 +2777,14 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(manager).closeQuestPeriod(next_period)
 
-            await board.connect(manager).addMerkleRoot(questIDs[0], first_period, mockRoot)
-            await board.connect(manager).addMerkleRoot(questIDs[0], next_period, mockRoot)
+            const period_rewards1 = (await board.periodsByQuest(questIDs[0], first_period)).rewardAmountDistributed
+            const period_rewards2 = (await board.periodsByQuest(questIDs[0], next_period)).rewardAmountDistributed
+            const period_rewards3 = (await board.periodsByQuest(questIDs[1], first_period)).rewardAmountDistributed
 
-            await board.connect(manager).addMerkleRoot(questIDs[1], first_period, mockRoot2)
+            await board.connect(manager).addMerkleRoot(questIDs[0], first_period, period_rewards1, mockRoot)
+            await board.connect(manager).addMerkleRoot(questIDs[0], next_period, period_rewards2, mockRoot)
+
+            await board.connect(manager).addMerkleRoot(questIDs[1], first_period, period_rewards3, mockRoot2)
 
         });
 
@@ -3183,10 +3268,14 @@ describe('QuestBoard contract tests', () => {
 
             await board.connect(manager).closeQuestPeriod(next_period)
 
-            await board.connect(manager).addMerkleRoot(questIDs[0], first_period, mockRoot)
-            await board.connect(manager).addMerkleRoot(questIDs[0], next_period, mockRoot)
+            const period_rewards1 = (await board.periodsByQuest(questIDs[0], first_period)).rewardAmountDistributed
+            const period_rewards2 = (await board.periodsByQuest(questIDs[0], next_period)).rewardAmountDistributed
+            const period_rewards3 = (await board.periodsByQuest(questIDs[1], first_period)).rewardAmountDistributed
 
-            await board.connect(manager).addMerkleRoot(questIDs[1], first_period, mockRoot2)
+            await board.connect(manager).addMerkleRoot(questIDs[0], first_period, period_rewards1, mockRoot)
+            await board.connect(manager).addMerkleRoot(questIDs[0], next_period, period_rewards2, mockRoot)
+
+            await board.connect(manager).addMerkleRoot(questIDs[1], first_period, period_rewards3, mockRoot2)
 
         });
 
