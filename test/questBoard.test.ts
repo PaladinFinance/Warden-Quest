@@ -60,6 +60,8 @@ describe('QuestBoard contract tests', () => {
     let distributor: MultiMerkleDistributor
     let controller: MockGaugeController
 
+    let otherDistributor: MultiMerkleDistributor
+
     let CRV: IERC20
     let DAI: IERC20
 
@@ -298,6 +300,8 @@ describe('QuestBoard contract tests', () => {
             expect(quest_data.totalRewardAmount).to.be.eq(total_rewards_amount)
             expect(quest_data.periodStart).to.be.eq(expected_period)
 
+            expect(await board.questDistributors(expected_id)).to.be.eq(distributor.address)
+
 
             const quest_periods = await board.getAllPeriodsForQuestId(expected_id)
             expect(quest_periods.length).to.be.eq(duration)
@@ -490,6 +494,99 @@ describe('QuestBoard contract tests', () => {
 
             const quest_periods = await board.getAllPeriodsForQuestId(expected_id)
             expect(quest_periods.length).to.be.eq(duration2)
+
+        });
+
+        it(' should have the correct data if the distributor is updated', async () => {
+
+            otherDistributor = (await distributorFactory.connect(admin).deploy(board.address)) as MultiMerkleDistributor;
+            await otherDistributor.deployed();
+
+            await DAI.connect(creator1).approve(board.address, total_rewards_amount.add(total_fees))
+
+            await board.connect(creator1).createQuest(
+                gauge1.address,
+                DAI.address,
+                duration,
+                target_votes,
+                reward_per_vote,
+                total_rewards_amount,
+                total_fees
+            )
+
+
+            await board.connect(admin).updateDistributor(otherDistributor.address)
+
+            expect(await board.distributor()).to.be.eq(otherDistributor.address)
+
+            const target_votes2 = ethers.utils.parseEther('1000000')
+            const reward_per_vote2 = ethers.utils.parseEther('0.5')
+
+            const rewards_per_period2 = ethers.utils.parseEther('500000')
+
+            const duration2 = 4
+
+            const total_rewards_amount2 = rewards_per_period2.mul(duration2)
+            const total_fees2 = total_rewards_amount2.mul(500).div(10000)
+
+
+            await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
+
+            await controller.add_gauge(gauge2.address, 1)
+
+            await CRV.connect(admin).transfer(creator2.address, total_rewards_amount2.add(total_fees2))
+
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            const expected_period = current_ts.add(WEEK).div(WEEK).mul(WEEK)
+
+            const expected_id = await board.nextID()
+
+            await CRV.connect(creator2).approve(board.address, total_rewards_amount2.add(total_fees2))
+
+            const create_tx2 = await board.connect(creator2).createQuest(
+                gauge2.address,
+                CRV.address,
+                duration2,
+                target_votes2,
+                reward_per_vote2,
+                total_rewards_amount2,
+                total_fees2
+            )
+
+            await expect(
+                create_tx2
+            ).to.emit(board, "NewQuest")
+                .withArgs(
+                    expected_id,
+                    creator2.address,
+                    gauge2.address,
+                    CRV.address,
+                    duration2,
+                    expected_period,
+                    target_votes2,
+                    reward_per_vote2
+                );
+
+            const quest_data = await board.quests(expected_id)
+
+            expect(quest_data.creator).to.be.eq(creator2.address)
+            expect(quest_data.rewardToken).to.be.eq(CRV.address)
+            expect(quest_data.gauge).to.be.eq(gauge2.address)
+            expect(quest_data.duration).to.be.eq(duration2)
+            expect(quest_data.totalRewardAmount).to.be.eq(total_rewards_amount2)
+            expect(quest_data.periodStart).to.be.eq(expected_period)
+
+
+            const quest_periods = await board.getAllPeriodsForQuestId(expected_id)
+            expect(quest_periods.length).to.be.eq(duration2)
+
+            expect(await board.questDistributors(expected_id)).to.be.eq(otherDistributor.address)
+
+            expect(await distributor.questRewardToken(expected_id)).to.be.eq(ethers.constants.AddressZero)
+            expect(await otherDistributor.questRewardToken(expected_id)).to.be.eq(CRV.address)
 
         });
 
@@ -2158,6 +2255,161 @@ describe('QuestBoard contract tests', () => {
             await expect(
                 board.connect(user1).closePartOfQuestPeriod(first_period, toCloseIDs)
             ).to.be.revertedWith('CallerNotAllowed')
+
+        });
+
+    });
+
+    describe('closeQuestPeriod & closePartOfQuestPeriod', async () => {
+
+        let gauges: string[] = []
+        let rewardToken: IERC20[] = []
+
+        const target_votes = [ethers.utils.parseEther('15000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('8000')]
+        const reward_per_vote = [ethers.utils.parseEther('2'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.5')]
+        const duration = [6, 4, 7]
+
+        let questIDs: BigNumber[] = [];
+
+        const gauge1_biases = [ethers.utils.parseEther('8000'), ethers.utils.parseEther('10000'), ethers.utils.parseEther('12000')]
+        const gauge2_biases = [ethers.utils.parseEther('18000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('30000')]
+        const gauge3_biases = [ethers.utils.parseEther('10000'), ethers.utils.parseEther('11000'), ethers.utils.parseEther('15000')]
+
+        const all_biases = [gauge1_biases, gauge2_biases, gauge3_biases]
+
+        let first_period: BigNumber;
+
+        let rewards_per_period: BigNumber[] = []
+        let total_rewards_amount: BigNumber[] = []
+        let total_fees: BigNumber[] = []
+
+        let toCloseIDs: BigNumber[] = []; 
+
+        beforeEach(async () => {
+
+            otherDistributor = (await distributorFactory.connect(admin).deploy(board.address)) as MultiMerkleDistributor;
+            await otherDistributor.deployed();
+
+            gauges = [gauge1.address, gauge2.address, gauge3.address]
+            rewardToken = [DAI, CRV, DAI]
+
+            let creators = [creator1, creator2, creator3]
+
+            await board.connect(admin).initiateDistributor(distributor.address)
+
+            await board.connect(admin).approveManager(manager.address)
+
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+            await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
+
+            await controller.add_gauge(gauge1.address, 2)
+            await controller.add_gauge(gauge2.address, 1)
+            await controller.add_gauge(gauge3.address, 2)
+
+            first_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+
+            for (let i = 0; i < gauges.length; i++) {
+                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
+                total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
+                total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
+
+                await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
+                await rewardToken[i].connect(creators[i]).approve(board.address, 0)
+                await rewardToken[i].connect(creators[i]).approve(board.address, total_rewards_amount[i].add(total_fees[i]))
+
+                questIDs[i] = await board.nextID()
+
+                if(i > (gauges.length / 2)){
+                    await board.connect(admin).updateDistributor(otherDistributor.address)
+                }
+
+                await board.connect(creators[i]).createQuest(
+                    gauges[i],
+                    rewardToken[i].address,
+                    duration[i],
+                    target_votes[i],
+                    reward_per_vote[i],
+                    total_rewards_amount[i],
+                    total_fees[i]
+                )
+            }
+
+            //setup the gauges slopes
+            for (let i = 0; i < gauge1_biases.length; i++) {
+                let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
+
+                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_biases[i])
+                await controller.set_points_weight(gauge2.address, period_end_to_set, gauge2_biases[i])
+                await controller.set_points_weight(gauge3.address, period_end_to_set, gauge3_biases[i])
+            }
+
+            toCloseIDs = [questIDs[0], questIDs[2]]
+
+        });
+
+        it(' should send the rewards to the correct Distributor - closeQuestPeriod', async () => {
+            await advanceTime(WEEK.mul(2).toNumber())
+
+            const close_tx = await board.connect(manager).closeQuestPeriod(first_period)
+
+            for (let i = 0; i < gauges.length; i++) {
+                const questDistributor = await board.questDistributors(questIDs[i])
+
+                const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
+
+                const expected_completion = all_biases[i][0].gte(target_votes[i]) ? UNIT : all_biases[i][0].mul(UNIT).div(target_votes[i])
+                const expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
+                const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
+
+                expect(questPriod_data.currentState).to.be.eq(2)
+                expect(questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
+                expect(questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
+
+                await expect(
+                    close_tx
+                ).to.emit(rewardToken[i], "Transfer")
+                    .withArgs(board.address, questDistributor, expected_distribute_amount);
+
+                await expect(
+                    close_tx
+                ).to.emit(board, "PeriodClosed")
+                    .withArgs(questIDs[i], first_period);
+
+            }
+
+        });
+
+        it(' should send the rewards to the correct Distributor - closePartOfQuestPeriod', async () => {
+            await advanceTime(WEEK.mul(2).toNumber())
+
+            const close_tx = await board.connect(manager).closePartOfQuestPeriod(first_period, toCloseIDs)
+
+            for (let i = 0; i < questIDs.length; i++) {
+                if(!toCloseIDs.includes(questIDs[i])) continue;
+
+                const questDistributor = await board.questDistributors(questIDs[i])
+
+                const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
+
+                const expected_completion = all_biases[i][0].gte(target_votes[i]) ? UNIT : all_biases[i][0].mul(UNIT).div(target_votes[i])
+                const expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
+                const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
+
+                expect(questPriod_data.currentState).to.be.eq(2)
+                expect(questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
+                expect(questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
+
+                await expect(
+                    close_tx
+                ).to.emit(rewardToken[i], "Transfer")
+                    .withArgs(board.address, questDistributor, expected_distribute_amount);
+
+                await expect(
+                    close_tx
+                ).to.emit(board, "PeriodClosed")
+                    .withArgs(questIDs[i], first_period);
+
+            }
 
         });
 

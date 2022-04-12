@@ -95,6 +95,9 @@ contract QuestBoard is Owner, ReentrancyGuard {
     /** @notice All the Quests present in this period */
     // period => array of Quest
     mapping(uint256 => uint256[]) public questsByPeriod;
+    /** @notice Mapping of Distributors used by each Quest to send rewards */
+    // ID => Distributor
+    mapping(uint256 => address) public questDistributors;
 
 
     /** @notice Platform fees ratio (in BPS) */
@@ -333,6 +336,9 @@ contract QuestBoard is Owner, ReentrancyGuard {
         quests[newQuestID].periodStart = safe48(vars.nextPeriod);
 
         uint48[] memory _periods = new uint48[](duration);
+
+        //Set the current Distributor as the one to receive the rewards for users for that Quest
+        questDistributors[newQuestID] = distributor;
 
         // Iterate on periods based on Quest duration
         uint256 periodIterator = vars.nextPeriod;
@@ -729,7 +735,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
             // And the rest is set as withdrawable amount, that the Quest creator can retrieve
             _questPeriod.withdrawableAmount = _questPeriod.rewardAmountPerPeriod - toDistributeAmount;
 
-            IERC20(_quest.rewardToken).safeTransfer(distributor, toDistributeAmount);
+            IERC20(_quest.rewardToken).safeTransfer(questDistributors[questID], toDistributeAmount);
         }
 
         periodsByQuest[questID][period] =  _questPeriod;
