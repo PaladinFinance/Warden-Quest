@@ -33,6 +33,10 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     // QuestID => reward token
     mapping(uint256 => address) public questRewardToken;
 
+    /** @notice Mapping of tokens this contract is or was distributing */
+    // token address => boolean
+    mapping(address => bool) public rewardTokens;
+
     //Periods: timestamp => start of a week, used as a voting period 
     //in the Curve GaugeController though the timestamp / WEEK *  WEEK logic.
     //Handled through the QuestManager contract.
@@ -248,6 +252,8 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
         // Add a new Quest using the QuestID, and list the reward token for that Quest
         questRewardToken[questID] = token;
 
+        if(!rewardTokens[token]) rewardTokens[token] = true;
+
         emit NewQuest(questID, token);
 
         return true;
@@ -289,6 +295,7 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     * @return bool: success
     */
     function recoverERC20(address token) external onlyOwner nonReentrant returns(bool) {
+        if(rewardTokens[token]) revert Errors.CannotRecoverToken();
         uint256 amount = IERC20(token).balanceOf(address(this));
         if(amount == 0) revert Errors.NullAmount();
         IERC20(token).safeTransfer(owner(), amount);

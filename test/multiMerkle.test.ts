@@ -94,6 +94,8 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         it(' should add a new Quest with correct parameters (& emit correct event)', async () => {
 
+            expect(await distributor.rewardTokens(CRV.address)).to.be.false
+
             await expect(
                 distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
             ).to.emit(distributor, "NewQuest")
@@ -101,16 +103,24 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             expect(await distributor.questRewardToken(quest_id1)).to.be.eq(CRV.address)
 
+            expect(await distributor.rewardTokens(CRV.address)).to.be.true
+
         });
 
         it(' should allow to add other Quests', async () => {
 
             await distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
 
+            expect(await distributor.rewardTokens(CRV.address)).to.be.true
+            expect(await distributor.rewardTokens(DAI.address)).to.be.false
+
             await distributor.connect(mockQuestBoard).addQuest(quest_id2, DAI.address)
 
             expect(await distributor.questRewardToken(quest_id1)).to.be.eq(CRV.address)
             expect(await distributor.questRewardToken(quest_id2)).to.be.eq(DAI.address)
+
+            expect(await distributor.rewardTokens(CRV.address)).to.be.true
+            expect(await distributor.rewardTokens(DAI.address)).to.be.true
 
         });
 
@@ -1306,6 +1316,16 @@ describe('MultiMerkleDistributor contract tests', () => {
             const newBalance = await DAI.balanceOf(admin.address);
 
             expect(newBalance.sub(oldBalance)).to.be.eq(lost_amount)
+
+        });
+
+        it(' should fail if trying to recover a reward token', async () => {
+
+            await distributor.connect(mockQuestBoard).addQuest(12, DAI.address)
+
+            await expect(
+                distributor.connect(admin).recoverERC20(DAI.address)
+            ).to.be.revertedWith('CannotRecoverToken')
 
         });
 
