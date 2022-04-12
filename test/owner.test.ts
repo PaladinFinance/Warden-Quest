@@ -90,15 +90,15 @@ describe('Owner contract tests', () => {
 
             await expect(
                 chest.connect(admin).transferOwnership(ethers.constants.AddressZero)
-            ).to.be.revertedWith('Owner: new owner is the zero address')
+            ).to.be.revertedWith('ZeroAddress')
 
             await expect(
                 board.connect(admin).transferOwnership(ethers.constants.AddressZero)
-            ).to.be.revertedWith('Owner: new owner is the zero address')
+            ).to.be.revertedWith('ZeroAddress')
 
             await expect(
                 distributor.connect(admin).transferOwnership(ethers.constants.AddressZero)
-            ).to.be.revertedWith('Owner: new owner is the zero address')
+            ).to.be.revertedWith('ZeroAddress')
 
         });
 
@@ -122,15 +122,15 @@ describe('Owner contract tests', () => {
 
             await expect(
                 chest.connect(admin).transferOwnership(admin.address)
-            ).to.be.revertedWith('Owner: new owner cannot be current owner')
+            ).to.be.revertedWith('CannotBeOwner')
 
             await expect(
                 board.connect(admin).transferOwnership(admin.address)
-            ).to.be.revertedWith('Owner: new owner cannot be current owner')
+            ).to.be.revertedWith('CannotBeOwner')
 
             await expect(
                 distributor.connect(admin).transferOwnership(admin.address)
-            ).to.be.revertedWith('Owner: new owner cannot be current owner')
+            ).to.be.revertedWith('CannotBeOwner')
 
         });
 
@@ -177,15 +177,15 @@ describe('Owner contract tests', () => {
 
             await expect(
                 chest.connect(admin).acceptOwnership()
-            ).to.be.revertedWith('Owner: caller is not pending owner')
+            ).to.be.revertedWith('CallerNotPendingOwner')
 
             await expect(
                 board.connect(otherOwner).acceptOwnership()
-            ).to.be.revertedWith('Owner: caller is not pending owner')
+            ).to.be.revertedWith('CallerNotPendingOwner')
 
             await expect(
                 distributor.connect(otherOwner).acceptOwnership()
-            ).to.be.revertedWith('Owner: caller is not pending owner')
+            ).to.be.revertedWith('CallerNotPendingOwner')
 
         });
 

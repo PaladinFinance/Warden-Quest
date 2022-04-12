@@ -15,6 +15,7 @@ import "./utils/Owner.sol";
 import "./oz/utils/ReentrancyGuard.sol";
 import "./MultiMerkleDistributor.sol";
 import "./interfaces/IGaugeController.sol";
+import "./utils/Errors.sol";
 
 /** @title Warden Quest Board  */
 /// @author Paladin
@@ -173,22 +174,22 @@ contract QuestBoard is Owner, ReentrancyGuard {
 
     /** @notice Check the caller is either the admin or an approved manager */
     modifier onlyAllowed(){
-        require(approvedManagers[msg.sender] || msg.sender == owner(), "QuestBoard: Not allowed");
+        if(!approvedManagers[msg.sender] && msg.sender != owner()) revert Errors.CallerNotAllowed();
         _;
     }
 
     /** @notice Check that contract was not killed */
     modifier isAlive(){
-        require(!isKilled, "QuestBoard: Killed");
+        if(isKilled) revert Errors.Killed();
         _;
     }
 
 
     // Constructor
     constructor(address _gaugeController, address _chest){
-        require(_gaugeController != address(0), "QuestBoard: Zero Address");
-        require(_chest != address(0), "QuestBoard: Zero Address");
-        require(_gaugeController != _chest, "QuestBoard: Duplicate address");
+        if(_gaugeController == address(0)) revert Errors.ZeroAddress();
+        if(_chest == address(0)) revert Errors.ZeroAddress();
+        if(_gaugeController == _chest) revert Errors.SameAddress();
 
 
         GAUGE_CONTROLLER = _gaugeController;
@@ -250,7 +251,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         // We can find the number of remaining periods in the Quest simply by dividing the remaining time between
         // currentPeriod and the last QuestPeriod start by a WEEK.
         // If the current period is the last period of the Quest, we want to return 0
-        require(questPeriods[questID].length != 0, "QuestBoard: Empty Quest");
+        if(questPeriods[questID].length == 0) revert Errors.EmptyQuest();
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
         return lastPeriod < currentPeriod ? 0: (lastPeriod - currentPeriod) / WEEK;
     }
@@ -297,25 +298,25 @@ contract QuestBoard is Owner, ReentrancyGuard {
         uint256 feeAmount
     ) external isAlive nonReentrant returns(uint256) {
         updatePeriod();
-        require(distributor != address(0), "QuestBoard: no Distributor set");
+        if(distributor == address(0)) revert Errors.NoDistributorSet();
         // Local memory variables
         CreateVars memory vars;
         vars.creator = msg.sender;
 
         // Check all parameters
-        require(gauge != address(0) && rewardToken != address(0), "QuestBoard: Zero Address");
-        require(IGaugeController(GAUGE_CONTROLLER).gauge_types(gauge) >= 0, "QuestBoard: Invalid Gauge");
-        require(whitelistedTokens[rewardToken], "QuestBoard: Token not allowed");
-        require(duration != 0, "QuestBoard: Incorrect duration");
-        require(objective >= minObjective, "QuestBoard: Objective too low");
-        require(rewardPerVote != 0 && totalRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
-        require(rewardPerVote >= minRewardPerVotePerToken[rewardToken], "QuestBoard: RewardPerVote too low");
+        if(gauge == address(0) || rewardToken == address(0)) revert Errors.ZeroAddress();
+        if(IGaugeController(GAUGE_CONTROLLER).gauge_types(gauge) < 0) revert Errors.InvalidGauge();
+        if(!whitelistedTokens[rewardToken]) revert Errors.TokenNotWhitelisted();
+        if(duration == 0) revert Errors.IncorrectDuration();
+        if(objective < minObjective) revert Errors.ObjectiveTooLow();
+        if(rewardPerVote == 0 || totalRewardAmount == 0 || feeAmount == 0) revert Errors.NullAmount();
+        if(rewardPerVote < minRewardPerVotePerToken[rewardToken]) revert Errors.RewardPerVoteTooLow();
 
         // Verifiy the given amounts of reward token are correct
         vars.rewardPerPeriod = (objective * rewardPerVote) / UNIT;
 
-        require((vars.rewardPerPeriod * duration) == totalRewardAmount, "QuestBoard: totalRewardAmount incorrect");
-        require((totalRewardAmount * platformFee)/MAX_BPS == feeAmount, "QuestBoard: feeAmount incorrect");
+        if((vars.rewardPerPeriod * duration) != totalRewardAmount) revert Errors.IncorrectTotalRewardAmount();
+        if((totalRewardAmount * platformFee)/MAX_BPS != feeAmount) revert Errors.IncorrectFeeAmount();
 
         // Pull all the rewards in this contract
         IERC20(rewardToken).safeTransferFrom(vars.creator, address(this), totalRewardAmount);
@@ -366,7 +367,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         questPeriods[newQuestID] = _periods;
 
         // Add that Quest & the reward token in the Distributor
-        require(MultiMerkleDistributor(distributor).addQuest(newQuestID, rewardToken), "QuestBoard: Fail add to Distributor");
+        if(!MultiMerkleDistributor(distributor).addQuest(newQuestID, rewardToken)) revert Errors.DisitributorFail();
 
         emit NewQuest(
             newQuestID,
@@ -398,22 +399,22 @@ contract QuestBoard is Owner, ReentrancyGuard {
         uint256 feeAmount
     ) external isAlive nonReentrant {
         updatePeriod();
-        require(questID < nextID, "QuestBoard: Non valid ID");
-        require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
-        require(addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
-        require(addedDuration != 0, "QuestBoard: Incorrect addedDuration");
+        if(questID >= nextID) revert Errors.InvalidQuestID();
+        if(msg.sender != quests[questID].creator) revert Errors.CallerNotAllowed();
+        if(addedRewardAmount == 0 || feeAmount == 0) revert Errors.NullAmount();
+        if(addedDuration == 0) revert Errors.IncorrectAddDuration();
 
         //We take data from the last period of the Quest to account for any other changes in the Quest parameters
-        require(questPeriods[questID].length != 0, "QuestBoard: Empty Quest");
+        if(questPeriods[questID].length == 0) revert Errors.EmptyQuest();
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
 
-        require(lastPeriod >= currentPeriod, "QuestBoard: Quest is over");
+        if(lastPeriod < currentPeriod) revert Errors.ExpiredQuest();
 
         // Check that the given amounts are correct
         uint rewardPerPeriod = periodsByQuest[questID][lastPeriod].rewardAmountPerPeriod;
 
-        require((rewardPerPeriod * addedDuration) == addedRewardAmount, "QuestBoard: addedRewardAmount incorrect");
-        require((addedRewardAmount * platformFee)/MAX_BPS == feeAmount, "QuestBoard: feeAmount incorrect");
+        if((rewardPerPeriod * addedDuration) != addedRewardAmount) revert Errors.IncorrectAddedRewardAmount();
+        if((addedRewardAmount * platformFee)/MAX_BPS != feeAmount) revert Errors.IncorrectFeeAmount();
 
         address rewardToken = quests[questID].rewardToken;
         // Pull all the rewards in this contract
@@ -469,15 +470,15 @@ contract QuestBoard is Owner, ReentrancyGuard {
         uint256 feeAmount
     ) external isAlive nonReentrant {
         updatePeriod();
-        require(questID < nextID, "QuestBoard: Non valid ID");
-        require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
-        require(newRewardPerVote != 0 && addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
+        if(questID >= nextID) revert Errors.InvalidQuestID();
+        if(msg.sender != quests[questID].creator) revert Errors.CallerNotAllowed();
+        if(newRewardPerVote == 0 || addedRewardAmount == 0 || feeAmount == 0) revert Errors.NullAmount();
     
         uint256 remainingDuration = _getRemainingDuration(questID); //Also handles the Empty Quest check
-        require(remainingDuration != 0, "QuestBoard: no more incoming QuestPeriods");
+        if(remainingDuration == 0) revert Errors.ExpiredQuest();
 
         // The new reward amount must be higher 
-        require(newRewardPerVote > periodsByQuest[questID][currentPeriod].rewardPerVote, "QuestBoard: New reward must be higher");
+        if(newRewardPerVote <= periodsByQuest[questID][currentPeriod].rewardPerVote) revert Errors.LowerRewardPerVote();
 
         // For all non active QuestPeriods (non Closed, nor the current Active one)
         // Calculates the amount of reward token needed with the new rewardPerVote value
@@ -487,8 +488,8 @@ contract QuestBoard is Owner, ReentrancyGuard {
         uint256 newRewardPerPeriod = (periodsByQuest[questID][currentPeriod].objectiveVotes * newRewardPerVote) / UNIT;
         uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
 
-        require((diffRewardPerPeriod * remainingDuration) == addedRewardAmount, "QuestBoard: addedRewardAmount incorrect");
-        require((addedRewardAmount * platformFee)/MAX_BPS == feeAmount, "QuestBoard: feeAmount incorrect");
+        if((diffRewardPerPeriod * remainingDuration) != addedRewardAmount) revert Errors.IncorrectAddedRewardAmount();
+        if((addedRewardAmount * platformFee)/MAX_BPS != feeAmount) revert Errors.IncorrectFeeAmount();
 
         address rewardToken = quests[questID].rewardToken;
         // Pull all the rewards in this contract
@@ -536,16 +537,16 @@ contract QuestBoard is Owner, ReentrancyGuard {
         uint256 feeAmount
     ) external isAlive nonReentrant {
         updatePeriod();
-        require(questID < nextID, "QuestBoard: Non valid ID");
-        require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
-        require(addedRewardAmount != 0 && feeAmount != 0, "QuestBoard: Null amount");
+        if(questID >= nextID) revert Errors.InvalidQuestID();
+        if(msg.sender != quests[questID].creator) revert Errors.CallerNotAllowed();
+        if(addedRewardAmount == 0 || feeAmount == 0) revert Errors.NullAmount();
     
         uint256 remainingDuration = _getRemainingDuration(questID); //Also handles the Empty Quest check
-        require(remainingDuration != 0, "QuestBoard: no more incoming QuestPeriods");
+        if(remainingDuration == 0) revert Errors.ExpiredQuest();
 
         // No need to compare to minObjective : the new value must be higher than current Objective
         // and current objective needs to be >= minObjective
-        require(newObjective > periodsByQuest[questID][currentPeriod].objectiveVotes, "QuestBoard: New objective must be higher");
+        if(newObjective <= periodsByQuest[questID][currentPeriod].objectiveVotes) revert Errors.LowerObjective();
 
         // For all non active QuestPeriods (non Closed, nor the current Active one)
         // Calculates the amount of reward token needed with the new objective bias
@@ -555,8 +556,8 @@ contract QuestBoard is Owner, ReentrancyGuard {
         uint256 newRewardPerPeriod = (newObjective * periodsByQuest[questID][currentPeriod].rewardPerVote) / UNIT;
         uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
 
-        require((diffRewardPerPeriod * remainingDuration) == addedRewardAmount, "QuestBoard: addedRewardAmount incorrect");
-        require((addedRewardAmount * platformFee)/MAX_BPS == feeAmount, "QuestBoard: feeAmount incorrect");
+        if((diffRewardPerPeriod * remainingDuration) != addedRewardAmount) revert Errors.IncorrectAddedRewardAmount();
+        if((addedRewardAmount * platformFee)/MAX_BPS != feeAmount) revert Errors.IncorrectFeeAmount();
 
         address rewardToken = quests[questID].rewardToken;
         // Pull all the rewards in this contract
@@ -597,9 +598,9 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @param recipient Address to send the reward tokens to
     */
     function withdrawUnusedRewards(uint256 questID, address recipient) external isAlive nonReentrant {
-        require(questID < nextID, "QuestBoard: Non valid ID");
-        require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
-        require(recipient != address(0), "QuestBoard: Zero Address");
+        if(questID >= nextID) revert Errors.InvalidQuestID();
+        if(msg.sender != quests[questID].creator) revert Errors.CallerNotAllowed();
+        if(recipient == address(0)) revert Errors.ZeroAddress();
 
         // Total amount available to withdraw
         uint256 totalWithdraw;
@@ -644,12 +645,12 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @param recipient Address to send the reward tokens to
     */
     function emergencyWithdraw(uint256 questID, address recipient) external nonReentrant {
-        require(isKilled, "QuestBoard: Not killed");
-        require(block.timestamp >= kill_ts + KILL_DELAY, "QuestBoard: Wait kill delay");
+        if(!isKilled) revert Errors.NotKilled();
+        if(block.timestamp < kill_ts + KILL_DELAY) revert Errors.KillDelayNotExpired();
 
-        require(questID < nextID, "QuestBoard: Non valid ID");
-        require(msg.sender == quests[questID].creator, "QuestBoard: Not allowed");
-        require(recipient != address(0), "QuestBoard: Zero Address");
+        if(questID >= nextID) revert Errors.InvalidQuestID();
+        if(msg.sender != quests[questID].creator) revert Errors.CallerNotAllowed();
+        if(recipient == address(0)) revert Errors.ZeroAddress();
 
         // Total amount to emergency withdraw
         uint256 totalWithdraw;
@@ -753,10 +754,10 @@ contract QuestBoard is Owner, ReentrancyGuard {
     function closeQuestPeriod(uint256 period) external isAlive onlyAllowed nonReentrant returns(uint256 closed, uint256 skipped) {
         updatePeriod();
         period = (period / WEEK) * WEEK;
-        require(distributor != address(0), "QuestBoard: no Distributor set");
-        require(period != 0, "QuestBoard: invalid Period");
-        require(period < currentPeriod, "QuestBoard: Period still active");
-        require(questsByPeriod[period].length != 0, "QuestBoard: empty Period");
+        if(distributor == address(0)) revert Errors.NoDistributorSet();
+        if(period == 0) revert Errors.InvalidPeriod();
+        if(period >= currentPeriod) revert Errors.PeriodStillActive();
+        if(questsByPeriod[period].length == 0) revert Errors.EmptyPeriod();
         // We use the 1st QuestPeriod of this period to check it was not Closed
         uint256[] memory questsForPeriod = questsByPeriod[period];
 
@@ -786,11 +787,11 @@ contract QuestBoard is Owner, ReentrancyGuard {
         updatePeriod();
         period = (period / WEEK) * WEEK;
         uint256 questIDLength = questIDs.length;
-        require(questIDLength != 0, "QuestBoard: empty array");
-        require(distributor != address(0), "QuestBoard: no Distributor set");
-        require(period != 0, "QuestBoard: invalid Period");
-        require(period < currentPeriod, "QuestBoard: Period still active");
-        require(questsByPeriod[period].length != 0, "QuestBoard: empty Period");
+        if(questIDLength == 0) revert Errors.EmptyArray();
+        if(distributor == address(0)) revert Errors.NoDistributorSet();
+        if(period == 0) revert Errors.InvalidPeriod();
+        if(period >= currentPeriod) revert Errors.PeriodStillActive();
+        if(questsByPeriod[period].length == 0) revert Errors.EmptyPeriod();
 
         // For each QuestPeriod
         for(uint256 i = 0; i < questIDLength;){
@@ -814,14 +815,14 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @param merkleRoot MerkleRoot to add
     */
     function _addMerkleRoot(uint256 questID, uint256 period, bytes32 merkleRoot) internal {
-        require(questID < nextID, "QuestBoard: Non valid ID");
-        require(merkleRoot != 0, "QuestBoard: Empty MerkleRoot");
+        if(questID >= nextID) revert Errors.InvalidQuestID();
+        if(merkleRoot == 0) revert Errors.EmptyMerkleRoot();
 
         // This also allows to check if the given period is correct => If not, the currentState is never set to CLOSED for the QuestPeriod
-        require(periodsByQuest[questID][period].currentState == PeriodState.CLOSED, "QuestBoard: Quest Period not closed");
+        if(periodsByQuest[questID][period].currentState != PeriodState.CLOSED) revert Errors.PeriodNotClosed();
 
         // Add the MerkleRoot to the Distributor & set the QuestPeriod as DISTRIBUTED
-        require(MultiMerkleDistributor(distributor).updateQuestPeriod(questID, period, merkleRoot), "QuestBoard: Failed to add MerkleRoot");
+        if(!MultiMerkleDistributor(distributor).updateQuestPeriod(questID, period, merkleRoot)) revert Errors.DisitributorFail();
 
         periodsByQuest[questID][period].currentState = PeriodState.DISTRIBUTED;
     }
@@ -849,7 +850,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
         period = (period / WEEK) * WEEK;
         uint256 length = questIDs.length;
 
-        require(length == merkleRoots.length, "QuestBoard: Diff list size");
+        if(length != merkleRoots.length) revert Errors.InequalArraySizes();
 
         for(uint256 i = 0; i < length;){
             _addMerkleRoot(questIDs[i], period, merkleRoots[i]);
@@ -864,8 +865,8 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @param newToken Address of the reward token
     */
     function whitelistToken(address newToken, uint256 minRewardPerVote) public onlyAllowed {
-        require(newToken != address(0), "QuestBoard: Zero Address");
-        require(minRewardPerVote != 0, "QuestBoard: Null value");
+        if(newToken == address(0)) revert Errors.ZeroAddress();
+        if(minRewardPerVote == 0) revert Errors.InvalidParameter();
 
         whitelistedTokens[newToken] = true;
 
@@ -882,8 +883,8 @@ contract QuestBoard is Owner, ReentrancyGuard {
     function whitelistMultipleTokens(address[] calldata newTokens, uint256[] calldata minRewardPerVotes) external onlyAllowed {
         uint256 length = newTokens.length;
 
-        require(length != 0, "QuestBoard: empty list");
-        require(length == minRewardPerVotes.length, "QuestBoard: list sizes inequal");
+        if(length == 0) revert Errors.EmptyArray();
+        if(length != minRewardPerVotes.length) revert Errors.InequalArraySizes();
 
         for(uint256 i = 0; i < length;){
             whitelistToken(newTokens[i], minRewardPerVotes[i]);
@@ -893,8 +894,8 @@ contract QuestBoard is Owner, ReentrancyGuard {
     }
 
     function updateRewardToken(address newToken, uint256 newMinRewardPerVote) external onlyAllowed {
-        require(whitelistedTokens[newToken], "QuestBoard: Token not whitelisted");
-        require(newMinRewardPerVote != 0, "QuestBoard: Null value");
+        if(!whitelistedTokens[newToken]) revert Errors.TokenNotWhitelisted();
+        if(newMinRewardPerVote == 0) revert Errors.InvalidParameter();
 
         minRewardPerVotePerToken[newToken] = newMinRewardPerVote;
 
@@ -909,7 +910,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @param newDistributor Address of the Distributor
     */
     function initiateDistributor(address newDistributor) external onlyOwner {
-        require(distributor == address(0), "QuestBoard: Already initialized");
+        if(distributor != address(0)) revert Errors.AlreadyInitialized();
         distributor = newDistributor;
 
         emit InitDistributor(newDistributor);
@@ -921,7 +922,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @param newManager Address to add
     */
     function approveManager(address newManager) external onlyOwner {
-        require(newManager != address(0), "QuestBoard: Zero Address");
+        if(newManager == address(0)) revert Errors.ZeroAddress();
         approvedManagers[newManager] = true;
 
         emit ApprovedManager(newManager);
@@ -933,7 +934,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @param manager Address to remove
     */
     function removeManager(address manager) external onlyOwner {
-        require(manager != address(0), "QuestBoard: Zero Address");
+        if(manager == address(0)) revert Errors.ZeroAddress();
         approvedManagers[manager] = false;
 
         emit RemovedManager(manager);
@@ -945,7 +946,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @param chest Address of the new Chest
     */
     function updateChest(address chest) external onlyOwner {
-        require(chest != address(0), "QuestBoard: Zero Address");
+        if(chest == address(0)) revert Errors.ZeroAddress();
         address oldChest = questChest;
         questChest = chest;
 
@@ -958,7 +959,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @param newDistributor Address of the new Distributor
     */
     function updateDistributor(address newDistributor) external onlyOwner {
-        require(newDistributor != address(0), "QuestBoard: Zero Address");
+        if(newDistributor == address(0)) revert Errors.ZeroAddress();
         address oldDistributor = distributor;
         distributor = newDistributor;
 
@@ -971,7 +972,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @param newFee New fee ratio
     */
     function updatePlatformFee(uint256 newFee) external onlyOwner {
-        require(newFee <= 500, "QuestBoard: Fee too high");
+        if(newFee > 500) revert Errors.InvalidParameter();
         uint256 oldfee = platformFee;
         platformFee = newFee;
 
@@ -984,7 +985,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @param newMinObjective New min objective
     */
     function updateMinObjective(uint256 newMinObjective) external onlyOwner {
-        require(newMinObjective != 0, "QuestBoard: Null value");
+        if(newMinObjective == 0) revert Errors.InvalidParameter();
         uint256 oldMinObjective = minObjective;
         minObjective = newMinObjective;
 
@@ -998,10 +999,10 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @return bool: success
     */
     function recoverERC20(address token) external onlyOwner returns(bool) {
-        require(!whitelistedTokens[token], "QuestBoard: Cannot recover whitelisted token");
+        if(whitelistedTokens[token]) revert Errors.CannotRecoverToken();
 
         uint256 amount = IERC20(token).balanceOf(address(this));
-        require(amount > 0, "QuestBoard: Null amount");
+        if(amount == 0) revert Errors.NullAmount();
         IERC20(token).safeTransfer(owner(), amount);
 
         return true;
@@ -1012,7 +1013,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @dev Kills the contract
     */
     function killBoard() external onlyOwner {
-        require(!isKilled, "QuestBoard: Already killed");
+        if(isKilled) revert Errors.AlreadyKilled();
         isKilled = true;
         kill_ts = block.timestamp;
 
@@ -1024,8 +1025,8 @@ contract QuestBoard is Owner, ReentrancyGuard {
     * @dev Unkills the contract
     */
     function unkillBoard() external onlyOwner {
-        require(isKilled, "QuestBoard: Not killed");
-        require(block.timestamp < kill_ts + KILL_DELAY, "QuestBoard: Too late");
+        if(!isKilled) revert Errors.NotKilled();
+        if(block.timestamp >= kill_ts + KILL_DELAY) revert Errors.KillDelayExpired();
         isKilled = false;
 
         emit Unkilled(block.timestamp);
@@ -1036,7 +1037,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
     // Utils 
 
     function safe48(uint n) internal pure returns (uint48) {
-        require(n <= type(uint48).max, "QuestBoard : Number exceed 48 bits");
+        if(n > type(uint48).max) revert Errors.NumberExceed48Bits();
         return uint48(n);
     }
 

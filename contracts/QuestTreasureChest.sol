@@ -13,6 +13,7 @@ import "./oz/interfaces/IERC20.sol";
 import "./oz/libraries/SafeERC20.sol";
 import "./utils/Owner.sol";
 import "./oz/utils/ReentrancyGuard.sol";
+import "./utils/Errors.sol";
 
 /** @title Warden Quest Treasure Chest  */
 /// @author Paladin
@@ -28,7 +29,7 @@ contract QuestTreasureChest is Owner, ReentrancyGuard {
 
     /** @notice Check the caller is either the admin or an approved manager */
     modifier onlyAllowed(){
-        require(approvedManagers[msg.sender] || msg.sender == owner(), "TreasureChest: Not allowed");
+        if(!approvedManagers[msg.sender] && msg.sender != owner()) revert Errors.CallerNotAllowed();
         _;
     }
 
@@ -69,7 +70,7 @@ contract QuestTreasureChest is Owner, ReentrancyGuard {
     * @param amount Amount to transfer
     */
     function transferERC20(address token, address recipient, uint256 amount) external onlyAllowed nonReentrant {
-        require(amount != 0, "TreasureChest: Null amount");
+        if(amount == 0) revert Errors.NullAmount();
         IERC20(token).safeTransfer(recipient, amount);
     }
 
