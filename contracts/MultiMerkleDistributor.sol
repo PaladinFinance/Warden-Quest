@@ -131,6 +131,7 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     * @param merkleProof Proof to claim the rewards
     */
     function claim(uint256 questID, uint256 period, uint256 index, address account, uint256 amount, bytes32[] calldata merkleProof) public nonReentrant {
+        if(account == address(0)) revert Errors.ZeroAddress();
         if(questMerkleRootPerPeriod[questID][period] == 0) revert Errors.MerkleRootNotUpdated();
         if(isClaimed(questID, period, index)) revert Errors.AlreadyClaimed();
 
@@ -188,6 +189,7 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     * @param claims List of ClaimParams struct data to claim
     */
     function claimQuest(address account, uint256 questID, ClaimParams[] calldata claims) external nonReentrant {
+        if(account == address(0)) revert Errors.ZeroAddress();
         uint256 length = claims.length;
 
         if(length == 0) revert Errors.EmptyParameters();

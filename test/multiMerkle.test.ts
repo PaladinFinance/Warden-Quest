@@ -403,6 +403,16 @@ describe('MultiMerkleDistributor contract tests', () => {
     
             });
     
+            it(' should fail if giving address 0', async () => {
+    
+                let proof = tree.getProof(quest_id, period, 0, user1.address, user1_claim_amount);
+    
+                await expect(
+                    distributor.connect(user2).claim(quest_id, period, 0, ethers.constants.AddressZero, user1_claim_amount, proof)
+                ).to.be.revertedWith('ZeroAddress')
+    
+            });
+    
             it(' should fail if questID is incorrect', async () => {
     
                 let proof = tree.getProof(quest_id, period, 0, user1.address, user1_claim_amount);
@@ -843,6 +853,31 @@ describe('MultiMerkleDistributor contract tests', () => {
             ).to.be.revertedWith("EmptyParameters")
 
         });
+    
+        it(' should fail if giving address 0', async () => {
+
+            let claim_params = [
+                { 
+                    questID: quest_id1,
+                    period: period,
+                    index: 0,
+                    amount: user_claims[0][0],
+                    merkleProof: tree.getProof(quest_id1, period, 0, user1.address, user_claims[0][0])
+                },
+                { 
+                    questID: quest_id2,
+                    period: period,
+                    index: 0,
+                    amount: user_claims[0][1],
+                    merkleProof: tree2.getProof(quest_id2, period, 0, user1.address, user_claims[0][1])
+                }
+            ]
+
+            await expect(
+                distributor.connect(user1).multiClaim(ethers.constants.AddressZero, claim_params)
+            ).to.be.revertedWith('ZeroAddress')
+
+        });
 
     });
 
@@ -1091,6 +1126,31 @@ describe('MultiMerkleDistributor contract tests', () => {
             await expect(
                 distributor.connect(user1).claimQuest(user1.address, quest_id, [])
             ).to.be.revertedWith("EmptyParameters")
+
+        });
+    
+        it(' should fail if giving address 0', async () => {
+
+            let claim_params = [
+                { 
+                    questID: quest_id,
+                    period: period,
+                    index: 0,
+                    amount: user_claims[0][0],
+                    merkleProof: tree.getProof(quest_id, period, 0, user1.address, user_claims[0][0])
+                },
+                { 
+                    questID: quest_id,
+                    period: next_period2,
+                    index: 0,
+                    amount: user_claims[0][2],
+                    merkleProof: tree3.getProof(quest_id, next_period2, 0, user1.address, user_claims[0][2])
+                },
+            ]
+
+            await expect(
+                distributor.connect(user1).claimQuest(ethers.constants.AddressZero, quest_id, claim_params)
+            ).to.be.revertedWith('ZeroAddress')
 
         });
 
