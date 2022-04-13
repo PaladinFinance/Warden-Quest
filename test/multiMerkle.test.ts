@@ -58,7 +58,7 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         distributorFactory = await ethers.getContractFactory("MultiMerkleDistributor");
 
-        const crv_amount = ethers.utils.parseEther('5000');
+        const crv_amount = ethers.utils.parseEther('50000');
         const dai_amount = ethers.utils.parseEther('100000');
 
         CRV = IERC20__factory.connect(TOKEN1_ADDRESS, provider);
@@ -94,6 +94,8 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         it(' should add a new Quest with correct parameters (& emit correct event)', async () => {
 
+            expect(await distributor.rewardTokens(CRV.address)).to.be.false
+
             await expect(
                 distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
             ).to.emit(distributor, "NewQuest")
@@ -101,16 +103,24 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             expect(await distributor.questRewardToken(quest_id1)).to.be.eq(CRV.address)
 
+            expect(await distributor.rewardTokens(CRV.address)).to.be.true
+
         });
 
         it(' should allow to add other Quests', async () => {
 
             await distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
 
+            expect(await distributor.rewardTokens(CRV.address)).to.be.true
+            expect(await distributor.rewardTokens(DAI.address)).to.be.false
+
             await distributor.connect(mockQuestBoard).addQuest(quest_id2, DAI.address)
 
             expect(await distributor.questRewardToken(quest_id1)).to.be.eq(CRV.address)
             expect(await distributor.questRewardToken(quest_id2)).to.be.eq(DAI.address)
+
+            expect(await distributor.rewardTokens(CRV.address)).to.be.true
+            expect(await distributor.rewardTokens(DAI.address)).to.be.true
 
         });
 
@@ -150,6 +160,113 @@ describe('MultiMerkleDistributor contract tests', () => {
 
     });
 
+    describe('addQuestPeriod', async () => {
+
+        const quest_id1 = BigNumber.from(1011)
+        const quest_id2 = BigNumber.from(1012)
+
+        const period = BigNumber.from(1639612800)
+        const period2 = BigNumber.from(1640217600)
+
+        // totalRewards for quest 1 is distrib_amount
+        const totalRewards2 = ethers.utils.parseEther('350')
+
+        it(' should add a new period with correct parameters', async () => {
+
+            await distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
+
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id1, period, distrib_amount)
+
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period)).to.be.eq(distrib_amount)
+
+        });
+
+        it(' should allow to add other period for the same Quest', async () => {
+
+            await distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
+
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id1, period, distrib_amount)
+
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period)).to.be.eq(distrib_amount)
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period2)).to.be.eq(0)
+
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id1, period2, totalRewards2)
+
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period)).to.be.eq(distrib_amount)
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period2)).to.be.eq(totalRewards2)
+
+        });
+
+        it(' should allow to add period for other Quests', async () => {
+
+            await distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
+
+            await distributor.connect(mockQuestBoard).addQuest(quest_id2, DAI.address)
+
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id1, period, distrib_amount)
+
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period)).to.be.eq(distrib_amount)
+            expect(await distributor.questRewardsPerPeriod(quest_id2, period)).to.be.eq(0)
+
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id2, period, totalRewards2)
+
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period)).to.be.eq(distrib_amount)
+            expect(await distributor.questRewardsPerPeriod(quest_id2, period)).to.be.eq(totalRewards2)
+
+        });
+
+        it(' should not allow to add the same period twice', async () => {
+
+            await distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
+
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id1, period, distrib_amount)
+
+            await expect(
+                distributor.connect(mockQuestBoard).addQuestPeriod(quest_id1, period, distrib_amount)
+            ).to.be.revertedWith('PeriodAlreadyUpdated')
+
+        });
+
+        it(' should fail if Quest not listed', async () => {
+
+            await distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
+
+            await expect(
+                distributor.connect(mockQuestBoard).addQuestPeriod(quest_id2, period, totalRewards2)
+            ).to.be.revertedWith('QuestNotListed')
+
+        });
+
+        it(' should fail if reward amount is 0', async () => {
+
+            await distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
+
+            await expect(
+                distributor.connect(mockQuestBoard).addQuestPeriod(quest_id1, period, 0)
+            ).to.be.revertedWith('NullAmount')
+
+        });
+
+        it(' should only be callable by the QuestBoard', async () => {
+
+            await distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
+
+            await expect(
+                distributor.connect(admin).addQuestPeriod(quest_id1, period, distrib_amount)
+            ).to.be.revertedWith('CallerNotAllowed')
+
+            await expect(
+                distributor.connect(user1).addQuestPeriod(quest_id1, period, distrib_amount)
+            ).to.be.revertedWith('CallerNotAllowed')
+
+            await expect(
+                distributor.connect(user2).addQuestPeriod(quest_id1, period, distrib_amount)
+            ).to.be.revertedWith('CallerNotAllowed')
+
+        });
+
+    });
+
 
     describe('updateQuestPeriod', async () => {
 
@@ -157,8 +274,11 @@ describe('MultiMerkleDistributor contract tests', () => {
         const quest_id2 = BigNumber.from(1012)
 
         const period = BigNumber.from(1639612800)
+        const period2 = BigNumber.from(1640217600)
 
         let tree_root: string
+
+        const totalRewards2 = ethers.utils.parseEther('350')
 
         beforeEach(async () => {
             
@@ -171,14 +291,16 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             await distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
 
-            tree_root = tree.getHexRoot()   
+            tree_root = tree.getHexRoot()
+
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id1, period, distrib_amount)
 
         });
 
         it(' should update the given period and set the Merkle Root (& emit the correct Event)', async () => {
 
             await expect(
-                distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree_root)
+                distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, distrib_amount, tree_root)
             ).to.emit(distributor, "QuestPeriodUpdated")
             .withArgs(quest_id1, period, tree_root);
 
@@ -190,10 +312,10 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         it(' should not allow to update the same period twice', async () => {
 
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree_root)
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, distrib_amount, tree_root)
 
             await expect(
-                distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree_root)
+                distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, distrib_amount, tree_root)
             ).to.be.revertedWith('PeriodAlreadyUpdated')
 
         });
@@ -201,15 +323,31 @@ describe('MultiMerkleDistributor contract tests', () => {
         it(' should fail if Quest is not listed', async () => {
 
             await expect(
-                distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id2, period, tree_root)
+                distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id2, period, distrib_amount, tree_root)
             ).to.be.revertedWith('QuestNotListed')
+
+        });
+
+        it(' should fail if period is not added', async () => {
+
+            await expect(
+                distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period2, distrib_amount, tree_root)
+            ).to.be.revertedWith('PeriodNotListed')
+
+        });
+
+        it(' should fail if incorrect totalRewardAmount', async () => {
+
+            await expect(
+                distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, totalRewards2, tree_root)
+            ).to.be.revertedWith('IncorrectRewardAmount')
 
         });
 
         it(' should fail if empty MerkleRoot', async () => {
 
             await expect(
-                distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, "0x0000000000000000000000000000000000000000000000000000000000000000")
+                distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, distrib_amount, "0x0000000000000000000000000000000000000000000000000000000000000000")
             ).to.be.revertedWith('EmptyMerkleRoot')
 
         });
@@ -217,7 +355,7 @@ describe('MultiMerkleDistributor contract tests', () => {
         it(' should fail if an incorrect period is given', async () => {
 
             await expect(
-                distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, 0, tree_root)
+                distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, 0, distrib_amount, tree_root)
             ).to.be.revertedWith('IncorrectPeriod')
 
         });
@@ -238,17 +376,21 @@ describe('MultiMerkleDistributor contract tests', () => {
                 { account: user4.address, amount: user4_claim_amount, questID: quest_id1, period: next_period },
             ]);
 
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree_root)
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id1, next_period, distrib_amount)
+
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, distrib_amount, tree_root)
 
             expect(await distributor.questMerkleRootPerPeriod(quest_id1, period)).to.be.eq(tree_root)
 
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, next_period, tree2.getHexRoot())
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, next_period, distrib_amount, tree2.getHexRoot())
 
             expect(await distributor.questMerkleRootPerPeriod(quest_id1, next_period)).to.be.eq(tree2.getHexRoot())
 
             next_period = next_period.add(WEEK).div(WEEK).mul(WEEK)
 
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, next_period, tree3.getHexRoot())
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id1, next_period, distrib_amount)
+
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, next_period, distrib_amount, tree3.getHexRoot())
 
             expect(await distributor.questMerkleRootPerPeriod(quest_id1, next_period)).to.be.eq(tree3.getHexRoot())
 
@@ -262,16 +404,17 @@ describe('MultiMerkleDistributor contract tests', () => {
         it(' should only be callable by allowed managers', async () => {
 
             await expect(
-                distributor.connect(user1).updateQuestPeriod(quest_id1, period, tree_root)
+                distributor.connect(user1).updateQuestPeriod(quest_id1, period, distrib_amount, tree_root)
             ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
-                distributor.connect(user2).updateQuestPeriod(quest_id1, period, tree_root)
+                distributor.connect(user2).updateQuestPeriod(quest_id1, period, distrib_amount, tree_root)
             ).to.be.revertedWith('CallerNotAllowed')
 
         });
 
     });
+
 
     describe('claim', async () => {
 
@@ -304,9 +447,13 @@ describe('MultiMerkleDistributor contract tests', () => {
                 await distributor.connect(mockQuestBoard).addQuest(quest_id, CRV.address)
                 await distributor.connect(mockQuestBoard).addQuest(quest_id2, DAI.address)
 
-                await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id, period, tree.getHexRoot())
+                await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id, period, distrib_amount)
 
-                await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id2, period2, other_tree.getHexRoot())
+                await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id2, period2, distrib_amount)
+
+                await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id, period, distrib_amount, tree.getHexRoot())
+
+                await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id2, period2, distrib_amount, other_tree.getHexRoot())
 
                 await CRV.connect(admin).transfer(distributor.address, distrib_amount)
     
@@ -328,6 +475,8 @@ describe('MultiMerkleDistributor contract tests', () => {
                 expect(new_balance.sub(old_balance)).to.be.eq(user1_claim_amount)
     
                 expect(await distributor.isClaimed(quest_id, period, 0)).to.be.true
+
+                expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(distrib_amount.sub(user1_claim_amount))
     
             });
     
@@ -441,6 +590,8 @@ describe('MultiMerkleDistributor contract tests', () => {
                 await distributor.connect(user1).claim(quest_id, period, 0, user1.address, user1_claim_amount, proof_1)
     
                 await distributor.connect(user2).claim(quest_id, period, 1, user2.address, user2_claim_amount, proof_2)
+
+                expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(distrib_amount.sub(user1_claim_amount.add(user2_claim_amount)))
     
                 await expect(
                     distributor.connect(user1).claim(quest_id, period, 0, user1.address, user1_claim_amount, proof_1)
@@ -456,6 +607,8 @@ describe('MultiMerkleDistributor contract tests', () => {
                 await distributor.connect(user2).claim(quest_id, period, 1, user2.address, user2_claim_amount, proof_2)
     
                 await distributor.connect(user1).claim(quest_id, period, 0, user1.address, user1_claim_amount, proof_1)
+
+                expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(distrib_amount.sub(user1_claim_amount.add(user2_claim_amount)))
     
                 await expect(
                     distributor.connect(user2).claim(quest_id, period, 1, user2.address, user2_claim_amount, proof_2)
@@ -518,7 +671,9 @@ describe('MultiMerkleDistributor contract tests', () => {
 
                 await distributor.connect(mockQuestBoard).addQuest(quest_id, CRV.address)
 
-                await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id, period, new_tree.getHexRoot())
+                await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id, period, total_claim)
+
+                await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id, period, total_claim, new_tree.getHexRoot())
 
                 await CRV.connect(admin).transfer(distributor.address, total_claim)
     
@@ -544,6 +699,8 @@ describe('MultiMerkleDistributor contract tests', () => {
                 expect(new_balance.sub(old_balance)).to.be.eq(claim_amount)
     
                 expect(await distributor.isClaimed(quest_id, period, index)).to.be.true
+
+                expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(total_claim - claim_amount.toNumber())
     
                 await expect(
                     distributor.connect(signers[index]).claim(quest_id, period, index, signers[index].address, claim_amount, proof)
@@ -571,6 +728,8 @@ describe('MultiMerkleDistributor contract tests', () => {
                 expect(new_balance.sub(old_balance)).to.be.eq(claim_amount)
     
                 expect(await distributor.isClaimed(quest_id, period, index)).to.be.true
+
+                expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(total_claim - claim_amount.toNumber())
     
                 await expect(
                     distributor.connect(signers[index]).claim(quest_id, period, index, signers[index].address, claim_amount, proof)
@@ -598,6 +757,8 @@ describe('MultiMerkleDistributor contract tests', () => {
                 expect(new_balance.sub(old_balance)).to.be.eq(claim_amount)
     
                 expect(await distributor.isClaimed(quest_id, period, index)).to.be.true
+
+                expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(total_claim - claim_amount.toNumber())
     
                 await expect(
                     distributor.connect(signers[index]).claim(quest_id, period, index, signers[index].address, claim_amount, proof)
@@ -636,7 +797,11 @@ describe('MultiMerkleDistributor contract tests', () => {
 
                 await distributor.connect(mockQuestBoard).addQuest(quest_id, CRV.address)
 
-                await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id, period, new_tree.getHexRoot())
+                let total_claim = claim_amount.mul(nb_leaves)
+
+                await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id, period, total_claim)
+
+                await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id, period, total_claim, new_tree.getHexRoot())
 
                 await CRV.connect(admin).transfer(distributor.address, claim_amount.mul(nb_leaves))
     
@@ -707,6 +872,9 @@ describe('MultiMerkleDistributor contract tests', () => {
         let tree2: BalanceTree;
         let tree3: BalanceTree;
 
+        let total2 = ethers.utils.parseEther('72')
+        let total3 = ethers.utils.parseEther('65')
+
         const user_claims = [
             [user1_claim_amount, ethers.utils.parseEther('15'), ethers.utils.parseEther('12')],
             [user2_claim_amount, ethers.utils.parseEther('20'), ethers.utils.parseEther('50')],
@@ -739,9 +907,13 @@ describe('MultiMerkleDistributor contract tests', () => {
                 { account: user3.address, amount: user_claims[2][2], questID: quest_id3, period: next_period },
             ]);
 
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree.getHexRoot())
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id2, period, tree2.getHexRoot())
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id3, next_period, tree3.getHexRoot())
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id1, period, distrib_amount)
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id2, period, total2)
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id3, next_period, total3)
+
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, distrib_amount, tree.getHexRoot())
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id2, period, total2, tree2.getHexRoot())
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id3, next_period, total3, tree3.getHexRoot())
 
             await CRV.connect(admin).transfer(distributor.address, distrib_amount.mul(2))
             await DAI.connect(admin).transfer(distributor.address, distrib_amount)
@@ -776,6 +948,9 @@ describe('MultiMerkleDistributor contract tests', () => {
             expect(await distributor.isClaimed(quest_id3, next_period, 0)).to.be.false
             expect(await distributor.isClaimed(quest_id1, period, 1)).to.be.false
 
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period)).to.be.eq(distrib_amount.sub(user_claims[0][0]))
+            expect(await distributor.questRewardsPerPeriod(quest_id2, period)).to.be.eq(total2.sub(user_claims[0][1]))
+
         });
 
         it(' should claim from different periods from same Quest', async () => {
@@ -786,7 +961,9 @@ describe('MultiMerkleDistributor contract tests', () => {
                 { account: user4.address, amount: ethers.utils.parseEther('15'), questID: quest_id2, period: next_period },
             ]);
 
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id2, next_period, tree4.getHexRoot())
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id2, next_period, ethers.utils.parseEther('39'))
+
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id2, next_period, ethers.utils.parseEther('39'), tree4.getHexRoot())
 
             let claim_params = [
                 { 
@@ -813,6 +990,9 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             expect(await distributor.isClaimed(quest_id1, period, 1)).to.be.false
             expect(await distributor.isClaimed(quest_id1, period, 0)).to.be.false
+
+            expect(await distributor.questRewardsPerPeriod(quest_id2, period)).to.be.eq(total2.sub(user_claims[3][1]))
+            expect(await distributor.questRewardsPerPeriod(quest_id2, next_period)).to.be.eq(ethers.utils.parseEther('24'))
 
         });
 
@@ -843,6 +1023,9 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             expect(await distributor.isClaimed(quest_id1, period, 1)).to.be.false
             expect(await distributor.isClaimed(quest_id1, period, 0)).to.be.false
+
+            expect(await distributor.questRewardsPerPeriod(quest_id2, period)).to.be.eq(total2.sub(user_claims[1][1]))
+            expect(await distributor.questRewardsPerPeriod(quest_id3, next_period)).to.be.eq(total3.sub(user_claims[1][2]))
 
         });
 
@@ -901,6 +1084,9 @@ describe('MultiMerkleDistributor contract tests', () => {
             [user1_claim_amount, ethers.utils.parseEther('0'), ethers.utils.parseEther('3')],
             [user1_claim_amount, ethers.utils.parseEther('37'), ethers.utils.parseEther('0')],
         ]
+
+        let total2 = ethers.utils.parseEther('72')
+        let total3 = ethers.utils.parseEther('65')
     
         beforeEach(async () => {
             
@@ -933,11 +1119,17 @@ describe('MultiMerkleDistributor contract tests', () => {
                 { account: user4.address, amount: user4_claim_amount, questID: quest_id2, period: period },
             ]); 
 
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id, period, tree.getHexRoot())
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id, next_period, tree2.getHexRoot())
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id, next_period2, tree3.getHexRoot())
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id, period, distrib_amount)
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id, next_period, total2)
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id, next_period2, total3)
 
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id2, period, tree4.getHexRoot())
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id, period, distrib_amount, tree.getHexRoot())
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id, next_period, total2, tree2.getHexRoot())
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id, next_period2, total3, tree3.getHexRoot())
+
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id2, period, distrib_amount)
+
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id2, period, distrib_amount, tree4.getHexRoot())
 
             await CRV.connect(admin).transfer(distributor.address, distrib_amount.mul(3))
             await DAI.connect(admin).transfer(distributor.address, distrib_amount)
@@ -978,6 +1170,10 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             expect(await distributor.isClaimed(quest_id2, period, 0)).to.be.false
 
+            expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(distrib_amount.sub(user_claims[0][0]))
+            expect(await distributor.questRewardsPerPeriod(quest_id, next_period)).to.be.eq(total2.sub(user_claims[0][1]))
+            expect(await distributor.questRewardsPerPeriod(quest_id, next_period2)).to.be.eq(total3.sub(user_claims[0][2]))
+
             // Check that the tx only has 1 transfer with the total claim amount
             const total_claim_amount = user_claims[0][0].add(user_claims[0][1]).add(user_claims[0][2])
             await expect(
@@ -1006,6 +1202,8 @@ describe('MultiMerkleDistributor contract tests', () => {
                 },
             ]
 
+            const previous_remaining_rewards2 = await distributor.questRewardsPerPeriod(quest_id, next_period)
+
             const claim_tx = await distributor.connect(user1).claimQuest(user1.address, quest_id, claim_params)
 
             expect(await distributor.isClaimed(quest_id, period, 0)).to.be.true
@@ -1013,6 +1211,10 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             expect(await distributor.isClaimed(quest_id, next_period, 0)).to.be.false
             expect(await distributor.isClaimed(quest_id2, period, 0)).to.be.false
+
+            expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(distrib_amount.sub(user_claims[0][0]))
+            expect(await distributor.questRewardsPerPeriod(quest_id, next_period)).to.be.eq(previous_remaining_rewards2)
+            expect(await distributor.questRewardsPerPeriod(quest_id, next_period2)).to.be.eq(total3.sub(user_claims[0][2]))
 
             // Check that the tx only has 1 transfer with the total claim amount
             const total_claim_amount = user_claims[0][0].add(user_claims[0][2])
@@ -1217,7 +1419,7 @@ describe('MultiMerkleDistributor contract tests', () => {
     });
 
 
-    describe('updateQuestManager', async () => {
+    /*describe('updateQuestManager', async () => {
 
         it(' should update the QuestBoard address', async () => {
 
@@ -1236,7 +1438,8 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         });
 
-    });
+    });*/
+
 
     describe('emergencyUpdateQuestPeriod', async () => {
 
@@ -1270,18 +1473,22 @@ describe('MultiMerkleDistributor contract tests', () => {
             tree_root = tree.getHexRoot()   
             new_tree_root = new_tree.getHexRoot()
 
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id1, period, distrib_amount)
+
         });
 
         it(' should replace the root for the given QuestID & period', async () => {
 
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree_root)
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, distrib_amount, tree_root)
 
             expect(await distributor.questMerkleRootPerPeriod(quest_id1, period)).to.be.eq(tree_root)
 
             expect(await distributor.questClosedPeriods(quest_id1, 0)).to.be.eq(period)
 
+            const previous_rewardAmount = await distributor.questRewardsPerPeriod(quest_id1, period)
+
             await expect(
-                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, new_tree_root)
+                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, 0, new_tree_root)
             ).to.emit(distributor, "QuestPeriodUpdated")
             .withArgs(quest_id1, period, new_tree_root);
 
@@ -1289,13 +1496,32 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             expect(await distributor.questClosedPeriods(quest_id1, 0)).to.be.eq(period)
 
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period)).to.be.eq(previous_rewardAmount)
+
+        });
+
+
+        it(' should add new reward amount for the period', async () => {
+
+            const addedRewardAmount = ethers.utils.parseEther('7')
+
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, distrib_amount, tree_root)
+
+            const previous_rewardAmount = await distributor.questRewardsPerPeriod(quest_id1, period)
+
+            await distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, addedRewardAmount, new_tree_root)
+
+            expect(await distributor.questMerkleRootPerPeriod(quest_id1, period)).to.be.eq(new_tree_root)
+
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period)).to.be.eq(previous_rewardAmount.add(addedRewardAmount))
+
         });
 
 
         it(' should fail if Quest not listed', async () => {
 
             await expect(
-                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id2, period, new_tree_root)
+                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id2, period, 0, new_tree_root)
             ).to.be.revertedWith('QuestNotListed')
 
         });
@@ -1304,7 +1530,7 @@ describe('MultiMerkleDistributor contract tests', () => {
         it(' should fail if Quest period was not closed', async () => {
 
             await expect(
-                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, new_tree_root)
+                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, 0, new_tree_root)
             ).to.be.revertedWith('PeriodNotClosed')
 
         });
@@ -1312,10 +1538,10 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         it(' should fail if given an incorrect period', async () => {
 
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree_root)
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, distrib_amount, tree_root)
 
             await expect(
-                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, 0, new_tree_root)
+                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, 0, 0, new_tree_root)
             ).to.be.revertedWith('IncorrectPeriod')
 
         });
@@ -1323,10 +1549,10 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         it(' should fail if given an empty root', async () => {
 
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree_root)
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, distrib_amount, tree_root)
 
             await expect(
-                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, "0x0000000000000000000000000000000000000000000000000000000000000000")
+                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, 0, "0x0000000000000000000000000000000000000000000000000000000000000000")
             ).to.be.revertedWith('EmptyMerkleRoot')
 
         });
@@ -1334,10 +1560,10 @@ describe('MultiMerkleDistributor contract tests', () => {
 
         it(' should block non-admin caller', async () => {
 
-            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, tree_root)
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, distrib_amount, tree_root)
 
             await expect(
-                distributor.connect(user2).emergencyUpdateQuestPeriod(quest_id1, period, new_tree_root)
+                distributor.connect(user2).emergencyUpdateQuestPeriod(quest_id1, period, 0, new_tree_root)
             ).to.be.revertedWith('Ownable: caller is not the owner')
 
         });
@@ -1366,6 +1592,16 @@ describe('MultiMerkleDistributor contract tests', () => {
             const newBalance = await DAI.balanceOf(admin.address);
 
             expect(newBalance.sub(oldBalance)).to.be.eq(lost_amount)
+
+        });
+
+        it(' should fail if trying to recover a reward token', async () => {
+
+            await distributor.connect(mockQuestBoard).addQuest(12, DAI.address)
+
+            await expect(
+                distributor.connect(admin).recoverERC20(DAI.address)
+            ).to.be.revertedWith('CannotRecoverToken')
 
         });
 

@@ -28,6 +28,7 @@ library Errors {
     error AlreadyClaimed();
     error InvalidProof();
     error EmptyMerkleRoot();
+    error IncorrectRewardAmount();
 
 
     // Quest Errors
@@ -40,6 +41,7 @@ library Errors {
     error PeriodAlreadyUpdated();
     error PeriodNotClosed();
     error PeriodStillActive();
+    error PeriodNotListed();
     error EmptyQuest();
     error EmptyPeriod();
     error ExpiredQuest();

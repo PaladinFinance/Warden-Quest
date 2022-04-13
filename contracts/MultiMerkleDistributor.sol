@@ -33,6 +33,10 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     // QuestID => reward token
     mapping(uint256 => address) public questRewardToken;
 
+    /** @notice Mapping of tokens this contract is or was distributing */
+    // token address => boolean
+    mapping(address => bool) public rewardTokens;
+
     //Periods: timestamp => start of a week, used as a voting period 
     //in the Curve GaugeController though the timestamp / WEEK *  WEEK logic.
     //Handled through the QuestManager contract.
@@ -46,13 +50,17 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     // QuestID => period => merkleRoot
     mapping(uint256 => mapping(uint256 => bytes32)) public questMerkleRootPerPeriod;
 
+    /** @notice Amount of rewards for each period of a Quest (indexed by Quest ID) */
+    // QuestID => period => totalRewardsAmount
+    mapping(uint256 => mapping(uint256 => uint256)) public questRewardsPerPeriod;
+
     /** @notice BitMap of claims for each period of a Quest */
     // QuestID => period => claimedBitMap
     // This is a packed array of booleans.
     mapping(uint256 => mapping(uint256 => mapping(uint256 => uint256))) private questPeriodClaimedBitMap;
 
     /** @notice Address of the QuestBoard contract */
-    address public questBoard;
+    address public immutable questBoard;
 
 
     // Events
@@ -143,6 +151,7 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
         // And transfer the rewards to the user
         address rewardToken = questRewardToken[questID];
         _setClaimed(questID, period, index);
+        questRewardsPerPeriod[questID][period] -= amount;
         IERC20(rewardToken).safeTransfer(account, amount);
 
         emit Claimed(questID, period, index, amount, rewardToken, account);
@@ -209,6 +218,7 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
             if(!MerkleProof.verify(claims[i].merkleProof, questMerkleRootPerPeriod[questID][claims[i].period], node)) revert Errors.InvalidProof();
 
             _setClaimed(questID, claims[i].period, claims[i].index);
+            questRewardsPerPeriod[questID][claims[i].period] -= claims[i].amount;
             totalClaimAmount += claims[i].amount;
 
             emit Claimed(questID, claims[i].period, claims[i].index, claims[i].amount, rewardToken, account);
@@ -250,7 +260,30 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
         // Add a new Quest using the QuestID, and list the reward token for that Quest
         questRewardToken[questID] = token;
 
+        if(!rewardTokens[token]) rewardTokens[token] = true;
+
         emit NewQuest(questID, token);
+
+        return true;
+    }
+
+    /**
+    * @notice Adds a new period & the rewards of this period for a Quest
+    * @dev Adds a new period & the rewards of this period for a Quest
+    * @param questID ID of the Quest
+    * @param period Timestamp of the period
+    * @param totalRewardAmount Total amount of rewards to distribute for the period
+    * @return bool : success
+    */
+    function addQuestPeriod(uint256 questID, uint256 period, uint256 totalRewardAmount) external returns(bool) {
+        period = (period / WEEK) * WEEK;
+        if(msg.sender != questBoard) revert Errors.CallerNotAllowed();
+        if(questRewardToken[questID] == address(0)) revert Errors.QuestNotListed();
+        if(questRewardsPerPeriod[questID][period] != 0) revert Errors.PeriodAlreadyUpdated();
+        if(period == 0) revert Errors.IncorrectPeriod();
+        if(totalRewardAmount == 0) revert Errors.NullAmount();
+
+        questRewardsPerPeriod[questID][period] = totalRewardAmount;
 
         return true;
     }
@@ -260,18 +293,22 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     * @dev Add the Merkle Root for the eriod of the given Quest
     * @param questID ID of the Quest
     * @param period timestamp of the period
+    * @param totalAmount sum of all rewards for the Merkle Tree
     * @param merkleRoot MerkleRoot to add
     * @return bool: success
     */
-    function updateQuestPeriod(uint256 questID, uint256 period, bytes32 merkleRoot) external onlyAllowed returns(bool) {
+    function updateQuestPeriod(uint256 questID, uint256 period, uint256 totalAmount, bytes32 merkleRoot) external onlyAllowed returns(bool) {
         period = (period / WEEK) * WEEK;
         if(questRewardToken[questID] == address(0)) revert Errors.QuestNotListed();
+        if(period == 0) revert Errors.IncorrectPeriod();
+        if(questRewardsPerPeriod[questID][period] == 0) revert Errors.PeriodNotListed();
         if(questMerkleRootPerPeriod[questID][period] != 0) revert Errors.PeriodAlreadyUpdated();
         if(merkleRoot == 0) revert Errors.EmptyMerkleRoot();
 
         // Add a new Closed Period for the Quest
-        if(period == 0) revert Errors.IncorrectPeriod();
         questClosedPeriods[questID].push(period);
+
+        if(totalAmount != questRewardsPerPeriod[questID][period]) revert Errors.IncorrectRewardAmount();
 
         // Add the new MerkleRoot for that Closed Period
         questMerkleRootPerPeriod[questID][period] = merkleRoot;
@@ -283,15 +320,6 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
 
 
     //  Admin functions
-       
-    /**
-    * @notice Updates the QuestBoard contract address
-    * @dev Updates the QuestBoard contract address
-    * @param newQuestBoard Address of the new QuestBoard contract
-    */
-    function updateQuestManager(address newQuestBoard) external onlyOwner {
-        questBoard = newQuestBoard;
-    }
    
     /**
     * @notice Recovers ERC2O tokens sent by mistake to the contract
@@ -300,6 +328,7 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     * @return bool: success
     */
     function recoverERC20(address token) external onlyOwner nonReentrant returns(bool) {
+        if(rewardTokens[token]) revert Errors.CannotRecoverToken();
         uint256 amount = IERC20(token).balanceOf(address(this));
         if(amount == 0) revert Errors.NullAmount();
         IERC20(token).safeTransfer(owner(), amount);
@@ -316,15 +345,26 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     * @param merkleRoot New MerkleRoot to add
     * @return bool : success
     */
-    function emergencyUpdateQuestPeriod(uint256 questID, uint256 period, bytes32 merkleRoot) external onlyOwner returns(bool) {
+    function emergencyUpdateQuestPeriod(uint256 questID, uint256 period, uint256 addedRewardAmount, bytes32 merkleRoot) external onlyOwner returns(bool) {
+        // In case the given MerkleRoot was incorrect:
+        // Process:
+        // 1 - block claims for the Quest period by using this method to set an incorrect MerkleRoot, where no proof matches the root
+        // 2 - prepare a new Merkle Tree, taking in account user previous claims on that period, and missing/overpaid rewards
+        //      a - for all new claims to be added, set them after the last index of the previous Merkle Tree
+        //      b - for users that did not claim, keep the same index, and adjust the amount to claim if needed
+        //      c - for indexes that were claimed, place an empty node in the Merkle Tree (with an amount at 0 & the address 0xdead as the account)
+        // 3 - update the Quest period with the correct MerkleRoot
+        // (no need to change the Bitmap, as the new MerkleTree will account for the indexes already claimed)
+
         period = (period / WEEK) * WEEK;
-        // In case the given MerkleRoot was incorrect => allows to update with the correct one so users can claim
         if(questRewardToken[questID] == address(0)) revert Errors.QuestNotListed();
         if(period == 0) revert Errors.IncorrectPeriod();
-        if(questMerkleRootPerPeriod[questID][period] ==0) revert Errors.PeriodNotClosed();
+        if(questMerkleRootPerPeriod[questID][period] == 0) revert Errors.PeriodNotClosed();
         if(merkleRoot == 0) revert Errors.EmptyMerkleRoot();
 
         questMerkleRootPerPeriod[questID][period] = merkleRoot;
+
+        questRewardsPerPeriod[questID][period] += addedRewardAmount;
 
         emit QuestPeriodUpdated(questID, period, merkleRoot);
 
