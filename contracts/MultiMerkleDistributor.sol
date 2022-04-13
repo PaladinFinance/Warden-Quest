@@ -150,6 +150,7 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
         // And transfer the rewards to the user
         address rewardToken = questRewardToken[questID];
         _setClaimed(questID, period, index);
+        questRewardsPerPeriod[questID][period] -= amount;
         IERC20(rewardToken).safeTransfer(account, amount);
 
         emit Claimed(questID, period, index, amount, rewardToken, account);
@@ -215,6 +216,7 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
             if(!MerkleProof.verify(claims[i].merkleProof, questMerkleRootPerPeriod[questID][claims[i].period], node)) revert Errors.InvalidProof();
 
             _setClaimed(questID, claims[i].period, claims[i].index);
+            questRewardsPerPeriod[questID][claims[i].period] -= claims[i].amount;
             totalClaimAmount += claims[i].amount;
 
             emit Claimed(questID, claims[i].period, claims[i].index, claims[i].amount, rewardToken, account);

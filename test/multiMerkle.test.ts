@@ -475,6 +475,8 @@ describe('MultiMerkleDistributor contract tests', () => {
                 expect(new_balance.sub(old_balance)).to.be.eq(user1_claim_amount)
     
                 expect(await distributor.isClaimed(quest_id, period, 0)).to.be.true
+
+                expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(distrib_amount.sub(user1_claim_amount))
     
             });
     
@@ -578,6 +580,8 @@ describe('MultiMerkleDistributor contract tests', () => {
                 await distributor.connect(user1).claim(quest_id, period, 0, user1.address, user1_claim_amount, proof_1)
     
                 await distributor.connect(user2).claim(quest_id, period, 1, user2.address, user2_claim_amount, proof_2)
+
+                expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(distrib_amount.sub(user1_claim_amount.add(user2_claim_amount)))
     
                 await expect(
                     distributor.connect(user1).claim(quest_id, period, 0, user1.address, user1_claim_amount, proof_1)
@@ -593,6 +597,8 @@ describe('MultiMerkleDistributor contract tests', () => {
                 await distributor.connect(user2).claim(quest_id, period, 1, user2.address, user2_claim_amount, proof_2)
     
                 await distributor.connect(user1).claim(quest_id, period, 0, user1.address, user1_claim_amount, proof_1)
+
+                expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(distrib_amount.sub(user1_claim_amount.add(user2_claim_amount)))
     
                 await expect(
                     distributor.connect(user2).claim(quest_id, period, 1, user2.address, user2_claim_amount, proof_2)
@@ -683,6 +689,8 @@ describe('MultiMerkleDistributor contract tests', () => {
                 expect(new_balance.sub(old_balance)).to.be.eq(claim_amount)
     
                 expect(await distributor.isClaimed(quest_id, period, index)).to.be.true
+
+                expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(total_claim - claim_amount.toNumber())
     
                 await expect(
                     distributor.connect(signers[index]).claim(quest_id, period, index, signers[index].address, claim_amount, proof)
@@ -710,6 +718,8 @@ describe('MultiMerkleDistributor contract tests', () => {
                 expect(new_balance.sub(old_balance)).to.be.eq(claim_amount)
     
                 expect(await distributor.isClaimed(quest_id, period, index)).to.be.true
+
+                expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(total_claim - claim_amount.toNumber())
     
                 await expect(
                     distributor.connect(signers[index]).claim(quest_id, period, index, signers[index].address, claim_amount, proof)
@@ -737,6 +747,8 @@ describe('MultiMerkleDistributor contract tests', () => {
                 expect(new_balance.sub(old_balance)).to.be.eq(claim_amount)
     
                 expect(await distributor.isClaimed(quest_id, period, index)).to.be.true
+
+                expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(total_claim - claim_amount.toNumber())
     
                 await expect(
                     distributor.connect(signers[index]).claim(quest_id, period, index, signers[index].address, claim_amount, proof)
@@ -926,6 +938,9 @@ describe('MultiMerkleDistributor contract tests', () => {
             expect(await distributor.isClaimed(quest_id3, next_period, 0)).to.be.false
             expect(await distributor.isClaimed(quest_id1, period, 1)).to.be.false
 
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period)).to.be.eq(distrib_amount.sub(user_claims[0][0]))
+            expect(await distributor.questRewardsPerPeriod(quest_id2, period)).to.be.eq(total2.sub(user_claims[0][1]))
+
         });
 
         it(' should claim from different periods from same Quest', async () => {
@@ -966,6 +981,9 @@ describe('MultiMerkleDistributor contract tests', () => {
             expect(await distributor.isClaimed(quest_id1, period, 1)).to.be.false
             expect(await distributor.isClaimed(quest_id1, period, 0)).to.be.false
 
+            expect(await distributor.questRewardsPerPeriod(quest_id2, period)).to.be.eq(total2.sub(user_claims[3][1]))
+            expect(await distributor.questRewardsPerPeriod(quest_id2, next_period)).to.be.eq(ethers.utils.parseEther('24'))
+
         });
 
         it(' should claim from different periods from different Quests', async () => {
@@ -995,6 +1013,9 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             expect(await distributor.isClaimed(quest_id1, period, 1)).to.be.false
             expect(await distributor.isClaimed(quest_id1, period, 0)).to.be.false
+
+            expect(await distributor.questRewardsPerPeriod(quest_id2, period)).to.be.eq(total2.sub(user_claims[1][1]))
+            expect(await distributor.questRewardsPerPeriod(quest_id3, next_period)).to.be.eq(total3.sub(user_claims[1][2]))
 
         });
 
@@ -1114,6 +1135,10 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             expect(await distributor.isClaimed(quest_id2, period, 0)).to.be.false
 
+            expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(distrib_amount.sub(user_claims[0][0]))
+            expect(await distributor.questRewardsPerPeriod(quest_id, next_period)).to.be.eq(total2.sub(user_claims[0][1]))
+            expect(await distributor.questRewardsPerPeriod(quest_id, next_period2)).to.be.eq(total3.sub(user_claims[0][2]))
+
             // Check that the tx only has 1 transfer with the total claim amount
             const total_claim_amount = user_claims[0][0].add(user_claims[0][1]).add(user_claims[0][2])
             await expect(
@@ -1142,6 +1167,8 @@ describe('MultiMerkleDistributor contract tests', () => {
                 },
             ]
 
+            const previous_remaining_rewards2 = await distributor.questRewardsPerPeriod(quest_id, next_period)
+
             const claim_tx = await distributor.connect(user1).claimQuest(user1.address, quest_id, claim_params)
 
             expect(await distributor.isClaimed(quest_id, period, 0)).to.be.true
@@ -1149,6 +1176,10 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             expect(await distributor.isClaimed(quest_id, next_period, 0)).to.be.false
             expect(await distributor.isClaimed(quest_id2, period, 0)).to.be.false
+
+            expect(await distributor.questRewardsPerPeriod(quest_id, period)).to.be.eq(distrib_amount.sub(user_claims[0][0]))
+            expect(await distributor.questRewardsPerPeriod(quest_id, next_period)).to.be.eq(previous_remaining_rewards2)
+            expect(await distributor.questRewardsPerPeriod(quest_id, next_period2)).to.be.eq(total3.sub(user_claims[0][2]))
 
             // Check that the tx only has 1 transfer with the total claim amount
             const total_claim_amount = user_claims[0][0].add(user_claims[0][2])
