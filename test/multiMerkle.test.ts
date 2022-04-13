@@ -1425,8 +1425,10 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             expect(await distributor.questClosedPeriods(quest_id1, 0)).to.be.eq(period)
 
+            const previous_rewardAmount = await distributor.questRewardsPerPeriod(quest_id1, period)
+
             await expect(
-                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, new_tree_root)
+                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, 0, new_tree_root)
             ).to.emit(distributor, "QuestPeriodUpdated")
             .withArgs(quest_id1, period, new_tree_root);
 
@@ -1434,13 +1436,32 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             expect(await distributor.questClosedPeriods(quest_id1, 0)).to.be.eq(period)
 
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period)).to.be.eq(previous_rewardAmount)
+
+        });
+
+
+        it(' should add new reward amount for the period', async () => {
+
+            const addedRewardAmount = ethers.utils.parseEther('7')
+
+            await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, distrib_amount, tree_root)
+
+            const previous_rewardAmount = await distributor.questRewardsPerPeriod(quest_id1, period)
+
+            await distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, addedRewardAmount, new_tree_root)
+
+            expect(await distributor.questMerkleRootPerPeriod(quest_id1, period)).to.be.eq(new_tree_root)
+
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period)).to.be.eq(previous_rewardAmount.add(addedRewardAmount))
+
         });
 
 
         it(' should fail if Quest not listed', async () => {
 
             await expect(
-                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id2, period, new_tree_root)
+                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id2, period, 0, new_tree_root)
             ).to.be.revertedWith('QuestNotListed')
 
         });
@@ -1449,7 +1470,7 @@ describe('MultiMerkleDistributor contract tests', () => {
         it(' should fail if Quest period was not closed', async () => {
 
             await expect(
-                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, new_tree_root)
+                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, 0, new_tree_root)
             ).to.be.revertedWith('PeriodNotClosed')
 
         });
@@ -1460,7 +1481,7 @@ describe('MultiMerkleDistributor contract tests', () => {
             await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, distrib_amount, tree_root)
 
             await expect(
-                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, 0, new_tree_root)
+                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, 0, 0, new_tree_root)
             ).to.be.revertedWith('IncorrectPeriod')
 
         });
@@ -1471,7 +1492,7 @@ describe('MultiMerkleDistributor contract tests', () => {
             await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, distrib_amount, tree_root)
 
             await expect(
-                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, "0x0000000000000000000000000000000000000000000000000000000000000000")
+                distributor.connect(admin).emergencyUpdateQuestPeriod(quest_id1, period, 0, "0x0000000000000000000000000000000000000000000000000000000000000000")
             ).to.be.revertedWith('EmptyMerkleRoot')
 
         });
@@ -1482,7 +1503,7 @@ describe('MultiMerkleDistributor contract tests', () => {
             await distributor.connect(mockQuestBoard).updateQuestPeriod(quest_id1, period, distrib_amount, tree_root)
 
             await expect(
-                distributor.connect(user2).emergencyUpdateQuestPeriod(quest_id1, period, new_tree_root)
+                distributor.connect(user2).emergencyUpdateQuestPeriod(quest_id1, period, 0, new_tree_root)
             ).to.be.revertedWith('Ownable: caller is not the owner')
 
         });

@@ -343,15 +343,26 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
     * @param merkleRoot New MerkleRoot to add
     * @return bool : success
     */
-    function emergencyUpdateQuestPeriod(uint256 questID, uint256 period, bytes32 merkleRoot) external onlyOwner returns(bool) {
+    function emergencyUpdateQuestPeriod(uint256 questID, uint256 period, uint256 addedRewardAmount, bytes32 merkleRoot) external onlyOwner returns(bool) {
+        // In case the given MerkleRoot was incorrect:
+        // Process:
+        // 1 - block claims for the Quest period by using this method to set an incorrect MerkleRoot, where no proof matches the root
+        // 2 - prepare a new Merkle Tree, taking in account user previous claims on that period, and missing/overpaid rewards
+        //      a - for all new claims to be added, set them after the last index of the previous Merkle Tree
+        //      b - for users that did not claim, keep the same index, and adjust the amount to claim if needed
+        //      c - for indexes that were claimed, place an empty node in the Merkle Tree (with an amount at 0 & the address 0xdead as the account)
+        // 3 - update the Quest period with the correct MerkleRoot
+        // (no need to change the Bitmap, as the new MerkleTree will account for the indexes already claimed)
+
         period = (period / WEEK) * WEEK;
-        // In case the given MerkleRoot was incorrect => allows to update with the correct one so users can claim
         if(questRewardToken[questID] == address(0)) revert Errors.QuestNotListed();
         if(period == 0) revert Errors.IncorrectPeriod();
-        if(questMerkleRootPerPeriod[questID][period] ==0) revert Errors.PeriodNotClosed();
+        if(questMerkleRootPerPeriod[questID][period] == 0) revert Errors.PeriodNotClosed();
         if(merkleRoot == 0) revert Errors.EmptyMerkleRoot();
 
         questMerkleRootPerPeriod[questID][period] = merkleRoot;
+
+        questRewardsPerPeriod[questID][period] += addedRewardAmount;
 
         emit QuestPeriodUpdated(questID, period, merkleRoot);
 
