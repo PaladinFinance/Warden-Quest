@@ -16,6 +16,252 @@
         "type": "constructor"
     },
     {
+        "inputs": [],
+        "name": "AlreadyInitialized",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "AlreadyKilled",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "CallerNotAllowed",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "CallerNotPendingOwner",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "CannotBeOwner",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "CannotRecoverToken",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "DisitributorFail",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "EmptyArray",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "EmptyMerkleRoot",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "EmptyPeriod",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "EmptyQuest",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "ExpiredQuest",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "IncorrectAddDuration",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "IncorrectAddedRewardAmount",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "IncorrectDuration",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "IncorrectFeeAmount",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "IncorrectTotalRewardAmount",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "InequalArraySizes",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "InvalidGauge",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "InvalidParameter",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "InvalidPeriod",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "InvalidQuestID",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "KillDelayExpired",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "KillDelayNotExpired",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "Killed",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "LowerObjective",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "LowerRewardPerVote",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "NoDistributorSet",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "NotKilled",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "NullAmount",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "NumberExceed48Bits",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "ObjectiveTooLow",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "PeriodNotClosed",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "PeriodStillActive",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "RewardPerVoteTooLow",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "SameAddress",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "TokenNotWhitelisted",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "ZeroAddress",
+        "type": "error"
+    },
+    {
+        "inputs": [],
+        "name": "ZeroAddress",
+        "type": "error"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "manager",
+                "type": "address"
+            }
+        ],
+        "name": "ApprovedManager",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "oldChest",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "newChest",
+                "type": "address"
+            }
+        ],
+        "name": "ChestUpdated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "oldDistributor",
+                "type": "address"
+            },
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "newDistributor",
+                "type": "address"
+            }
+        ],
+        "name": "DistributorUpdated",
+        "type": "event"
+    },
+    {
         "anonymous": false,
         "inputs": [
             {
@@ -129,7 +375,27 @@
     },
     {
         "anonymous": false,
-        "inputs": [],
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "address",
+                "name": "distributor",
+                "type": "address"
+            }
+        ],
+        "name": "InitDistributor",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "killTime",
+                "type": "uint256"
+            }
+        ],
         "name": "Killed",
         "type": "event"
     },
@@ -138,6 +404,44 @@
         "inputs": [
             {
                 "indexed": false,
+                "internalType": "uint256",
+                "name": "oldMinObjective",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "newMinObjective",
+                "type": "uint256"
+            }
+        ],
+        "name": "MinObjectiveUpdated",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "previousPendingOwner",
+                "type": "address"
+            },
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "newPendingOwner",
+                "type": "address"
+            }
+        ],
+        "name": "NewPendingOwner",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": true,
                 "internalType": "uint256",
                 "name": "questID",
                 "type": "uint256"
@@ -213,6 +517,12 @@
             {
                 "indexed": true,
                 "internalType": "uint256",
+                "name": "questID",
+                "type": "uint256"
+            },
+            {
+                "indexed": true,
+                "internalType": "uint256",
                 "name": "period",
                 "type": "uint256"
             }
@@ -224,18 +534,44 @@
         "anonymous": false,
         "inputs": [
             {
-                "indexed": true,
+                "indexed": false,
                 "internalType": "uint256",
-                "name": "period",
+                "name": "oldfee",
+                "type": "uint256"
+            },
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "newFee",
                 "type": "uint256"
             }
         ],
-        "name": "PeriodClosedPart",
+        "name": "PlatformFeeUpdated",
         "type": "event"
     },
     {
         "anonymous": false,
-        "inputs": [],
+        "inputs": [
+            {
+                "indexed": true,
+                "internalType": "address",
+                "name": "manager",
+                "type": "address"
+            }
+        ],
+        "name": "RemovedManager",
+        "type": "event"
+    },
+    {
+        "anonymous": false,
+        "inputs": [
+            {
+                "indexed": false,
+                "internalType": "uint256",
+                "name": "unkillTime",
+                "type": "uint256"
+            }
+        ],
         "name": "Unkilled",
         "type": "event"
     },
@@ -330,41 +666,9 @@
     },
     {
         "inputs": [],
-        "name": "MAX_BPS",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "UNIT",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "WEEK",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
+        "name": "acceptOwnership",
+        "outputs": [],
+        "stateMutability": "nonpayable",
         "type": "function"
     },
     {
@@ -377,6 +681,11 @@
             {
                 "internalType": "uint256",
                 "name": "period",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "totalAmount",
                 "type": "uint256"
             },
             {
@@ -401,6 +710,11 @@
                 "internalType": "uint256",
                 "name": "period",
                 "type": "uint256"
+            },
+            {
+                "internalType": "uint256[]",
+                "name": "totalAmounts",
+                "type": "uint256[]"
             },
             {
                 "internalType": "bytes32[]",
@@ -440,7 +754,18 @@
             }
         ],
         "name": "closePartOfQuestPeriod",
-        "outputs": [],
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "closed",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "skipped",
+                "type": "uint256"
+            }
+        ],
         "stateMutability": "nonpayable",
         "type": "function"
     },
@@ -453,7 +778,18 @@
             }
         ],
         "name": "closeQuestPeriod",
-        "outputs": [],
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "closed",
+                "type": "uint256"
+            },
+            {
+                "internalType": "uint256",
+                "name": "skipped",
+                "type": "uint256"
+            }
+        ],
         "stateMutability": "nonpayable",
         "type": "function"
     },
@@ -504,19 +840,6 @@
             }
         ],
         "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "currentPeriod",
-        "outputs": [
-            {
-                "internalType": "uint256",
-                "name": "",
-                "type": "uint256"
-            }
-        ],
-        "stateMutability": "view",
         "type": "function"
     },
     {
@@ -620,6 +943,19 @@
                 "internalType": "struct QuestBoard.QuestPeriod[]",
                 "name": "",
                 "type": "tuple[]"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [],
+        "name": "getCurrentPeriod",
+        "outputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
             }
         ],
         "stateMutability": "view",
@@ -833,6 +1169,19 @@
         "type": "function"
     },
     {
+        "inputs": [],
+        "name": "pendingOwner",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
         "inputs": [
             {
                 "internalType": "uint256",
@@ -902,6 +1251,25 @@
     {
         "inputs": [],
         "name": "questChest",
+        "outputs": [
+            {
+                "internalType": "address",
+                "name": "",
+                "type": "address"
+            }
+        ],
+        "stateMutability": "view",
+        "type": "function"
+    },
+    {
+        "inputs": [
+            {
+                "internalType": "uint256",
+                "name": "",
+                "type": "uint256"
+            }
+        ],
+        "name": "questDistributors",
         "outputs": [
             {
                 "internalType": "address",
@@ -1010,11 +1378,6 @@
                 "internalType": "address",
                 "name": "token",
                 "type": "address"
-            },
-            {
-                "internalType": "uint256",
-                "name": "amount",
-                "type": "uint256"
             }
         ],
         "name": "recoverERC20",
@@ -1103,13 +1466,6 @@
             }
         ],
         "name": "updateMinObjective",
-        "outputs": [],
-        "stateMutability": "nonpayable",
-        "type": "function"
-    },
-    {
-        "inputs": [],
-        "name": "updatePeriod",
         "outputs": [],
         "stateMutability": "nonpayable",
         "type": "function"
