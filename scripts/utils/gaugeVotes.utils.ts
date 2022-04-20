@@ -9,7 +9,7 @@ import { Display } from "./display.utils";
 import * as dotenv from 'dotenv';
 
 dotenv.config()
-const provider = new ethers.providers.JsonRpcProvider(process.env.MAINNET_FETCH_URI)
+const provider = new ethers.providers.JsonRpcProvider(process.env.MAINNET_URI)
 
 export const getVotesEvents = async (reference:BigNumber) => {
 
