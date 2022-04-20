@@ -9,7 +9,7 @@ import { Display } from "./display.utils";
 import * as dotenv from 'dotenv';
 
 dotenv.config()
-const provider = new ethers.providers.JsonRpcProvider(process.env.MAINNET_URI)
+const provider = new ethers.providers.JsonRpcProvider(process.env.MAINNET_FETCH_URI)
 
 export const getVotesEvents = async (reference:BigNumber) => {
 
@@ -17,24 +17,37 @@ export const getVotesEvents = async (reference:BigNumber) => {
     const voteForGaugeTopic = iGaugeController.getEventTopic("VoteForGauge");
     const scanBlockNumber = await DateUtils.getTimestampBlock(reference.toNumber(), provider);
     
-
-    //Get the events of voting
-    const filter = {
-        fromBlock: 0,
-        toBlock: scanBlockNumber,
-        topics: [voteForGaugeTopic]
-      };
-    const logs = await provider.getLogs(filter);
-    const gaugeControllerVote: ethers.utils.LogDescription[] = 
-        logs
-        .filter((log) => {
-            return (log.address.toLowerCase() === GAUGE_CONTROLLER_ADRESS.toLowerCase()
-            && log.topics.indexOf(voteForGaugeTopic) >= 0)
+    const blocksIntervals = [];
+    for (let index = 10647874; index < scanBlockNumber; index += 100000){
+        blocksIntervals.push({
+            fromBlock: index+1,
+            toBlock: index+100000 <= scanBlockNumber ? index+100000 : scanBlockNumber
         })
-        .map((log) => {
-            return iGaugeController.parseLog(log)
-        })
+    };
 
+    let gaugeControllerVote: ethers.utils.LogDescription[] = [];
+    await Promise.all(
+        blocksIntervals.map( async(blockInterval) => {
+            //Get the events of voting
+            const filter = {
+                fromBlock: blockInterval.fromBlock,
+                toBlock: blockInterval.toBlock,
+                topics: [voteForGaugeTopic]
+            };
+            const logs = await provider.getLogs(filter);
+            const gaugeControllerVoteOnPeriod: ethers.utils.LogDescription[] = 
+                logs
+                .filter((log) => {
+                    return (log.address.toLowerCase() === GAUGE_CONTROLLER_ADRESS.toLowerCase()
+                    && log.topics.indexOf(voteForGaugeTopic) >= 0)
+                })
+                .map((log) => {
+                    return iGaugeController.parseLog(log)
+                })
+            gaugeControllerVote = gaugeControllerVote.concat(gaugeControllerVoteOnPeriod);
+        })
+    );
+    
     return gaugeControllerVote;
 }
 
@@ -87,7 +100,8 @@ const getUsefulVotesOnGauge = async (votesMap:Map<string, Vote[]>, gaugeAdress:s
     const gaugeController:ethers.Contract = new ethers.Contract(GAUGE_CONTROLLER_ADRESS, curveGaugeControllerABI, provider);
 
     let countForSlopeVote:Vote[] = [];
-
+    console.log("Waiting one minute for RPC..")
+    await DateUtils.delay(60*1000)
     //Get all votes slope and calculate the total
     await Promise.all(listOfVotes.map(async (vote:Vote) => {
             let userSlope = await gaugeController.vote_user_slopes(vote.user, gaugeAdress, {blockTag:scanBlockNumber});
@@ -140,14 +154,14 @@ export const biasChecker = async (gaugeAdress:string, reference:BigNumber, listO
  */
 
 const gaugeVotesTest = async () => {
-    const gaugeAdress = "0xF98450B5602fa59CC66e1379DFfB6FDDc724CfC4";
-    const period = BigNumber.from(1639612800);
-    const start = Date.now();
-    let listOfVotes:Vote[] = [];
-    let events = await getVotesEvents(period)
-    listOfVotes = await getVotesForGauge(events, gaugeAdress, period);
-    await biasChecker(gaugeAdress, period, listOfVotes)
-    console.log("Duration :",(Date.now()-start)/TO_MILISECOND,"sec") 
+    let gaugeAdress = '0xDeFd8FdD20e0f34115C7018CCfb655796F6B2168';
+    const scanBlockNumber = 14622277;
+    const gaugeController:ethers.Contract = new ethers.Contract(GAUGE_CONTROLLER_ADRESS, curveGaugeControllerABI, provider);
+    let vote = {
+        user: "0x989AEb4d175e16225E39E87d0D97A3360524AD80"
+      }
+    let userSlope = await gaugeController.vote_user_slopes(vote.user, gaugeAdress, {blockTag:scanBlockNumber});
+    console.log(userSlope)
 }
 
 //gaugeVotesTest();

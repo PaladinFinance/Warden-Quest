@@ -13,7 +13,8 @@ import { parseBalanceMap } from "./src/parse-balance-map";
 
 const generateMerkleScore = async (quest: Quest, votesEvents:ethers.utils.LogDescription[]) => {
     console.log('Start merkle for ', quest.questID.toString())
-    let listOfVotes:Vote[] = await getVotesForGauge(votesEvents, quest.gauge, quest.startPeriod);
+    let listOfVotes:Vote[] = await getVotesForGauge(votesEvents, quest.gauge, quest.periodStart);
+    console.log(listOfVotes.length)
     let score:Score = {}
     let balance:Balance = {}
     let totalBias:BigNumber = BigNumber.from(0);
@@ -30,14 +31,14 @@ const generateMerkleScore = async (quest: Quest, votesEvents:ethers.utils.LogDes
         }
         balance[vote.user] = {
             questID:quest.questID,
-            period:quest.startPeriod,
+            period:quest.periodStart,
             earning:voteReward.toString()
         }
     }
 
     try{
         console.log("Writing files for ", quest.questID.toString())
-        let dir = `scripts/data/${quest.startPeriod.toString()}`
+        let dir = `scripts/data/${quest.periodStart.toString()}`
         if(!fs.existsSync(dir)) {
             fs.mkdirSync(dir, { recursive: true })
         };
@@ -47,14 +48,14 @@ const generateMerkleScore = async (quest: Quest, votesEvents:ethers.utils.LogDes
     }catch(err){
         console.error(err);
     }
-    console.log("Waiting one minute..")
-    await DateUtils.delay(60*1000)
+    console.log("Waiting for RPC..")
+    await DateUtils.delay(60)
     return {score:score, balance:balance}
 }
 export const generateMerkleScoresForQuest = async (questId:string) => {
     
     const quest:Quest = await getQuestFromId(questId);
-    const voteEvents = await getVotesEvents(quest.startPeriod)
+    const voteEvents = await getVotesEvents(quest.periodStart)
     
     await generateMerkleScore(quest, voteEvents)
 }
@@ -73,7 +74,7 @@ export const generateMerkleScoresForPeriod = async (period:BigNumber) => {
             merkleRoot: merkleTree.merkleRoot
         })
         try {
-            fs.writeFileSync(`scripts/data/${quest.startPeriod.toString()}/${quest.questID.toString()}_merkle_root.json`, JSON.stringify(merkleTree));
+            fs.writeFileSync(`scripts/data/${quest.periodStart.toString()}/${quest.questID.toString()}_merkle_root.json`, JSON.stringify(merkleTree));
         } catch (err) {
             console.error(err);
         }
@@ -91,7 +92,7 @@ export const generateMerkleScoresForPeriod = async (period:BigNumber) => {
  */
 const gmsTest = async () => {
     //await generateMerkleScoresForQuest("0")
-    await generateMerkleScoresForPeriod(BigNumber.from(1639612800))
+    await generateMerkleScoresForPeriod(BigNumber.from(1650499200))
 }
 
 gmsTest();

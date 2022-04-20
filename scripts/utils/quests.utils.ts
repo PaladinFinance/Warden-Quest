@@ -23,7 +23,7 @@ export const getQuestFromId = async (questId: string):Promise<Quest> => {
     let quest:Quest ={
         questID: BigNumber.from(questId),
         gauge: "0xF98450B5602fa59CC66e1379DFfB6FDDc724CfC4",
-        startPeriod: BigNumber.from(1639612800),
+        periodStart: BigNumber.from(1639612800),
         objectiveVotes: BigNumber.from("0x06da4bd219e99a12b0e380"),
         rewardPerVote: BigNumber.from(12)
     } as Quest
@@ -33,19 +33,24 @@ export const getQuestFromId = async (questId: string):Promise<Quest> => {
 
 export const getQuestsFromPeriod = async (period:BigNumber):Promise<Quest[]> => {
     const questBoardContract:ethers.Contract = new ethers.Contract(WARDEN_QUEST_CONTRACT_ADRESS, questBoardABI, provider);
-    //const questsFromContract = await questBoardContract["quests()"]()
+    const questsIdsFromContract = await questBoardContract.getQuestIdsForPeriod(period)
     let quests:Quest[] = []
 
-    for(let i=0; i<2; i++){
-        quests.push({
-            questID: BigNumber.from(i),
-            gauge: "0xF98450B5602fa59CC66e1379DFfB6FDDc724CfC4",
-            startPeriod: BigNumber.from(1639612800),
-            objectiveVotes: BigNumber.from("0x06da4bd219e99a12b0e380"),
-            rewardPerVote: BigNumber.from(600000)
-        } as Quest)
-    }
-
+    await Promise.all(questsIdsFromContract.map(async (id:BigNumber) => {
+        const rawQuest = await questBoardContract.quests(id);
+        const questPeriod = await questBoardContract.periodsByQuest(id, period)
+        const quest:Quest = {
+            questID: id,
+            creator: rawQuest.creator,
+            gauge: rawQuest.gauge,
+            rewardToken: rawQuest.rewardToken,
+            duration: BigNumber.from(rawQuest.duration),
+            periodStart: BigNumber.from(rawQuest.periodStart),
+            objectiveVotes: questPeriod[2],
+            rewardPerVote: questPeriod[1]
+        }
+        quests.push(quest)
+    }))
     return quests;
 }
 
@@ -54,11 +59,9 @@ export const getQuestsFromPeriod = async (period:BigNumber):Promise<Quest[]> => 
  */
 /*const test = async () => {
     const questBoardContract:ethers.Contract = new ethers.Contract(WARDEN_QUEST_CONTRACT_ADRESS, questBoardABI, provider);
-    const periods = await questBoardContract.getAllPeriodsForQuestId(BigNumber.from(1));
-    console.log(periods)
     const period:BigNumber = await questBoardContract.currentPeriod();
-    console.log(period.toString())
-    //await getQuestsFromPeriod(period);
+    const quests = await getQuestsFromPeriod(BigNumber.from(1646870400));
+    console.log(quests)
 }
 
 test();*/

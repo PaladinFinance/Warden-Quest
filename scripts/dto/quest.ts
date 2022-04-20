@@ -6,7 +6,7 @@ export interface Quest{
     gauge:string;
     rewardToken:string;
     duration:BigNumber;
-    startPeriod:BigNumber;
+    periodStart:BigNumber;
     objectiveVotes:BigNumber;
     rewardPerVote:BigNumber;
 }

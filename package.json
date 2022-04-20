@@ -12,6 +12,7 @@
     "gv": "ts-node scripts/utils/gaugeVotes.utils.ts",
     "mg": "ts-node scripts/merkle/merkleGenerator.ts",
     "qu": "ts-node scripts/utils/quests.utils.ts",
+    "tes": "ts-node scripts/utils/test.utils.ts",
     "te": "ts-node scripts/testMerkle.ts"
   },
   "author": "",
