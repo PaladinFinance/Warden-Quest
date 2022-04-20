@@ -14,7 +14,7 @@ import { parseBalanceMap } from "./src/parse-balance-map";
 const generateMerkleScore = async (quest: Quest, votesEvents:ethers.utils.LogDescription[]) => {
     console.log('Start merkle for ', quest.questID.toString())
     let listOfVotes:Vote[] = await getVotesForGauge(votesEvents, quest.gauge, quest.periodStart);
-    console.log(listOfVotes.length)
+    console.log(listOfVotes.length,' votes for the gauge')
     let score:Score = {}
     let balance:Balance = {}
     let totalBias:BigNumber = BigNumber.from(0);
@@ -64,14 +64,15 @@ export const generateMerkleScoresForPeriod = async (period:BigNumber) => {
     
     const quests = await getQuestsFromPeriod(period);
     const voteEvents = await getVotesEvents(period)
-    const merkleRoots:{questId:string, merkleRoot:string}[] = [];
+    const merkleRoots:{questId:string, merkleRoot:string, tokenTotal:string}[] = [];
 
     for(const quest of quests){
         let scoreAndBalance =  await generateMerkleScore(quest, voteEvents);
         let merkleTree = parseBalanceMap(scoreAndBalance.balance);
         merkleRoots.push({
             questId: quest.questID.toString(),
-            merkleRoot: merkleTree.merkleRoot
+            merkleRoot: merkleTree.merkleRoot,
+            tokenTotal: BigNumber.from(merkleTree.tokenTotal).toString()
         })
         try {
             fs.writeFileSync(`scripts/data/${quest.periodStart.toString()}/${quest.questID.toString()}_merkle_root.json`, JSON.stringify(merkleTree));

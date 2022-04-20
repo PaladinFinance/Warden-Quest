@@ -1,8 +1,6 @@
 export { };
 const hre = require("hardhat");
 import { BigNumber } from "@ethersproject/bignumber";
-import { IERC20 } from "../../../typechain/IERC20";
-import { IERC20__factory } from "../../../typechain/factories/IERC20__factory";
 
 const ethers = hre.ethers;
 
@@ -58,20 +56,15 @@ async function main() {
     for(let i = 0; i < quest_roots.length; i++){
         quest_ids[i] = quest_roots[i].questId
         roots[i] = quest_roots[i].merkleRoot
-        total_amounts[i] = quest_roots[i].tokenTotal
+        total_amounts[i] = BigNumber.from(quest_roots[i].tokenTotal)
     }
 
-    console.log(quest_ids)
-    console.log(roots)
-    console.log(total_amounts)
-
-
-    /*console.log('Adding Merkle Roots to the contracts ...')
+    console.log('Adding Merkle Roots to the contracts ...')
     tx = await board.connect(deployer).addMultipleMerkleRoot(quest_ids, period_ts, total_amounts, roots)
     await tx.wait(10)
 
     console.log()
-    console.log('Done !')*/
+    console.log('Done !')
 
 }
 
