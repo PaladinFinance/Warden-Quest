@@ -18,7 +18,7 @@ const params_path = () => {
 const param_file_path = params_path();
 
 const { 
-    BOARD_ADDRESS
+    BOARD_ADDRESS, DISTRIBUTOR_ADDRESS
 } = require(param_file_path);
 
 
@@ -47,6 +47,10 @@ async function main() {
 
     const board = QuestBoard.attach(BOARD_ADDRESS);
 
+    const Distributor = await ethers.getContractFactory("MultiMerkleDistributor");
+
+    const distributor = Distributor.attach(DISTRIBUTOR_ADDRESS);
+
     console.log('Fetching Merkle Roots ...')
 
     let quest_ids: BigNumber[] = []
@@ -58,6 +62,12 @@ async function main() {
         roots[i] = quest_roots[i].merkleRoot
         total_amounts[i] = BigNumber.from(quest_roots[i].tokenTotal)
     }
+
+    console.log(total_amounts)
+    console.log()
+    console.log(await distributor.questRewardsPerPeriod(quest_ids[0], period_ts))
+    console.log(await distributor.questRewardsPerPeriod(quest_ids[1], period_ts))
+    console.log(await distributor.questRewardsPerPeriod(quest_ids[2], period_ts))
 
     console.log('Adding Merkle Roots to the contracts ...')
     tx = await board.connect(deployer).addMultipleMerkleRoot(quest_ids, period_ts, total_amounts, roots)
