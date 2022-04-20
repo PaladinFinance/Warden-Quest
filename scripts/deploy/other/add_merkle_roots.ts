@@ -37,6 +37,10 @@ async function main() {
 
     const period_ts = closed_period.div(WEEK).mul(WEEK)
 
+    const merkleRoots_file_path = "../../data/" + period_ts.toString() + "/" + period_ts.toString() + "_quests_merkle_roots.json"
+
+    const quest_roots = require(merkleRoots_file_path)
+
     let tx;
 
     const deployer = (await hre.ethers.getSigners())[0];
@@ -51,13 +55,23 @@ async function main() {
     let total_amounts: BigNumber[] = []
     let roots: String[] = []
 
+    for(let i = 0; i < quest_roots.length; i++){
+        quest_ids[i] = quest_roots[i].questId
+        roots[i] = quest_roots[i].merkleRoot
+        total_amounts[i] = quest_roots[i].tokenTotal
+    }
 
-    console.log('Adding Merkle Roots to the contracts ...')
+    console.log(quest_ids)
+    console.log(roots)
+    console.log(total_amounts)
+
+
+    /*console.log('Adding Merkle Roots to the contracts ...')
     tx = await board.connect(deployer).addMultipleMerkleRoot(quest_ids, period_ts, total_amounts, roots)
     await tx.wait(10)
 
     console.log()
-    console.log('Done !')
+    console.log('Done !')*/
 
 }
 

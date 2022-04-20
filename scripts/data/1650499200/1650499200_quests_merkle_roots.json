@@ -1,0 +1,14 @@
+[
+    {
+        "questId": "0",
+        "merkleRoot": "0x833a688eee18d79cf878d286a9ca3b14cb7ecaf494309f8099b3a956e147634e"
+    },
+    {
+        "questId": "1",
+        "merkleRoot": "0x37ead6ea3f9edef911b3589a50f4eb35eb57f60e12fc2e4ebcde2d3fe75361b5"
+    },
+    {
+        "questId": "2",
+        "merkleRoot": "0x9d7053f23aed9101ca407b58a75f93b1ee112923c1bfbb3e2151289e08779373"
+    }
+]
