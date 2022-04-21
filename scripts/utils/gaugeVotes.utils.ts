@@ -129,11 +129,9 @@ export const getVotesForGauge = async (gaugeControllerVote: ethers.utils.LogDesc
 }
 
 export const biasChecker = async (gaugeAdress:string, reference:BigNumber, listOfVotes:Vote[]):Promise<boolean> => {
-
-    const scanBlockNumber = await DateUtils.getTimestampBlock(reference.toNumber(), provider);
     const gaugeController:ethers.Contract = new ethers.Contract(GAUGE_CONTROLLER_ADRESS, curveGaugeControllerABI, provider);
 
-    let gaugePointsWeight = (await gaugeController.points_weight(gaugeAdress, reference, {blockTag: scanBlockNumber}))
+    let gaugePointsWeight = (await gaugeController.points_weight(gaugeAdress, reference))
     let totalVoteBias = BigNumber.from(0);
 
     listOfVotes.forEach((vote:Vote) => {

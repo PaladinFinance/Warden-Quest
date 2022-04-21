@@ -20,14 +20,21 @@ export const createQuest = async () => {
 }
 
 export const getQuestFromId = async (questId: string):Promise<Quest> => {
-    let quest:Quest ={
-        questID: BigNumber.from(questId),
-        gauge: "0xF98450B5602fa59CC66e1379DFfB6FDDc724CfC4",
-        periodStart: BigNumber.from(1639612800),
-        objectiveVotes: BigNumber.from("0x06da4bd219e99a12b0e380"),
-        rewardPerVote: BigNumber.from(12)
-    } as Quest
-
+    const questBoardContract:ethers.Contract = new ethers.Contract(WARDEN_QUEST_CONTRACT_ADRESS, questBoardABI, provider);
+    const id = BigNumber.from(questId);
+    const period = await questBoardContract.getCurrentPeriod();
+    const rawQuest = await questBoardContract.quests(id);
+    const questPeriod = await questBoardContract.periodsByQuest(id, period)
+    const quest:Quest = {
+        questID: id,
+        creator: rawQuest.creator,
+        gauge: rawQuest.gauge,
+        rewardToken: rawQuest.rewardToken,
+        duration: BigNumber.from(rawQuest.duration),
+        periodStart: BigNumber.from(questPeriod[5]),
+        objectiveVotes: questPeriod[2],
+        rewardPerVote: questPeriod[1]
+    }
     return quest;
 }
 
@@ -45,7 +52,7 @@ export const getQuestsFromPeriod = async (period:BigNumber):Promise<Quest[]> => 
             gauge: rawQuest.gauge,
             rewardToken: rawQuest.rewardToken,
             duration: BigNumber.from(rawQuest.duration),
-            periodStart: BigNumber.from(rawQuest.periodStart),
+            periodStart: BigNumber.from(questPeriod[5]),
             objectiveVotes: questPeriod[2],
             rewardPerVote: questPeriod[1]
         }
