@@ -72,7 +72,7 @@ export const generateMerkleScoresForPeriod = async (period:BigNumber) => {
         merkleRoots.push({
             questId: quest.questID.toString(),
             merkleRoot: merkleTree.merkleRoot,
-            tokenTotal: BigNumber.from(merkleTree.tokenTotal).toString()
+            tokenTotal: merkleTree.tokenTotal
         })
         try {
             fs.writeFileSync(`scripts/data/${quest.periodStart.toString()}/${quest.questID.toString()}_merkle_root.json`, JSON.stringify(merkleTree));
