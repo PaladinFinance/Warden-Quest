@@ -29,8 +29,19 @@ const {
 const WEEK = BigNumber.from(86400 * 7)
 const UNIT = ethers.utils.parseEther('1')
 
- 
-const period_to_close = BigNumber.from('1651104000')
+// Tokens params : 
+
+const token_list = [
+    "0xdBdb4d16EdA451D0503b854CF79D55697F90c8DF",
+    "0x31429d1856aD1377A8A0079410B297e1a9e214c2",
+    "0xCdF7028ceAB81fA0C6971208e83fa7872994beE5"
+]
+const minTokenAmounts = [
+    ethers.utils.parseEther("0.0000003"),
+    ethers.utils.parseEther("0.0001"),
+    ethers.utils.parseEther("0.00025")
+]
+
 
 
 async function main() {
@@ -43,10 +54,9 @@ async function main() {
 
     const board = QuestBoard.attach(BOARD_ADDRESS);
 
-    console.log('Closing the period ...')
-    const period_ts = period_to_close.div(WEEK).mul(WEEK)
-
-    tx = await board.connect(deployer).closeQuestPeriod(period_ts)
+    console.log()
+    console.log('Whitelisting tokens ...')
+    tx = await board.connect(deployer).whitelistMultipleTokens(token_list, minTokenAmounts)
     await tx.wait(10)
 
     console.log()

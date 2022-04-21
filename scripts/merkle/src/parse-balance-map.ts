@@ -25,7 +25,7 @@ interface MerkleDistributorInfo {
 
 type NewFormat = { address: string; questID:BigNumber; period:BigNumber; earnings: string; reasons: string }
 
-export function parseBalanceMap(balances: Balance | NewFormat[]): MerkleDistributorInfo {
+export function parseBalanceMap(balances: Balance): MerkleDistributorInfo {
   // if balances are in an old format, process them
   const balancesInNewFormat: NewFormat[] = Array.isArray(balances)
     ? balances
@@ -74,21 +74,21 @@ export function parseBalanceMap(balances: Balance | NewFormat[]): MerkleDistribu
     const { amount, flags } = dataByAddress[address]
     memo[address] = {
       index,
-      amount: amount.toHexString(),
+      amount: amount.toString(),
       proof: tree.getProof(dataByAddress[address].questID, dataByAddress[address].period, index, address, amount),
       ...(flags ? { flags } : {}),
     }
     return memo
   }, {})
 
-  const tokenTotal: BigNumber = sortedAddresses.reduce<BigNumber>(
-    (memo, key) => memo.add(dataByAddress[key].amount),
+  const tokenTotal: BigNumber = Object.keys(balances).reduce<BigNumber>(
+    (memo, key) => memo.add(balances[key].earning),
     BigNumber.from(0)
   )
 
   return {
     merkleRoot: tree.getHexRoot(),
-    tokenTotal: tokenTotal.toHexString(),
+    tokenTotal: tokenTotal.toString(),
     claims,
   }
 }
