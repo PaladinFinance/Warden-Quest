@@ -58,6 +58,7 @@ async function main() {
     let roots: String[] = []
 
     for(let i = 0; i < quest_roots.length; i++){
+        if(quest_ids[i].eq(0)) continue
         quest_ids[i] = quest_roots[i].questId
         roots[i] = quest_roots[i].merkleRoot
         total_amounts[i] = BigNumber.from(quest_roots[i].tokenTotal)

@@ -1926,8 +1926,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
 
-                const expected_completion = all_biases[i][0].gte(target_votes[i]) ? UNIT : all_biases[i][0].mul(UNIT).div(target_votes[i])
-                const expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
+                const expected_distribute_amount = all_biases[i][0].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][0].mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -1972,8 +1971,7 @@ describe('QuestBoard contract tests', () => {
                 for (let i = 0; i < gauges.length; i++) {
                     let questPriod_data = await board.periodsByQuest(questIDs[i], toClose_period)
 
-                    let expected_completion = all_biases[i][j].gte(target_votes[i]) ? UNIT : all_biases[i][j].mul(UNIT).div(target_votes[i])
-                    let expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
+                    let expected_distribute_amount = all_biases[i][j].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][j].mul(reward_per_vote[i]).div(UNIT)
                     let expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                     expect(questPriod_data.currentState).to.be.eq(2)
@@ -2154,8 +2152,7 @@ describe('QuestBoard contract tests', () => {
 
                 const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
 
-                const expected_completion = all_biases[i][0].gte(target_votes[i]) ? UNIT : all_biases[i][0].mul(UNIT).div(target_votes[i])
-                const expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
+                const expected_distribute_amount = all_biases[i][0].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][0].mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -2216,8 +2213,7 @@ describe('QuestBoard contract tests', () => {
 
                     let questPriod_data = await board.periodsByQuest(questIDs[i], toClose_period)
 
-                    let expected_completion = all_biases[i][j].gte(target_votes[i]) ? UNIT : all_biases[i][j].mul(UNIT).div(target_votes[i])
-                    let expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
+                    let expected_distribute_amount = all_biases[i][j].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][j].mul(reward_per_vote[i]).div(UNIT)
                     let expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                     expect(questPriod_data.currentState).to.be.eq(2)
@@ -2398,8 +2394,7 @@ describe('QuestBoard contract tests', () => {
 
                 const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
 
-                const expected_completion = all_biases[i][0].gte(target_votes[i]) ? UNIT : all_biases[i][0].mul(UNIT).div(target_votes[i])
-                const expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
+                const expected_distribute_amount = all_biases[i][0].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][0].mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -2441,8 +2436,7 @@ describe('QuestBoard contract tests', () => {
 
                 const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
 
-                const expected_completion = all_biases[i][0].gte(target_votes[i]) ? UNIT : all_biases[i][0].mul(UNIT).div(target_votes[i])
-                const expected_distribute_amount = rewards_per_period[i].mul(expected_completion).div(UNIT)
+                const expected_distribute_amount = all_biases[i][0].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][0].mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
