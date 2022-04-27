@@ -1,29 +1,35 @@
-import { BigNumber, utils } from 'ethers'
-import { Balance } from '../../dto/balance'
-import BalanceTree from './balance-tree'
+import { BigNumber, utils, constants } from "ethers";
+import { Balance } from "../../dto/balance";
+import BalanceTree from "./balance-tree";
 
-const { isAddress, getAddress } = utils
+const { isAddress, getAddress } = utils;
 
 // This is the blob that gets distributed and pinned to IPFS.
 // It is completely sufficient for recreating the entire merkle tree.
 // Anyone can verify that all air drops are included in the tree,
 // and the tree has no additional distributions.
 interface MerkleDistributorInfo {
-  merkleRoot: string
-  tokenTotal: string
+  merkleRoot: string;
+  tokenTotal: string;
   claims: {
     [account: string]: {
-      index: number
-      amount: string
-      proof: string[]
+      index: number;
+      amount: string;
+      proof: string[];
       flags?: {
-        [flag: string]: boolean
-      }
-    }
-  }
+        [flag: string]: boolean;
+      };
+    };
+  };
 }
 
-type NewFormat = { address: string; questID:BigNumber; period:BigNumber; earnings: string; reasons: string }
+type NewFormat = {
+  address: string;
+  questID: BigNumber;
+  period: BigNumber;
+  earnings: string;
+  reasons: string;
+};
 
 export function parseBalanceMap(balances: Balance): MerkleDistributorInfo {
   // if balances are in an old format, process them
@@ -35,60 +41,87 @@ export function parseBalanceMap(balances: Balance): MerkleDistributorInfo {
           questID: balances[account].questID,
           period: balances[account].period,
           earnings: `0x${balances[account].earning}`,
-          reasons: '',
+          reasons: "",
         })
-      )
+      );
 
   const dataByAddress = balancesInNewFormat.reduce<{
-    [address: string]: { questID:BigNumber; period:BigNumber;amount: BigNumber; flags?: { [flag: string]: boolean } }
-  }>((memo, { address: account,questID, period, earnings, reasons }) => {
+    [address: string]: {
+      questID: BigNumber;
+      period: BigNumber;
+      amount: BigNumber;
+      flags?: { [flag: string]: boolean };
+    };
+  }>((memo, { address: account, questID, period, earnings, reasons }) => {
     if (!isAddress(account)) {
-      throw new Error(`Found invalid address: ${account}`)
+      throw new Error(`Found invalid address: ${account}`);
     }
-    const parsed = getAddress(account)
-    if (memo[parsed]) throw new Error(`Duplicate address: ${parsed}`)
-    const parsedNum = BigNumber.from(earnings)
-    if (parsedNum.lte(0)) throw new Error(`Invalid amount for account: ${account}`)
+    const parsed = getAddress(account);
+    if (memo[parsed]) throw new Error(`Duplicate address: ${parsed}`);
+    const parsedNum = BigNumber.from(earnings);
+    if (parsedNum.lte(0))
+      throw new Error(`Invalid amount for account: ${account}`);
 
     const flags = {
-      isSOCKS: reasons.includes('socks'),
-      isLP: reasons.includes('lp'),
-      isUser: reasons.includes('user'),
-    }
+      isSOCKS: reasons.includes("socks"),
+      isLP: reasons.includes("lp"),
+      isUser: reasons.includes("user"),
+    };
 
-    memo[parsed] = { questID:questID, period:period,amount: parsedNum, ...(reasons === '' ? {} : { flags }) }
-    return memo
-  }, {})
+    memo[parsed] = {
+      questID: questID,
+      period: period,
+      amount: parsedNum,
+      ...(reasons === "" ? {} : { flags }),
+    };
+    return memo;
+  }, {});
 
-  const sortedAddresses = Object.keys(dataByAddress).sort()
+  const sortedAddresses = Object.keys(dataByAddress).sort();
 
   // construct a tree
   const tree = new BalanceTree(
-    sortedAddresses.map((address) => ({ questID:dataByAddress[address].questID, period:dataByAddress[address].period, account: address, amount: dataByAddress[address].amount }))
-  )
+    sortedAddresses.map((address) => ({
+      questID: dataByAddress[address].questID,
+      period: dataByAddress[address].period,
+      account: address,
+      amount: dataByAddress[address].amount,
+    }))
+  );
 
   // generate claims
   const claims = sortedAddresses.reduce<{
-    [address: string]: {amount: string; index: number; proof: string[]; flags?: { [flag: string]: boolean } }
+    [address: string]: {
+      amount: string;
+      index: number;
+      proof: string[];
+      flags?: { [flag: string]: boolean };
+    };
   }>((memo, address, index) => {
-    const { amount, flags } = dataByAddress[address]
+    const { amount, flags } = dataByAddress[address];
     memo[address] = {
       index,
       amount: amount.toString(),
-      proof: tree.getProof(dataByAddress[address].questID, dataByAddress[address].period, index, address, amount),
+      proof: tree.getProof(
+        dataByAddress[address].questID,
+        dataByAddress[address].period,
+        index,
+        address,
+        amount
+      ),
       ...(flags ? { flags } : {}),
-    }
-    return memo
-  }, {})
+    };
+    return memo;
+  }, {});
 
   const tokenTotal: BigNumber = Object.keys(balances).reduce<BigNumber>(
     (memo, key) => memo.add(balances[key].earning),
     BigNumber.from(0)
-  )
+  );
 
   return {
     merkleRoot: tree.getHexRoot(),
-    tokenTotal: tokenTotal.toString(),
+    tokenTotal: tokenTotal.div(constants.WeiPerEther).toString(),
     claims,
-  }
+  };
 }
