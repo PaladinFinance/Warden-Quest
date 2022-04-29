@@ -719,17 +719,12 @@ contract QuestBoard is Owner, ReentrancyGuard {
             _questPeriod.withdrawableAmount = _questPeriod.rewardAmountPerPeriod;
         }
         else{
-            // For here, 100% completion is 1e18 (represented by the UNIT constant).
-            // The completion percentage is calculated based on the Gauge bias for 
-            // the next period (all accrued from previous periods),
-            // and the Bias objective for this period as listed in the Quest Period.
-            // To get how much rewards to distribute, we can multiply by the completion value
-            // (that will be between 0 & UNIT), and divided by UNIT.
+            // For here, if the Gauge Bias is equal or greater than the objective, 
+            // set all the period reward to be distributed.
+            // If the bias is less, we take that bias, and calculate the amount of rewards based
+            // on the rewardPerVote & the Gauge bias
 
-            uint256 objectiveCompletion = periodBias >= _questPeriod.objectiveVotes ? UNIT : (periodBias * UNIT) / _questPeriod.objectiveVotes;
-
-            // Using the completion ratio, we calculate the amount to distribute
-            uint256 toDistributeAmount = (_questPeriod.rewardAmountPerPeriod * objectiveCompletion) / UNIT;
+            uint256 toDistributeAmount = periodBias >= _questPeriod.objectiveVotes ? _questPeriod.rewardAmountPerPeriod : (periodBias * _questPeriod.rewardPerVote) / UNIT;
 
             _questPeriod.rewardAmountDistributed = toDistributeAmount;
             // And the rest is set as withdrawable amount, that the Quest creator can retrieve
