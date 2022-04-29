@@ -69,7 +69,25 @@ async function main() {
 
 
     if(network === 'mainnet') {
-        //add Etherscan verif here
+        await hre.run("verify:verify", {
+            address: distributor.address,
+            constructorArguments: [
+                board.address
+            ],
+        });
+
+        await hre.run("verify:verify", {
+            address: board.address,
+            constructorArguments: [
+                GAUGE_CONTROLLER,
+                chest.address
+            ],
+        });
+
+        await hre.run("verify:verify", {
+            address: chest.address,
+            constructorArguments: [],
+        });
     }
 }
 

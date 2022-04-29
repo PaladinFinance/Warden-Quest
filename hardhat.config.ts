@@ -10,7 +10,7 @@ import "hardhat-gas-reporter";
 
 require("dotenv").config();
 
-/*['fork'].forEach(
+['fork'].forEach(
   (folder) => {
     const tasksPath = path.join(__dirname, 'tasks', folder);
     fs.readdirSync(tasksPath)
@@ -19,7 +19,7 @@ require("dotenv").config();
         require(`${tasksPath}/${task}`);
       });
   }
-);*/
+);
 
 
 const config: HardhatUserConfig = {

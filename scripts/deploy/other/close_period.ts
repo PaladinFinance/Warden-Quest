@@ -30,7 +30,7 @@ const WEEK = BigNumber.from(86400 * 7)
 const UNIT = ethers.utils.parseEther('1')
 
  
-const period_to_close = BigNumber.from('1651104000')
+const period_to_close = BigNumber.from('')
 
 
 async function main() {
