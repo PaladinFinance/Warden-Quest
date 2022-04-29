@@ -137,65 +137,6 @@ const getUsefulVotesOnGauge = async (
         countForSlopeVote.push(vote);
       }
     })
-<<<<<<< HEAD
-    
-    return listOfEntryVotes
-}
-
-const getUsefulVotesOnGauge = async (votesMap:Map<string, Vote[]>, gaugeAdress:string, reference:BigNumber):Promise<Vote[]> => {
-
-    const listOfVotes = getLastEntryVotes(votesMap)
-    const scanBlockNumber = await DateUtils.getTimestampBlock(reference.toNumber(), provider);
-    const gaugeController:ethers.Contract = new ethers.Contract(GAUGE_CONTROLLER_ADRESS, curveGaugeControllerABI, provider);
-
-    let countForSlopeVote:Vote[] = [];
-    console.log("Waiting one minute for RPC..")
-    await DateUtils.delay(60*1000)
-    //Get all votes slope and calculate the total
-    await Promise.all(listOfVotes.map(async (vote:Vote) => {
-            let userSlope = await gaugeController.vote_user_slopes(vote.user, gaugeAdress, {blockTag:scanBlockNumber});
-
-            if(!userSlope.end.lt(reference)){
-                let user_dt = userSlope.end.sub(reference);
-                let user_bias = userSlope.slope.mul(user_dt);
-                vote.bias = user_bias;
-                countForSlopeVote.push(vote)
-            }
-    }))
-
-    return countForSlopeVote;
-}
-
-export const getVotesForGauge = async (gaugeControllerVote: ethers.utils.LogDescription[], gaugeAdress:string, reference:BigNumber) => {
-
-    console.log('Gettings votes on gauge :', gaugeAdress);
-    const filteredVotesOnGauge = filterVotesOnGauge(gaugeControllerVote, gaugeAdress, reference);
-
-    console.log('Getting useful votes on gauge :')
-    const listOfVotes = await getUsefulVotesOnGauge(filteredVotesOnGauge, gaugeAdress, reference);
-
-    return listOfVotes;
-}
-
-export const biasChecker = async (gaugeAdress:string, reference:BigNumber, listOfVotes:Vote[]):Promise<boolean> => {
-    const gaugeController:ethers.Contract = new ethers.Contract(GAUGE_CONTROLLER_ADRESS, curveGaugeControllerABI, provider);
-
-    let gaugePointsWeight = (await gaugeController.points_weight(gaugeAdress, reference))
-    let totalVoteBias = BigNumber.from(0);
-
-    listOfVotes.forEach((vote:Vote) => {
-        totalVoteBias = totalVoteBias.add(vote.bias);
-    })
-
-
-    console.log('Bias : Calculate :', Display.displayBigNumber(totalVoteBias), 
-    ' | Real : ', Display.displayBigNumber(gaugePointsWeight.bias),
-    ' | Diff : ', Display.displayBigNumber(gaugePointsWeight.bias.sub(totalVoteBias)))
-
-    return totalVoteBias.eq(gaugePointsWeight.bias);
-}
-
-=======
   );
 
   return countForSlopeVote;
@@ -260,7 +201,6 @@ export const biasChecker = async (
 
   return totalVoteBias.eq(gaugePointsWeight.bias);
 };
->>>>>>> e354b23e1b5a04e4e0eb89af3876a00995ff8fbe
 
 /*
  * Tests
