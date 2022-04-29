@@ -14,9 +14,9 @@ import { WEEK } from "../constants/gauge.constants";
 
 const generateMerkleScore = async (quest: Quest, votesEvents:ethers.utils.LogDescription[]) => {
     console.log('Start merkle for ', quest.questID.toString())
-    let listOfVotes:Vote[] = await getVotesForGauge(votesEvents, quest.gauge, BigNumber.from(1650499200).add(WEEK));
+    let listOfVotes:Vote[] = await getVotesForGauge(votesEvents, quest.gauge, BigNumber.from(1651104000).add(WEEK));
     console.log(listOfVotes.length,' votes for the gauge')
-    console.log('Bias checker :', await biasChecker(quest.gauge, BigNumber.from(1650499200).add(WEEK), listOfVotes))
+    console.log('Bias checker :', await biasChecker(quest.gauge, BigNumber.from(1651104000).add(WEEK), listOfVotes))
     let score:Score = {}
     let balance:Balance = {}
     let totalBias:BigNumber = BigNumber.from(0);
@@ -100,8 +100,8 @@ export const generateMerkleScoresForPeriod = async (period:BigNumber) => {
  */
 const gmsTest = async () => {
     //await generateMerkleScoresForQuest("0")
-    //await generateMerkleScoresForPeriod(BigNumber.from(1650499200))
-    const period = BigNumber.from(1650499200);
+    await generateMerkleScoresForPeriod(BigNumber.from(1651708800))
+    /*const period = BigNumber.from(1651708800);
     const quest = {
         questID:BigNumber.from("0x00"),
         creator: "0x26D756D057513a43b89735CBd581d5B6eD1b0711",
@@ -112,7 +112,7 @@ const gmsTest = async () => {
         objectiveVotes: BigNumber.from("0x108b2a2c28029094000000"),
         rewardPerVote: BigNumber.from("0x038d7ea4c68000"),
       }
-    await generateMerkleScore(quest, await getVotesEvents(period));
+    await generateMerkleScore(quest, await getVotesEvents(period));*/
 }
 
 gmsTest();
