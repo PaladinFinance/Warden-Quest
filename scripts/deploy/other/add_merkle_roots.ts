@@ -59,7 +59,7 @@ async function main() {
 
     let k = 0;
     for(let i = 0; i < quest_roots.length; i++){
-        if(quest_roots[i].questId == 0) continue
+        //if(quest_roots[i].questId == 0) continue
         quest_ids[k] = quest_roots[i].questId
         roots[k] = quest_roots[i].merkleRoot
         total_amounts[k] = BigNumber.from(quest_roots[i].tokenTotal)
@@ -69,11 +69,11 @@ async function main() {
     console.log(total_amounts)
     console.log()
     console.log(await distributor.questRewardsPerPeriod(quest_ids[0], period_ts))
-    //console.log(await distributor.questRewardsPerPeriod(quest_ids[1], period_ts))
+    console.log(await distributor.questRewardsPerPeriod(quest_ids[1], period_ts))
 
-    console.log('Adding Merkle Roots to the contracts ...')
+    /*console.log('Adding Merkle Roots to the contracts ...')
     tx = await board.connect(deployer).addMultipleMerkleRoot(quest_ids, period_ts, total_amounts, roots)
-    await tx.wait(10)
+    await tx.wait(10)*/
 
     console.log()
     console.log('Done !')
