@@ -34,12 +34,18 @@ const UNIT = ethers.utils.parseEther('1')
 const token_list = [
     "0xdBdb4d16EdA451D0503b854CF79D55697F90c8DF",
     "0x31429d1856aD1377A8A0079410B297e1a9e214c2",
-    "0xCdF7028ceAB81fA0C6971208e83fa7872994beE5"
+    "0xCdF7028ceAB81fA0C6971208e83fa7872994beE5",
+    "0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32",
+    "0x41D5D79431A913C4aE7d69a668ecdfE5fF9DFB68",
+    "0x2e9d63788249371f1DFC918a52f8d799F4a38C94",
 ]
 const minTokenAmounts = [
     ethers.utils.parseEther("0.0000003"),
     ethers.utils.parseEther("0.0001"),
-    ethers.utils.parseEther("0.00025")
+    ethers.utils.parseEther("0.00025"),
+    ethers.utils.parseEther("0.000008"),
+    ethers.utils.parseEther("0.0000001"),
+    ethers.utils.parseEther("0.0000001"),
 ]
 
 
