@@ -121,7 +121,7 @@ export function parseBalanceMap(balances: Balance): MerkleDistributorInfo {
 
   return {
     merkleRoot: tree.getHexRoot(),
-    tokenTotal: tokenTotal.div(constants.WeiPerEther).toString(),
+    tokenTotal: tokenTotal.toString(),
     claims,
   };
 }

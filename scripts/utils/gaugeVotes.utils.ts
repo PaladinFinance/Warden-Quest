@@ -120,7 +120,7 @@ const getUsefulVotesOnGauge = async (
 
   let countForSlopeVote: Vote[] = [];
   console.log("Waiting one minute for RPC..");
-  await DateUtils.delay(60 * 1000);
+  await DateUtils.delay(10 * 1000);
   //Get all votes slope and calculate the total
   await Promise.all(
     listOfVotes.map(async (vote: Vote) => {
