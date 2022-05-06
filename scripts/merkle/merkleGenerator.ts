@@ -52,20 +52,20 @@ const generateMerkleScore = async (
     voteRewardCheck = voteRewardCheck.add(voteReward);
     //Gaardur
     if (
-      vote.user != "0xc344f940332d3AA76e4f20D7352AAf086480111f" &&
-      vote.user != "0x6d51663c47A1bb3932158F10A11750aF308A2c5C"
+      vote.user === "0xc344f940332d3AA76e4f20D7352AAf086480111f" ||
+      vote.user === "0x6d51663c47A1bb3932158F10A11750aF308A2c5C"
     )
       vote.user = "0x5ACbD1C0Ad98349BCA68B33E1dD3041aa3EeA1Ba";
     //Frieeze
     if (
-      vote.user != "0xfaC2F11ba2577D5122DC1EC5301d35B16688251E" &&
-      vote.user != "0xF89501B77b2FA6329F94F5A05FE84cEbb5c8b1a0"
+      vote.user === "0xfaC2F11ba2577D5122DC1EC5301d35B16688251E" ||
+      vote.user === "0xF89501B77b2FA6329F94F5A05FE84cEbb5c8b1a0"
     )
       vote.user = "0x3Dbf0047dd16BfEC26b18419be6F36382e383852";
     //Koga
     if (
-      vote.user != "0x562821C81BBbFFa42443064917Ee4D90036Fba7c" &&
-      vote.user != "0x9B44473E223f8a3c047AD86f387B80402536B029"
+      vote.user === "0x562821C81BBbFFa42443064917Ee4D90036Fba7c" ||
+      vote.user === "0x9B44473E223f8a3c047AD86f387B80402536B029"
     )
       vote.user = "0x26D756D057513a43b89735CBd581d5B6eD1b0711";
 
