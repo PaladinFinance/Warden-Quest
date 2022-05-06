@@ -9,30 +9,26 @@ import * as fs from "fs";
 import { getQuestFromId, getQuestsFromPeriod } from "../utils/quests.utils";
 import { Quest } from "../dto/quest";
 import { Score } from "../dto/score";
-import { DateUtils } from "../utils/date.utils";
 import { Balance } from "../dto/balance";
 import { parseBalanceMap } from "./src/parse-balance-map";
 import { WEEK } from "../constants/gauge.constants";
 
 const generateMerkleScore = async (
   quest: Quest,
-  votesEvents: ethers.utils.LogDescription[]
+  votesEvents: ethers.utils.LogDescription[],
+  period: BigNumber
 ) => {
   console.log("Start merkle for ", quest.questID.toString());
   let listOfVotes: Vote[] = await getVotesForGauge(
     votesEvents,
     quest.gauge,
-    BigNumber.from(1651104000).add(WEEK)
+    period
   );
 
   console.log(listOfVotes.length, " votes for the gauge");
   console.log(
     "Bias checker :",
-    await biasChecker(
-      quest.gauge,
-      BigNumber.from(1651104000).add(WEEK),
-      listOfVotes
-    )
+    await biasChecker(quest.gauge, period, listOfVotes)
   );
   let score: Score = {};
   let balance: Balance = {};
@@ -110,15 +106,17 @@ const generateMerkleScore = async (
   } catch (err) {
     console.error(err);
   }
-  console.log("Waiting for RPC..");
-  await DateUtils.delay(60);
+
   return { score: score, balance: balance };
 };
-export const generateMerkleScoresForQuest = async (questId: string) => {
+export const generateMerkleScoresForQuest = async (
+  questId: string,
+  period: BigNumber
+) => {
   const quest: Quest = await getQuestFromId(questId);
-  const voteEvents = await getVotesEvents(quest.periodStart);
+  const voteEvents = await getVotesEvents(period);
 
-  await generateMerkleScore(quest, voteEvents);
+  await generateMerkleScore(quest, voteEvents, period);
 };
 
 export const generateMerkleScoresForPeriod = async (period: BigNumber) => {
@@ -131,7 +129,7 @@ export const generateMerkleScoresForPeriod = async (period: BigNumber) => {
   }[] = [];
 
   for (const quest of quests) {
-    let scoreAndBalance = await generateMerkleScore(quest, voteEvents);
+    let scoreAndBalance = await generateMerkleScore(quest, voteEvents, period);
     if (
       Object.values(scoreAndBalance.score).length === 0 ||
       Object.values(scoreAndBalance.balance).length === 0
@@ -166,6 +164,7 @@ export const generateMerkleScoresForPeriod = async (period: BigNumber) => {
  * Test
  */
 const gmsTest = async () => {
+  //await generateMerkleScoresForQuest("1", BigNumber.from(1652313600));
   await generateMerkleScoresForPeriod(BigNumber.from(1652313600));
 };
 
