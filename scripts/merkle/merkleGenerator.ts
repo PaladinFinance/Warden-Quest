@@ -55,7 +55,7 @@ const generateMerkleScore = async (
     //Gaardur
     if (
       vote.user === "0x0037f3Deb586d1b34aBAAe92341F9Bb70527a4d4" ||
-      vote.user === "0x1FBB5a5687E08177e5B70E80D9884910c373F694"
+      vote.user === "0x425d16B0e08a28A3Ff9e4404AE99D78C0a076C5A"
     )
       vote.user = "0x5ACbD1C0Ad98349BCA68B33E1dD3041aa3EeA1Ba";
     //Frieeze
