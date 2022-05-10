@@ -40,7 +40,7 @@ export function parseBalanceMap(balances: Balance): MerkleDistributorInfo {
           address: account,
           questID: balances[account].questID,
           period: balances[account].period,
-          earnings: `0x${balances[account].earning}`,
+          earnings: balances[account].earning,
           reasons: "",
         })
       );
@@ -121,7 +121,7 @@ export function parseBalanceMap(balances: Balance): MerkleDistributorInfo {
 
   return {
     merkleRoot: tree.getHexRoot(),
-    tokenTotal: tokenTotal.div(constants.WeiPerEther).toString(),
+    tokenTotal: tokenTotal.toString(),
     claims,
   };
 }
