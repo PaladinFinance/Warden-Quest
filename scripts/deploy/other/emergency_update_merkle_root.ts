@@ -18,7 +18,7 @@ const params_path = () => {
 const param_file_path = params_path();
 
 const { 
-    BOARD_ADDRESS, DISTRIBUTOR_ADDRESS
+    DISTRIBUTOR_ADDRESS
 } = require(param_file_path);
 
 
@@ -29,6 +29,8 @@ const UNIT = ethers.utils.parseEther('1')
 
  
 const closed_period = BigNumber.from('1652313600')
+
+const quest_id = BigNumber.from('1')
 
 
 async function main() {
@@ -43,36 +45,21 @@ async function main() {
 
     const deployer = (await hre.ethers.getSigners())[0];
 
-    const QuestBoard = await ethers.getContractFactory("QuestBoard");
-
-    const board = QuestBoard.attach(BOARD_ADDRESS);
-
     const Distributor = await ethers.getContractFactory("MultiMerkleDistributor");
 
     const distributor = Distributor.attach(DISTRIBUTOR_ADDRESS);
 
-    console.log('Fetching Merkle Roots ...')
+    console.log('Fetching new Merkle Root ...')
 
-    let quest_ids: BigNumber[] = []
-    let total_amounts: BigNumber[] = []
-    let roots: String[] = []
+    let total_amount = quest_roots[quest_id.toNumber()].tokenTotal
+    let root = quest_roots[quest_id.toNumber()].merkleRoot
 
-    let k = 0;
-    for(let i = 0; i < quest_roots.length; i++){
-        if(quest_roots[i].questId == 1) continue
-        quest_ids[k] = quest_roots[i].questId
-        roots[k] = quest_roots[i].merkleRoot
-        total_amounts[k] = BigNumber.from(quest_roots[i].tokenTotal)
-        k++;
-    }
-
-    console.log(total_amounts)
+    console.log(total_amount)
     console.log()
-    console.log(await distributor.questRewardsPerPeriod(quest_ids[0], period_ts))
-    //console.log(await distributor.questRewardsPerPeriod(quest_ids[1], period_ts))
+    console.log(await distributor.questRewardsPerPeriod(quest_id, period_ts))
 
-    console.log('Adding Merkle Roots to the contracts ...')
-    tx = await board.connect(deployer).addMultipleMerkleRoot(quest_ids, period_ts, total_amounts, roots)
+    console.log('Updating the root ...')
+    tx = await distributor.connect(deployer).emergencyUpdateQuestPeriod(quest_id, period_ts, total_amount, root)
     await tx.wait(10)
 
     console.log()

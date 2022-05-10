@@ -461,6 +461,8 @@ describe('MultiMerkleDistributor contract tests', () => {
 
             it(' should claim correctly', async () => {
     
+                expect(await distributor.isClaimed(quest_id, period, 0)).to.be.false
+    
                 let proof = tree.getProof(quest_id, period, 0, user1.address, user1_claim_amount);
     
                 let old_balance = await CRV.balanceOf(user1.address)
@@ -481,6 +483,8 @@ describe('MultiMerkleDistributor contract tests', () => {
             });
     
             it(' should not allow double claim', async () => {
+    
+                expect(await distributor.isClaimed(quest_id, period, 0)).to.be.false
     
                 let proof = tree.getProof(quest_id, period, 0, user1.address, user1_claim_amount);
     
