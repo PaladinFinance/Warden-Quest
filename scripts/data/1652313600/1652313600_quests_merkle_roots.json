@@ -1,12 +1,1 @@
-[
-  {
-    "questId": "0",
-    "merkleRoot": "0xc83a826298810188cb366e2e149f7300ace0ca74918348c373bb0b90163e1c86",
-    "tokenTotal": "8299088014308575870332"
-  },
-  {
-    "questId": "1",
-    "merkleRoot": "0x6757f2b8bbdd0139a38dc3fc9b36469b82d2be3088d723fecaa9555cbbec017a",
-    "tokenTotal": "1875000000000000000000000"
-  }
-]
+[{"questId":"1","merkleRoot":"0x7ee459b4f346bf5e84130022a7306a02ea1f1e9a92eb57a09ee5c6a3119eaea8","tokenTotal":"1875000000000000000000000"},{"questId":"0","merkleRoot":"0xc54b23730909129aa7878d4d4ccbb86c0fbbe81757008ed00eea584b5aa4c969","tokenTotal":"10983554109405075449200"}]
