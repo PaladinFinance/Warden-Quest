@@ -172,9 +172,3 @@ export const generateMerkleScoresForPeriod = async (period: BigNumber) => {
 /**
  * Test
  */
-const gmsTest = async () => {
-  //await generateMerkleScoresForQuest("1", BigNumber.from(1652313600));
-  await generateMerkleScoresForPeriod(BigNumber.from(1652313600));
-};
-
-gmsTest();
