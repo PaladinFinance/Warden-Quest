@@ -1,57 +1,44 @@
 import { BigNumber, ethers } from "ethers";
 import { Vote } from "../dto/vote";
-import {
-  biasChecker,
-  getVotesEvents,
-  getVotesForGauge,
-} from "../utils/gaugeVotes.utils";
+import { biasChecker, getVotesEvents, getVotesForGauge } from "../utils/gaugeVotes.utils";
 import * as fs from "fs";
 import { getQuestFromId, getQuestsFromPeriod } from "../utils/quests.utils";
 import { Quest } from "../dto/quest";
 import { Score } from "../dto/score";
 import { Balance } from "../dto/balance";
 import { parseBalanceMap } from "./src/parse-balance-map";
-import { WEEK } from "../constants/gauge.constants";
 
-const generateMerkleScore = async (
-  quest: Quest,
-  votesEvents: ethers.utils.LogDescription[],
-  period: BigNumber
-) => {
+const generateMerkleScore = async (quest: Quest, votesEvents: ethers.utils.LogDescription[], period: BigNumber) => {
   console.log("Start merkle for ", quest.questID.toString());
-  let listOfVotes: Vote[] = await getVotesForGauge(
-    votesEvents,
-    quest.gauge,
-    period
-  );
+
+  let listOfVotes: Vote[] = await getVotesForGauge(votesEvents, quest.gauge, period);
 
   console.log(listOfVotes.length, " votes for the gauge");
-  console.log(
-    "Bias checker :",
-    await biasChecker(quest.gauge, period, listOfVotes)
-  );
+  console.log("Bias checker :", await biasChecker(quest.gauge, period, listOfVotes));
+
   let score: Score = {};
   let balance: Balance = {};
+
   if (listOfVotes.length === 0) return { score: score, balance: balance };
+
   let totalBias: BigNumber = BigNumber.from(0);
   let biasCheck = BigNumber.from(0);
   let voteRewardCheck = BigNumber.from(0);
 
   for (let vote of listOfVotes) {
     if (totalBias.gt(quest.objectiveVotes)) break;
+
     totalBias = totalBias.add(vote.bias);
-    let voteBias = totalBias.gt(quest.objectiveVotes)
-      ? vote.bias.sub(totalBias.sub(quest.objectiveVotes))
-      : vote.bias;
-    biasCheck = biasCheck.add(
-      totalBias.gt(quest.objectiveVotes)
-        ? vote.bias.sub(totalBias.sub(quest.objectiveVotes))
-        : vote.bias
-    );
-    let voteReward = voteBias
-      .mul(quest.rewardPerVote)
-      .div(ethers.constants.WeiPerEther);
+
+    let voteBias = totalBias.gt(quest.objectiveVotes) ? vote.bias.sub(totalBias.sub(quest.objectiveVotes)) : vote.bias;
+
+    biasCheck = biasCheck.add(totalBias.gt(quest.objectiveVotes) ? vote.bias.sub(totalBias.sub(quest.objectiveVotes)) : vote.bias);
+
+    let voteReward = voteBias.mul(quest.rewardPerVote).div(ethers.constants.WeiPerEther);
+
     voteRewardCheck = voteRewardCheck.add(voteBias.mul(quest.rewardPerVote));
+
+    /*
     //Gaardur
     if (
       vote.user === "0x0037f3Deb586d1b34aBAAe92341F9Bb70527a4d4" ||
@@ -70,6 +57,7 @@ const generateMerkleScore = async (
       vote.user === "0x32D03DB62e464c9168e41028FFa6E9a05D8C6451"
     )
       vote.user = "0x26D756D057513a43b89735CBd581d5B6eD1b0711";
+    */
 
     score[vote.user] = {
       time: vote.time.toString(),
@@ -85,43 +73,33 @@ const generateMerkleScore = async (
 
   console.log(
     "biasCheck :",
-    biasCheck
-      .mul(quest.rewardPerVote)
-      .div(ethers.constants.WeiPerEther)
-      .toString(),
+    biasCheck.mul(quest.rewardPerVote).div(ethers.constants.WeiPerEther).toString(),
     " | voteRewardCheck :",
     voteRewardCheck.div(ethers.constants.WeiPerEther).toString(),
     " | diff :",
-    biasCheck
-      .mul(quest.rewardPerVote)
-      .div(ethers.constants.WeiPerEther)
-      .sub(voteRewardCheck.div(ethers.constants.WeiPerEther))
-      .toString()
+    biasCheck.mul(quest.rewardPerVote).div(ethers.constants.WeiPerEther).sub(voteRewardCheck.div(ethers.constants.WeiPerEther)).toString()
   );
+
   try {
     console.log("Writing files for ", quest.questID.toString());
+
     let dir = `scripts/data/${quest.periodStart.toString()}`;
+
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });
     }
-    fs.writeFileSync(
-      dir.concat(`/${quest.questID.toString()}_scores.json`),
-      JSON.stringify(score)
-    );
-    fs.writeFileSync(
-      dir.concat(`/${quest.questID.toString()}_balance.json`),
-      JSON.stringify(balance)
-    );
+
+    fs.writeFileSync(dir.concat(`/${quest.questID.toString()}_scores.json`), JSON.stringify(score));
+
+    fs.writeFileSync(dir.concat(`/${quest.questID.toString()}_balance.json`), JSON.stringify(balance));
   } catch (err) {
     console.error(err);
   }
 
   return { score: score, balance: balance };
 };
-export const generateMerkleScoresForQuest = async (
-  questId: string,
-  period: BigNumber
-) => {
+
+export const generateMerkleScoresForQuest = async (questId: string, period: BigNumber) => {
   const quest: Quest = await getQuestFromId(questId);
   const voteEvents = await getVotesEvents(period);
 
@@ -139,42 +117,27 @@ export const generateMerkleScoresForPeriod = async (period: BigNumber) => {
 
   for (const quest of quests) {
     let scoreAndBalance = await generateMerkleScore(quest, voteEvents, period);
-    if (
-      Object.values(scoreAndBalance.score).length === 0 ||
-      Object.values(scoreAndBalance.balance).length === 0
-    )
-      continue;
+
+    if (Object.values(scoreAndBalance.score).length === 0 || Object.values(scoreAndBalance.balance).length === 0) continue;
+
     let merkleTree = parseBalanceMap(scoreAndBalance.balance);
+
     merkleRoots.push({
       questId: quest.questID.toString(),
       merkleRoot: merkleTree.merkleRoot,
       tokenTotal: merkleTree.tokenTotal,
     });
+
     try {
-      fs.writeFileSync(
-        `scripts/data/${quest.periodStart.toString()}/${quest.questID.toString()}_merkle_root.json`,
-        JSON.stringify(merkleTree)
-      );
+      fs.writeFileSync(`scripts/data/${quest.periodStart.toString()}/${quest.questID.toString()}_merkle_root.json`, JSON.stringify(merkleTree));
     } catch (err) {
       console.error(err);
     }
   }
+
   try {
-    fs.writeFileSync(
-      `scripts/data/${period.toString()}/${period.toString()}_quests_merkle_roots.json`,
-      JSON.stringify(merkleRoots)
-    );
+    fs.writeFileSync(`scripts/data/${period.toString()}/${period.toString()}_quests_merkle_roots.json`, JSON.stringify(merkleRoots));
   } catch (err) {
     console.error(err);
   }
 };
-
-/**
- * Test
- */
-const gmsTest = async () => {
-  //await generateMerkleScoresForQuest("1", BigNumber.from(1652313600));
-  await generateMerkleScoresForPeriod(BigNumber.from(1652313600));
-};
-
-gmsTest();
