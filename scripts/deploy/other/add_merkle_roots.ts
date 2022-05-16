@@ -28,7 +28,7 @@ const WEEK = BigNumber.from(86400 * 7)
 const UNIT = ethers.utils.parseEther('1')
 
  
-const closed_period = BigNumber.from('1652313600')
+const closed_period = BigNumber.from('1652918400')
 
 
 async function main() {
@@ -59,7 +59,7 @@ async function main() {
 
     let k = 0;
     for(let i = 0; i < quest_roots.length; i++){
-        if(quest_roots[i].questId == 1) continue
+        //if(quest_roots[i].questId == 1) continue
         quest_ids[k] = quest_roots[i].questId
         roots[k] = quest_roots[i].merkleRoot
         total_amounts[k] = BigNumber.from(quest_roots[i].tokenTotal)
@@ -68,8 +68,10 @@ async function main() {
 
     console.log(total_amounts)
     console.log()
-    console.log(await distributor.questRewardsPerPeriod(quest_ids[0], period_ts))
-    //console.log(await distributor.questRewardsPerPeriod(quest_ids[1], period_ts))
+    
+    for(let i = 0; i < quest_ids.length; i++){
+      console.log(await distributor.questRewardsPerPeriod(quest_ids[i], period_ts))
+    }
 
     console.log('Adding Merkle Roots to the contracts ...')
     tx = await board.connect(deployer).addMultipleMerkleRoot(quest_ids, period_ts, total_amounts, roots)

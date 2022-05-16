@@ -51,15 +51,23 @@ async function main() {
 
     console.log('Fetching new Merkle Root ...')
 
-    let total_amount = quest_roots[quest_id.toNumber()].tokenTotal
-    let root = quest_roots[quest_id.toNumber()].merkleRoot
+    let file_index = -1;
+    for(let i = 0; i < quest_roots.length; i++){
+        if(quest_roots[i].questId == quest_id.toString()) {
+          file_index = i
+          break
+        }
+    }
+
+    let total_amount = quest_roots[file_index].tokenTotal
+    let root = quest_roots[file_index].merkleRoot
 
     console.log(total_amount)
     console.log()
     console.log(await distributor.questRewardsPerPeriod(quest_id, period_ts))
 
     console.log('Updating the root ...')
-    tx = await distributor.connect(deployer).emergencyUpdateQuestPeriod(quest_id, period_ts, total_amount, root)
+    tx = await distributor.connect(deployer).emergencyUpdateQuestPeriod(quest_id, period_ts, 0, root)
     await tx.wait(10)
 
     console.log()
