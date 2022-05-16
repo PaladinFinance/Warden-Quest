@@ -78,7 +78,7 @@ describe('QuestBoard contract tests', () => {
         controllerFactory = await ethers.getContractFactory("MockGaugeController");
 
         const crv_amount = ethers.utils.parseEther('75000000');
-        const dai_amount = ethers.utils.parseEther('800000000');
+        const dai_amount = ethers.utils.parseEther('80000000');
 
         CRV = IERC20__factory.connect(TOKEN1_ADDRESS, provider);
         DAI = IERC20__factory.connect(TOKEN2_ADDRESS, provider);
