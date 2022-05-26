@@ -115,13 +115,14 @@ export function parseBalanceMap(balances: Balance): MerkleDistributorInfo {
   }, {});
 
   const tokenTotal: BigNumber = Object.keys(balances).reduce<BigNumber>(
-    (memo, key) => memo.add(balances[key].earning),
+    (memo, key) => {
+      return memo.add(balances[key].bias.mul(balances[key].rewardPerVote))},
     BigNumber.from(0)
   );
 
   return {
     merkleRoot: tree.getHexRoot(),
-    tokenTotal: tokenTotal.toString(),
+    tokenTotal: tokenTotal.div(constants.WeiPerEther).toString(),
     claims,
   };
 }

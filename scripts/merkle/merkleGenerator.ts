@@ -15,6 +15,8 @@ const generateMerkleScore = async (quest: Quest, votesEvents: ethers.utils.LogDe
   let listOfVotes: Vote[] = await getVotesForGauge(votesEvents, quest.gauge, period);
 
   console.log(listOfVotes.length, " votes for the gauge");
+  const biasValid = await biasChecker(quest.gauge, period, listOfVotes);
+  console.log('biasCheck', biasValid);
 
   let score: Score = {};
   let balance: Balance = {};
@@ -68,6 +70,8 @@ const generateMerkleScore = async (quest: Quest, votesEvents: ethers.utils.LogDe
       questID: quest.questID,
       period: quest.periodStart,
       earning: voteReward.toString(),
+      bias: voteBias,
+      rewardPerVote:quest.rewardPerVote
     };
   }
 
@@ -121,7 +125,7 @@ export const generateMerkleScoresForPeriod = async (period: BigNumber) => {
     if (Object.values(scoreAndBalance.score).length === 0 || Object.values(scoreAndBalance.balance).length === 0) continue;
 
     let merkleTree = parseBalanceMap(scoreAndBalance.balance);
-
+    console.log(merkleTree.tokenTotal)
     merkleRoots.push({
       questId: quest.questID.toString(),
       merkleRoot: merkleTree.merkleRoot,
