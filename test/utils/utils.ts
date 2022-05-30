@@ -71,3 +71,18 @@ export async function startAutoMine() {
 export async function mineNextBlock() {
     await hre.network.provider.send("evm_mine")
 }
+
+export async function resetFork() {
+    await hre.network.provider.request({
+        method: "hardhat_reset",
+        params: [
+          {
+            forking: {
+                jsonRpcUrl: "https://eth-mainnet.alchemyapi.io/v2/" + (process.env.ALCHEMY_API_KEY || ''),
+                blockNumber: 14753800
+            },
+          },
+        ],
+    });
+
+}
