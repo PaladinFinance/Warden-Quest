@@ -1782,6 +1782,165 @@ describe('QuestPartner contract tests', () => {
 
     });
 
+    describe('updatePartnerShare', async () => {
+        
+        const newShare = 2500
+
+        const target_votes = ethers.utils.parseEther('150000')
+        const reward_per_vote = ethers.utils.parseEther('6')
+        const target_votes2 = ethers.utils.parseEther('1000000')
+        const reward_per_vote2 = ethers.utils.parseEther('0.5')
+
+        const rewards_per_period = ethers.utils.parseEther('900000')
+        const rewards_per_period2 = ethers.utils.parseEther('500000')
+
+        const duration = 4
+        const duration2 = 2
+
+        const total_rewards_amount = rewards_per_period.mul(duration)
+        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_rewards_amount2 = rewards_per_period2.mul(duration2)
+        const total_fees2 = total_rewards_amount2.mul(500).div(10000)
+
+        beforeEach(async () => {
+
+            await board.connect(admin).initiateDistributor(distributor.address)
+
+            await chest.connect(admin).approveManager(partnerWrapper.address)
+
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+            await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
+
+            await controller.add_gauge(gauge1.address, 2)
+            await controller.add_gauge(gauge2.address, 1)
+
+            await DAI.connect(admin).transfer(creator1.address, total_rewards_amount.add(total_fees))
+            await CRV.connect(admin).transfer(creator2.address, total_rewards_amount2.add(total_fees2))
+
+            await DAI.connect(creator1).approve(partnerWrapper.address, total_rewards_amount.add(total_fees))
+            await CRV.connect(creator2).approve(partnerWrapper.address, total_rewards_amount2.add(total_fees2))
+
+        });
+
+        it(' should update the partnerShare correctly (& emit the correct Event)', async () => {
+
+            await expect(
+                partnerWrapper.connect(admin).updatePartnerShare(newShare)
+            ).to.emit(partnerWrapper, "PartnerShareUpdate")
+                .withArgs(newShare);
+            
+            expect(await partnerWrapper.partnerShare()).to.be.eq(newShare)
+
+        });
+
+        it(' should upse the new partner share when creating a Quest', async () => {
+
+            const old_board_balance = await DAI.balanceOf(board.address)
+            const old_chest_balance = await DAI.balanceOf(chest.address)
+            const old_partner_recevier_balance = await DAI.balanceOf(partner_feesReceiver.address)
+
+            const partner_share_amount = total_fees.mul(partner_share).div(10000)
+
+            const create_tx = await partnerWrapper.connect(creator1).createQuest(
+                gauge1.address,
+                DAI.address,
+                duration,
+                target_votes,
+                reward_per_vote,
+                total_rewards_amount,
+                total_fees
+            )
+
+            await expect(
+                create_tx
+            ).to.emit(DAI, "Transfer")
+                .withArgs(creator1.address, partnerWrapper.address, total_rewards_amount.add(total_fees));
+
+            await expect(
+                create_tx
+            ).to.emit(DAI, "Transfer")
+                .withArgs(partnerWrapper.address, board.address, total_rewards_amount);
+
+            await expect(
+                create_tx
+            ).to.emit(DAI, "Transfer")
+                .withArgs(partnerWrapper.address, chest.address, total_fees);
+
+            await expect(
+                    create_tx
+                ).to.emit(DAI, "Transfer")
+                    .withArgs(chest.address, partner_feesReceiver.address, partner_share_amount);
+
+            const new_board_balance = await DAI.balanceOf(board.address)
+            const new_chest_balance = await DAI.balanceOf(chest.address)
+            const new_partner_recevier_balance = await DAI.balanceOf(partner_feesReceiver.address)
+
+            expect(new_board_balance).to.be.eq(old_board_balance.add(total_rewards_amount))
+            expect(new_chest_balance).to.be.eq(old_chest_balance.add(total_fees.sub(partner_share_amount)))
+            expect(new_partner_recevier_balance).to.be.eq(old_partner_recevier_balance.add(partner_share_amount))
+
+            await partnerWrapper.connect(admin).updatePartnerShare(newShare)
+
+            const old_board_balance2 = await CRV.balanceOf(board.address)
+            const old_chest_balance2 = await CRV.balanceOf(chest.address)
+            const old_partner_recevier_balance2 = await CRV.balanceOf(partner_feesReceiver.address)
+
+            const partner_share_amount2 = total_fees2.mul(newShare).div(10000)
+
+            const create_tx2 = await partnerWrapper.connect(creator2).createQuest(
+                gauge2.address,
+                CRV.address,
+                duration2,
+                target_votes2,
+                reward_per_vote2,
+                total_rewards_amount2,
+                total_fees2
+            )
+
+            await expect(
+                create_tx2
+            ).to.emit(CRV, "Transfer")
+                .withArgs(creator2.address, partnerWrapper.address, total_rewards_amount2.add(total_fees2));
+
+            await expect(
+                create_tx2
+            ).to.emit(CRV, "Transfer")
+                .withArgs(partnerWrapper.address, board.address, total_rewards_amount2);
+
+            await expect(
+                create_tx2
+            ).to.emit(CRV, "Transfer")
+                .withArgs(partnerWrapper.address, chest.address, total_fees2);
+
+            await expect(
+                create_tx2
+            ).to.emit(CRV, "Transfer")
+                .withArgs(chest.address, partner_feesReceiver.address, partner_share_amount2);
+
+            const new_board_balance2 = await CRV.balanceOf(board.address)
+            const new_chest_balance2 = await CRV.balanceOf(chest.address)
+            const new_partner_recevier_balance2 = await CRV.balanceOf(partner_feesReceiver.address)
+
+            expect(new_board_balance2).to.be.eq(old_board_balance2.add(total_rewards_amount2))
+            expect(new_chest_balance2).to.be.eq(old_chest_balance2.add(total_fees2.sub(partner_share_amount2)))
+            expect(new_partner_recevier_balance2).to.be.eq(old_partner_recevier_balance2.add(partner_share_amount2))
+
+        });
+
+        it(' should only be callable by admin', async () => {
+
+            await expect(
+                partnerWrapper.connect(partner).updatePartnerShare(newShare)
+            ).to.be.revertedWith('Ownable: caller is not the owner')
+
+            await expect(
+                partnerWrapper.connect(creator1).updatePartnerShare(newShare)
+            ).to.be.revertedWith('Ownable: caller is not the owner')
+
+        });
+
+    });
+
 
     describe('recoverERC20', async () => {
 

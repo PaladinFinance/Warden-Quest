@@ -44,7 +44,7 @@ contract QuestPartner is Owner, ReentrancyGuard {
 
     address public immutable feesReceiver;
 
-    uint256 public immutable partnerShare; //BPS
+    uint256 public partnerShare; //BPS
 
     address[] public voterBlacklist;
 
@@ -62,6 +62,8 @@ contract QuestPartner is Owner, ReentrancyGuard {
     event AddVoterBlacklist(address account);
 
     event RemoveVoterBlacklist(address account);
+
+    event PartnerShareUpdate(uint256 newShare);
 
     event Killed();
 
@@ -93,7 +95,7 @@ contract QuestPartner is Owner, ReentrancyGuard {
         if(_partner == address(0)) revert Errors.ZeroAddress();
         if(_receiver == address(0)) revert Errors.ZeroAddress();
         if(_share == 0) revert Errors.NullAmount();
-        if(_share >= 10000) revert Errors.InvalidParameter();
+        if(_share > 5000) revert Errors.InvalidParameter();
 
         board = QuestBoard(_board);
         chest = QuestTreasureChest(_chest);
@@ -345,6 +347,13 @@ contract QuestPartner is Owner, ReentrancyGuard {
 
 
     // Admin methods
+
+    function updatePartnerShare(uint256 newShare) external onlyOwner {
+        if(newShare > 5000) revert Errors.InvalidParameter();
+        partnerShare = newShare;
+
+        emit PartnerShareUpdate(newShare);
+    }
 
     function kill() external onlyOwner {
         if(killed) revert Errors.AlreadyKilled();
