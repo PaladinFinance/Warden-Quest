@@ -476,16 +476,16 @@ contract QuestBoard is Owner, ReentrancyGuard {
         if(remainingDuration == 0) revert Errors.ExpiredQuest();
 
         // The new reward amount must be higher 
-        uint256 currentPeriod = getCurrentPeriod();
-        if(newRewardPerVote <= periodsByQuest[questID][currentPeriod].rewardPerVote) revert Errors.LowerRewardPerVote();
+        uint256 nextPeriod = getCurrentPeriod() + WEEK;
+        if(newRewardPerVote <= periodsByQuest[questID][nextPeriod].rewardPerVote) revert Errors.LowerRewardPerVote();
 
         // For all non active QuestPeriods (non Closed, nor the current Active one)
         // Calculates the amount of reward token needed with the new rewardPerVote value
         // by calculating the new amount of reward per period, and the difference with the current amount of reward per period
         // to have the exact amount to add for each non-active period, and the exact total amount to add to the Quest
         // (because we don't want to pay for Periods that are Closed or the current period)
-        uint256 newRewardPerPeriod = (periodsByQuest[questID][currentPeriod].objectiveVotes * newRewardPerVote) / UNIT;
-        uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
+        uint256 newRewardPerPeriod = (periodsByQuest[questID][nextPeriod].objectiveVotes * newRewardPerVote) / UNIT;
+        uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][nextPeriod].rewardAmountPerPeriod;
 
         if((diffRewardPerPeriod * remainingDuration) != addedRewardAmount) revert Errors.IncorrectAddedRewardAmount();
         if((addedRewardAmount * platformFee)/MAX_BPS != feeAmount) revert Errors.IncorrectFeeAmount();
@@ -496,7 +496,6 @@ contract QuestBoard is Owner, ReentrancyGuard {
         // And transfer the fees from the Quest creator to the Chest contract
         IERC20(rewardToken).safeTransferFrom(msg.sender, questChest, feeAmount);
 
-        uint256 nextPeriod = currentPeriod + WEEK;
         uint256 periodIterator = nextPeriod;
 
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
@@ -544,16 +543,16 @@ contract QuestBoard is Owner, ReentrancyGuard {
 
         // No need to compare to minObjective : the new value must be higher than current Objective
         // and current objective needs to be >= minObjective
-        uint256 currentPeriod = getCurrentPeriod();
-        if(newObjective <= periodsByQuest[questID][currentPeriod].objectiveVotes) revert Errors.LowerObjective();
+        uint256 nextPeriod = getCurrentPeriod() + WEEK;
+        if(newObjective <= periodsByQuest[questID][nextPeriod].objectiveVotes) revert Errors.LowerObjective();
 
         // For all non active QuestPeriods (non Closed, nor the current Active one)
         // Calculates the amount of reward token needed with the new objective bias
         // by calculating the new amount of reward per period, and the difference with the current amount of reward per period
         // to have the exact amount to add for each non-active period, and the exact total amount to add to the Quest
         // (because we don't want to pay for Periods that are Closed or the current period)
-        uint256 newRewardPerPeriod = (newObjective * periodsByQuest[questID][currentPeriod].rewardPerVote) / UNIT;
-        uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
+        uint256 newRewardPerPeriod = (newObjective * periodsByQuest[questID][nextPeriod].rewardPerVote) / UNIT;
+        uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][nextPeriod].rewardAmountPerPeriod;
 
         if((diffRewardPerPeriod * remainingDuration) != addedRewardAmount) revert Errors.IncorrectAddedRewardAmount();
         if((addedRewardAmount * platformFee)/MAX_BPS != feeAmount) revert Errors.IncorrectFeeAmount();
@@ -565,7 +564,6 @@ contract QuestBoard is Owner, ReentrancyGuard {
         IERC20(rewardToken).safeTransferFrom(msg.sender, questChest, feeAmount);
 
 
-        uint256 nextPeriod = currentPeriod + WEEK;
         uint256 periodIterator = nextPeriod;
 
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
