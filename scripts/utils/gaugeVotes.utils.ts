@@ -87,7 +87,6 @@ const getLastEntryVotes = (listOfVotes: Map<string, Vote[]>): Vote[] => {
 
 const getUsefulVotesOnGauge = async (votesMap: Map<string, Vote[]>, gaugeAdress: string, reference: BigNumber): Promise<Vote[]> => {
   const listOfVotes = getLastEntryVotes(votesMap);
-  const scanBlockNumber = await DateUtils.getTimestampBlock(reference.toNumber(), provider);
   const gaugeController: ethers.Contract = new ethers.Contract(GAUGE_CONTROLLER_ADRESS, curveGaugeControllerABI, provider);
 
   let countForSlopeVote: Vote[] = [];
@@ -96,7 +95,7 @@ const getUsefulVotesOnGauge = async (votesMap: Map<string, Vote[]>, gaugeAdress:
   //Get all votes slope and calculate the total
   await Promise.all(
     listOfVotes.map(async (vote: Vote) => {
-      let userSlope = await gaugeController.vote_user_slopes(vote.user, gaugeAdress, { blockTag: scanBlockNumber });
+      let userSlope = await gaugeController.vote_user_slopes(vote.user, gaugeAdress);
 
       if (!userSlope.end.lt(reference)) {
         let user_dt = userSlope.end.sub(reference);
@@ -121,10 +120,9 @@ export const getVotesForGauge = async (gaugeControllerVote: ethers.utils.LogDesc
 };
 
 export const biasChecker = async (gaugeAdress: string, reference: BigNumber, listOfVotes: Vote[]): Promise<boolean> => {
-  const scanBlockNumber = await DateUtils.getTimestampBlock(reference.toNumber(), provider);
   const gaugeController: ethers.Contract = new ethers.Contract(GAUGE_CONTROLLER_ADRESS, curveGaugeControllerABI, provider);
 
-  let gaugePointsWeight = await gaugeController.points_weight(gaugeAdress, reference, { blockTag: scanBlockNumber });
+  let gaugePointsWeight = await gaugeController.points_weight(gaugeAdress, reference);
   let totalVoteBias = BigNumber.from(0);
 
   listOfVotes.forEach((vote: Vote) => {
