@@ -766,12 +766,20 @@ contract DarkQuestBoard is Owner, ReentrancyGuard {
         if(msg.sender != quests[questID].creator) revert Errors.CallerNotAllowed();
         if(account == address(0)) revert Errors.ZeroAddress();
 
+        if(questPeriods[questID].length == 0) revert Errors.EmptyQuest();
+        uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
+        if(getCurrentPeriod() > lastPeriod) revert Errors.ExpiredQuest();
+
         _addToBlacklist(questID, account);
     }
 
     function addToBlacklist(uint256 questID, address[] calldata accounts) external isAlive nonReentrant {
         if(questID >= nextID) revert Errors.InvalidQuestID();
         if(msg.sender != quests[questID].creator) revert Errors.CallerNotAllowed();
+
+        if(questPeriods[questID].length == 0) revert Errors.EmptyQuest();
+        uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
+        if(getCurrentPeriod() > lastPeriod) revert Errors.ExpiredQuest();
 
         uint256 length = accounts.length;
 
@@ -790,6 +798,10 @@ contract DarkQuestBoard is Owner, ReentrancyGuard {
         if(questID >= nextID) revert Errors.InvalidQuestID();
         if(msg.sender != quests[questID].creator) revert Errors.CallerNotAllowed();
         if(account == address(0)) revert Errors.ZeroAddress();
+
+        if(questPeriods[questID].length == 0) revert Errors.EmptyQuest();
+        uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
+        if(getCurrentPeriod() > lastPeriod) revert Errors.ExpiredQuest();
 
         _removeFromBlacklist(questID, account);
     }
