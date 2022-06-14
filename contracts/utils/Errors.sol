@@ -61,6 +61,7 @@ library Errors {
     error CalletNotQuestCreator();
     error LowerRewardPerVote();
     error LowerObjective();
+    error AlreadyBlacklisted();
 
 
     //Math
