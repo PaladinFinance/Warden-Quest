@@ -15,6 +15,7 @@ library Errors {
     error AlreadyInitialized();
     error InvalidParameter();
     error CannotRecoverToken();
+    error ForbiddenCall();
 
     error Killed();
     error AlreadyKilled();
