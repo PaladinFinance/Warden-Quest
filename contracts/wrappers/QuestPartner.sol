@@ -23,7 +23,7 @@ import "../interfaces/ISimpleDistributor.sol";
 /*
     Contract allowing to create (and manage) Quests
     while sharing fees if the partner
-    Alows to set a balclist of claimers to be applied to all Quests
+    Alows to set a blacklist of claimers to be applied to all Quests
     created by that contract
 */
 
