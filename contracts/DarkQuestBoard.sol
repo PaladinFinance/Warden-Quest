@@ -286,6 +286,10 @@ contract DarkQuestBoard is Owner, ReentrancyGuard {
         return periodAdjustedBias;
     }
 
+    function getQuestBlacklsit(uint256 questID) external view returns(address[] memory){
+        return questBlacklist[questID];
+    }
+
 
     // Functions
 
@@ -369,7 +373,7 @@ contract DarkQuestBoard is Owner, ReentrancyGuard {
             questsByPeriod[vars.periodIterator].push(newQuestID);
 
             // And add the period in the list of periods of the Quest
-            questPeriods[newQuestID][i] = safe48(vars.periodIterator);
+            questPeriods[newQuestID].push(safe48(vars.periodIterator));
 
             periodsByQuest[newQuestID][vars.periodIterator].periodStart = safe48(vars.periodIterator);
             periodsByQuest[newQuestID][vars.periodIterator].objectiveVotes = objective;
@@ -713,7 +717,7 @@ contract DarkQuestBoard is Owner, ReentrancyGuard {
         //We don't want to have 2x the same address in the list
         address[] memory _list = questBlacklist[questID];
         uint256 length = _list.length;
-        for(uint256 i = 0; i < length;){
+        for(uint256 i; i < length;){
             if(_list[i] == account) revert Errors.AlreadyBlacklisted();
             unchecked {
                 ++i;
@@ -729,7 +733,7 @@ contract DarkQuestBoard is Owner, ReentrancyGuard {
         address[] memory _list = questBlacklist[questID];
         uint256 length = _list.length;
 
-        for(uint256 i = 0; i < length;){
+        for(uint256 i; i < length;){
             if(_list[i] == account){
                 if(i != length - 1){
                     questBlacklist[questID][i] = _list[length - 1];
@@ -750,7 +754,7 @@ contract DarkQuestBoard is Owner, ReentrancyGuard {
     function _setQuestBlacklist(uint256 questID, address[] calldata accounts) internal {
         uint256 length = accounts.length;
 
-        for(uint256 i = 0; i < length;){
+        for(uint256 i; i < length;){
             if(accounts[i] == address(0)) revert Errors.ZeroAddress();
 
             _addToBlacklist(questID, accounts[i]);
@@ -773,7 +777,7 @@ contract DarkQuestBoard is Owner, ReentrancyGuard {
         _addToBlacklist(questID, account);
     }
 
-    function addToBlacklist(uint256 questID, address[] calldata accounts) external isAlive nonReentrant {
+    function addMultipleToBlacklist(uint256 questID, address[] calldata accounts) external isAlive nonReentrant {
         if(questID >= nextID) revert Errors.InvalidQuestID();
         if(msg.sender != quests[questID].creator) revert Errors.CallerNotAllowed();
 
@@ -1099,6 +1103,7 @@ contract DarkQuestBoard is Owner, ReentrancyGuard {
         if(correctReducedBias == 0) { 
             // Set rewardAmountDistributed back to 0, get all rewards token back to the Board
             // and put the period rewards as withdrawable for the Quest creator
+            _questPeriod.rewardAmountDistributed = 0;
             _questPeriod.withdrawableAmount = _questPeriod.rewardAmountPerPeriod;
 
             if(!MultiMerkleDistributor(questDistributor).fixQuestPeriod(questID, period, 0)) revert Errors.DisitributorFail();

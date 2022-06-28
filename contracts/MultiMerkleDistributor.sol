@@ -302,7 +302,7 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
 
         if(previousTotalRewardAmount > newTotalRewardAmount){
             // Send back the extra amount of reward token that was incorrectly sent
-            // In the case of missing reward token, the Board will send thme to this contract
+            // In the case of missing reward token, the Board will send them to this contract
 
             uint256 extraAmount = previousTotalRewardAmount - newTotalRewardAmount;
             IERC20(questRewardToken[questID]).safeTransfer(questBoard, extraAmount);
