@@ -13,6 +13,11 @@ task('fork-get-all-ERC20', 'Steal ERC20 amount from holder to send to receiver o
 
         const token_list = [
             {
+                address: "0xba100000625a3754423978a60c9317c58a424e3D", //BAL
+                amount: "1250000",
+                holder: "0xF977814e90dA44bFA03b6295A0616a897441aceC"
+            },
+            /*{
                 address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", //DAI
                 amount: "500000000",
                 holder: "0xE78388b4CE79068e89Bf8aA7f218eF6b9AB0e9d0"
@@ -56,7 +61,7 @@ task('fork-get-all-ERC20', 'Steal ERC20 amount from holder to send to receiver o
                 address: "0x2e9d63788249371f1DFC918a52f8d799F4a38C94", //TOKE
                 amount: "350000",
                 holder: "0x23a5efe19aa966388e132077d733672cf5798c03"
-            },
+            },*/
         ]
 
         if (hre.network.name != 'fork') {
