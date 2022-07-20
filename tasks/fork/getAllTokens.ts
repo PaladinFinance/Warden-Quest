@@ -12,22 +12,22 @@ task('fork-get-all-ERC20', 'Steal ERC20 amount from holder to send to receiver o
     .setAction(async ({receiver, amount, token, holder}, hre) => {
 
         const token_list = [
-            {
+            /*{
                 address: "0xba100000625a3754423978a60c9317c58a424e3D", //BAL
                 amount: "1250000",
                 holder: "0xF977814e90dA44bFA03b6295A0616a897441aceC"
             },
-            /*{
+            {
                 address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", //DAI
-                amount: "500000000",
-                holder: "0xE78388b4CE79068e89Bf8aA7f218eF6b9AB0e9d0"
-            },
+                amount: "250000000",
+                holder: "0x075e72a5eDf65F0A5f44699c7654C1a76941Ddc8"
+            },*/
             {
                 address: "0xD533a949740bb3306d119CC777fa900bA034cd52", //CRV
                 amount: "5000000",
-                holder: "0x7a16fF8270133F063aAb6C9977183D9e72835428"
+                holder: "0x32D03DB62e464c9168e41028FFa6E9a05D8C6451"
             },
-            {
+            /*{
                 address: "0xdBdb4d16EdA451D0503b854CF79D55697F90c8DF", //ALCX
                 amount: "450000",
                 holder: "0x000000000000000000000000000000000000dead"
