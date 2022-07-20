@@ -287,6 +287,29 @@ contract MultiMerkleDistributor is Owner, ReentrancyGuard {
 
         return true;
     }
+
+
+    function fixQuestPeriod(uint256 questID, uint256 period, uint256 newTotalRewardAmount) external returns(bool) {
+        if(msg.sender != questBoard) revert Errors.CallerNotAllowed();
+        period = (period / WEEK) * WEEK;
+        if(questRewardToken[questID] == address(0)) revert Errors.QuestNotListed();
+        if(period == 0) revert Errors.IncorrectPeriod();
+        if(questRewardsPerPeriod[questID][period] == 0) revert Errors.PeriodNotListed();
+
+        uint256 previousTotalRewardAmount = questRewardsPerPeriod[questID][period];
+
+        questRewardsPerPeriod[questID][period] = newTotalRewardAmount;
+
+        if(previousTotalRewardAmount > newTotalRewardAmount){
+            // Send back the extra amount of reward token that was incorrectly sent
+            // In the case of missing reward token, the Board will send them to this contract
+
+            uint256 extraAmount = previousTotalRewardAmount - newTotalRewardAmount;
+            IERC20(questRewardToken[questID]).safeTransfer(questBoard, extraAmount);
+        }
+
+        return true;
+    }
    
     /**
     * @notice Updates the period of a Quest by adding the Merkle Root

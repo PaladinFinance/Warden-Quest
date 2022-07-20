@@ -1766,6 +1766,16 @@ describe('QuestPartner contract tests', () => {
                 )
             ).to.be.revertedWith('ForbiddenCall')
 
+            await chest.connect(admin).approveManager(partnerWrapper.address)
+
+            await expect(
+                partnerWrapper.connect(partner).execute(
+                    chest.address,
+                    0,
+                    call_data1
+                )
+            ).to.be.revertedWith('ForbiddenCall')
+
         });
 
         it(' should block if caller not allowed', async () => {

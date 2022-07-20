@@ -1422,6 +1422,98 @@ describe('MultiMerkleDistributor contract tests', () => {
 
     });
 
+    describe('updateQuestPeriod', async () => {
+
+        const quest_id1 = BigNumber.from(1011)
+        const quest_id2 = BigNumber.from(1012)
+
+        const period = BigNumber.from(1639612800)
+
+        let tree_root: string
+
+        const new_totalRewards = ethers.utils.parseEther('150')
+        const new_totalRewards2 = ethers.utils.parseEther('75')
+
+        beforeEach(async () => {
+
+            await distributor.connect(mockQuestBoard).addQuest(quest_id1, CRV.address)
+
+            await distributor.connect(mockQuestBoard).addQuestPeriod(quest_id1, period, distrib_amount)
+
+            await CRV.connect(admin).transfer(distributor.address, distrib_amount)
+
+        });
+
+        it(' should update the total reward amount correctly', async () => {
+
+            await distributor.connect(mockQuestBoard).fixQuestPeriod(quest_id1, period, new_totalRewards)
+
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period)).to.be.eq(new_totalRewards)
+
+        });
+
+        it(' should return the reward tokens if previous totalRewards were higher', async () => {
+
+            const fix_tx = await distributor.connect(mockQuestBoard).fixQuestPeriod(quest_id1, period, new_totalRewards2)
+
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period)).to.be.eq(new_totalRewards2)
+
+            const reward_diff = distrib_amount.sub(new_totalRewards2)
+
+            await expect(
+                fix_tx
+            ).to.emit(CRV, "Transfer")
+                .withArgs(distributor.address, mockQuestBoard.address, reward_diff);
+
+        });
+
+        it(' should return all rewards if given 0', async () => {
+
+            const fix_tx = await distributor.connect(mockQuestBoard).fixQuestPeriod(quest_id1, period, 0)
+
+            expect(await distributor.questRewardsPerPeriod(quest_id1, period)).to.be.eq(0)
+
+            await expect(
+                fix_tx
+            ).to.emit(CRV, "Transfer")
+                .withArgs(distributor.address, mockQuestBoard.address, distrib_amount);
+
+        });
+
+        it(' should fail if given incorrect QuestID or Period', async () => {
+
+            await expect(
+                distributor.connect(mockQuestBoard).fixQuestPeriod(quest_id2, period, new_totalRewards)
+            ).to.be.revertedWith('QuestNotListed')
+
+            await expect(
+                distributor.connect(mockQuestBoard).fixQuestPeriod(quest_id1, 0, new_totalRewards)
+            ).to.be.revertedWith('IncorrectPeriod')
+
+        });
+
+        it(' should fail if period is not listed yet', async () => {
+
+            await expect(
+                distributor.connect(mockQuestBoard).fixQuestPeriod(quest_id1, period.add(WEEK), new_totalRewards)
+            ).to.be.revertedWith('PeriodNotListed')
+
+        });
+
+        it(' should only be callable by the QuestBoard', async () => {
+
+            await expect(
+                distributor.connect(admin).fixQuestPeriod(quest_id1, period, new_totalRewards)
+            ).to.be.revertedWith('CallerNotAllowed')
+
+            await expect(
+                distributor.connect(user2).fixQuestPeriod(quest_id1, period, new_totalRewards)
+            ).to.be.revertedWith('CallerNotAllowed')
+
+        });
+
+    });
+
 
     /*describe('updateQuestManager', async () => {
 
