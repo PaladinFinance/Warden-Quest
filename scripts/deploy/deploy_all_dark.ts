@@ -11,10 +11,10 @@ const {
 
 const params_path = () => {
     if (network === 'fork') {
-      return '../utils/fork_params'
+      return './utils/fork_params'
     }
     else {
-      return '../utils/main_params'
+      return './utils/main_params'
     }
 }
 
