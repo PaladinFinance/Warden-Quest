@@ -7,6 +7,7 @@ import { Quest } from "../dto/quest";
 import { Score } from "../dto/score";
 import { Balance } from "../dto/balance";
 import { parseBalanceMap } from "./src/parse-balance-map";
+import { WEEK } from "../constants/gauge.constants";
 
 const generateMerkleScore = async (quest: Quest, votesEvents: ethers.utils.LogDescription[], period: BigNumber) => {
   console.log("Start merkle for ", quest.questID.toString());
@@ -14,7 +15,8 @@ const generateMerkleScore = async (quest: Quest, votesEvents: ethers.utils.LogDe
   let listOfVotes: Vote[] = await getVotesForGauge(votesEvents, quest.gauge, period);
 
   console.log(listOfVotes.length, " votes for the gauge");
-  console.log("Bias checker :", await biasChecker(quest.gauge, period, listOfVotes));
+  const biasValid = await biasChecker(quest.gauge, period, listOfVotes);
+  console.log('biasCheck', biasValid);
 
   let score: Score = {};
   let balance: Balance = {};
@@ -68,6 +70,8 @@ const generateMerkleScore = async (quest: Quest, votesEvents: ethers.utils.LogDe
       questID: quest.questID,
       period: quest.periodStart,
       earning: voteReward.toString(),
+      bias: voteBias,
+      rewardPerVote:quest.rewardPerVote
     };
   }
 
@@ -107,7 +111,7 @@ export const generateMerkleScoresForQuest = async (questId: string, period: BigN
 };
 
 export const generateMerkleScoresForPeriod = async (period: BigNumber) => {
-  const quests = await getQuestsFromPeriod(period);
+  const quests = await getQuestsFromPeriod(period.sub(WEEK));
   const voteEvents = await getVotesEvents(period);
   const merkleRoots: {
     questId: string;
@@ -121,7 +125,7 @@ export const generateMerkleScoresForPeriod = async (period: BigNumber) => {
     if (Object.values(scoreAndBalance.score).length === 0 || Object.values(scoreAndBalance.balance).length === 0) continue;
 
     let merkleTree = parseBalanceMap(scoreAndBalance.balance);
-
+    console.log(merkleTree.tokenTotal)
     merkleRoots.push({
       questId: quest.questID.toString(),
       merkleRoot: merkleTree.merkleRoot,
@@ -136,7 +140,7 @@ export const generateMerkleScoresForPeriod = async (period: BigNumber) => {
   }
 
   try {
-    fs.writeFileSync(`scripts/data/${period.toString()}/${period.toString()}_quests_merkle_roots.json`, JSON.stringify(merkleRoots));
+    fs.writeFileSync(`scripts/data/${period.sub(WEEK).toString()}/${period.sub(WEEK).toString()}_quests_merkle_roots.json`, JSON.stringify(merkleRoots));
   } catch (err) {
     console.error(err);
   }

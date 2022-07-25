@@ -1,6 +1,6 @@
 import { BigNumber, ethers } from "ethers";
 import questBoardABI from "../../abi/QuestBoard.json";
-import { WARDEN_QUEST_CONTRACT_ADRESS } from "../constants/gauge.constants";
+import { WARDEN_QUEST_CONTRACT_ADRESS, WEEK } from "../constants/gauge.constants";
 import { Quest } from "../dto/quest";
 const provider = new ethers.providers.JsonRpcProvider(process.env.MAINNET_URI);
 
