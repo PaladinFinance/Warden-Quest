@@ -1,4 +1,5 @@
 import { ethers } from "hardhat";
+import { BigNumber } from "@ethersproject/bignumber";
 
 const TOKEN1_ADDRESS = "0xD533a949740bb3306d119CC777fa900bA034cd52"; //here : CRV
 const TOKEN2_ADDRESS = "0x6B175474E89094C44Da98b954EedeAC495271d0F"; //here : DAI
@@ -8,9 +9,24 @@ const VOTING_ESCROW_ADDRESS = "0x5f3b5DfEb7B28CDbD7FAba78963EE202a494e2A2"; //he
 const BIG_HOLDER1 = "0x7a16fF8270133F063aAb6C9977183D9e72835428"; //here : CRV holder
 const BIG_HOLDER2 = "0xE78388b4CE79068e89Bf8aA7f218eF6b9AB0e9d0"; //here : DAI holder
 
-const VECRV_LOCKING_TIME = Math.floor((86400 * 365 * 4) / (86400 * 7)) * (86400 * 7)
+const TOKEN1_AMOUNT = ethers.utils.parseEther('75000000'); //here : CRV
+const TOKEN2_AMOUNT = ethers.utils.parseEther('80000000'); //here : DAI
+
+const VETOKEN_LOCKING_TIME = Math.floor((86400 * 365 * 4) / (86400 * 7)) * (86400 * 7)
 
 const GAUGE_CONTROLLER = "0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB";
+
+const GAUGES = [
+    "0x903dA6213a5A12B61c821598154EfAd98C3B20E4",
+    "0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A",
+    "0xDeFd8FdD20e0f34115C7018CCfb655796F6B2168"
+]
+
+const TARGET_VOTES = [
+    BigNumber.from("20000000000000000000000000"),
+    BigNumber.from("2600000000000000000000000"),
+    BigNumber.from("40000000000000000000000000")
+]
 
 module.exports = {
     TOKEN1_ADDRESS,
@@ -18,6 +34,10 @@ module.exports = {
     VOTING_ESCROW_ADDRESS,
     BIG_HOLDER1,
     BIG_HOLDER2,
-    VECRV_LOCKING_TIME,
-    GAUGE_CONTROLLER
+    TOKEN1_AMOUNT,
+    TOKEN2_AMOUNT,
+    VETOKEN_LOCKING_TIME,
+    GAUGE_CONTROLLER,
+    GAUGES,
+    TARGET_VOTES
 };
