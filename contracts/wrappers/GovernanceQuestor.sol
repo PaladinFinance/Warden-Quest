@@ -21,7 +21,7 @@ import "../interfaces/ISimpleDistributor.sol";
 /*
     Contract allowing to create (and manage) Quests
     while sharing fees if the partner
-    Alows to set a blacklist of claimers to be applied to all Quests
+    Allows to set a blacklist of claimers to be applied to all Quests
     created by that contract
 */
 
@@ -74,6 +74,11 @@ contract GovernanceQuestor is ReentrancyGuard {
         _;
     }
 
+    modifier managerAndGov(){
+        if(msg.sender != manager && msg.sender != governance) revert Errors.CallerNotAllowed();
+        _;
+    }
+
     modifier notKilled(){
         if(killed) revert Errors.Killed();
         _;
@@ -119,12 +124,12 @@ contract GovernanceQuestor is ReentrancyGuard {
 
     }
 
-    function withdrawUnusedRewards(uint256 questID, address recipient) external notKilled onlyManager nonReentrant {
+    function withdrawUnusedRewards(uint256 questID, address recipient) external managerAndGov nonReentrant {
         if(recipient == address(0)) revert Errors.ZeroAddress();
         board.withdrawUnusedRewards(questID, recipient);
     }
 
-    function withdrawUnusedRewardsMultiple(uint256[] calldata questIDs, address recipient) external notKilled onlyManager nonReentrant {
+    function withdrawUnusedRewardsMultiple(uint256[] calldata questIDs, address recipient) external managerAndGov nonReentrant {
         if(recipient == address(0)) revert Errors.ZeroAddress();
         uint256 length = questIDs.length;
         for(uint256 i; i < length;){
@@ -144,7 +149,7 @@ contract GovernanceQuestor is ReentrancyGuard {
         uint256 index,
         uint256 amount,
         bytes32[] calldata merkleProof
-    ) external notKilled onlyManager nonReentrant {
+    ) external managerAndGov nonReentrant {
         if(recipient == address(0)) revert Errors.ZeroAddress();
         if(distributor == address(0)) revert Errors.ZeroAddress();
 
@@ -154,7 +159,7 @@ contract GovernanceQuestor is ReentrancyGuard {
 
     }
 
-    function emergencyWithdraw(uint256 questID, address recipient) external notKilled onlyManager nonReentrant {
+    function emergencyWithdraw(uint256 questID, address recipient) external managerAndGov nonReentrant {
         if(recipient == address(0)) revert Errors.ZeroAddress();
         board.emergencyWithdraw(questID, recipient);
     }
@@ -168,7 +173,7 @@ contract GovernanceQuestor is ReentrancyGuard {
         emit DurationUpdated(oldDuration, newDuration);
     }
 
-    function changeDuration(uint256 newObjective) external onlyManager {
+    function changeObjective(uint256 newObjective) external onlyManager {
         if(newObjective == 0) revert Errors.NullAmount();
 
         uint256 oldOjective = objective;
