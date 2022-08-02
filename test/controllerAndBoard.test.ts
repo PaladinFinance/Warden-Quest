@@ -15,6 +15,7 @@ import { BigNumber } from "@ethersproject/bignumber";
 import {
     advanceTime,
     getERC20,
+    resetFork,
 } from "./utils/utils";
 
 require("dotenv").config();
@@ -33,7 +34,8 @@ const {
     TOKEN2_AMOUNT,
     GAUGE_CONTROLLER,
     GAUGES,
-    TARGET_VOTES 
+    TARGET_VOTES,
+    BLOCK_NUMBER
 } = require(constants_path);
 
 chai.use(solidity);
@@ -46,7 +48,7 @@ let distributorFactory: ContractFactory
 const WEEK = BigNumber.from(86400 * 7)
 const UNIT = ethers.utils.parseEther('1')
 
-describe('QuestBoard & GaugeController interaction tests', () => {
+describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' version', () => {
     let admin: SignerWithAddress
 
     let mockChest: SignerWithAddress
@@ -75,6 +77,8 @@ describe('QuestBoard & GaugeController interaction tests', () => {
     let minToken2Amount = ethers.utils.parseEther("0.005")
 
     before(async () => {
+        await resetFork(BLOCK_NUMBER);
+
         [admin, mockChest, manager, creator1, creator2, creator3, fakeGauge, user1, user2, receiver] = await ethers.getSigners();
 
         boardFactory = await ethers.getContractFactory("QuestBoard");

@@ -15,16 +15,29 @@ import { BigNumber } from "@ethersproject/bignumber";
 import {
     advanceTime,
     getERC20,
+    resetFork
 } from "./utils/utils";
 
 require("dotenv").config();
+
+let constants_path = "./utils/constant" // by default: veCRV
+
+const VE_TOKEN = process.env.VE_TOKEN ? String(process.env.VE_TOKEN) : "VECRV";
+if(VE_TOKEN === "VEBAL") constants_path = "./utils/balancer-constant"
 
 const { 
     TOKEN1_ADDRESS,
     BIG_HOLDER1,
     TOKEN2_ADDRESS,
-    BIG_HOLDER2,
-} = require('./utils/constant');
+    BIG_HOLDER2, 
+    TOKEN1_AMOUNT,
+    TOKEN2_AMOUNT,
+    GAUGE_CONTROLLER,
+    GAUGES,
+    TARGET_VOTES,
+    BLACKLISTS,
+    BLOCK_NUMBER
+} = require(constants_path);
 
 chai.use(solidity);
 const { expect } = chai;
@@ -36,30 +49,8 @@ let distributorFactory: ContractFactory
 const WEEK = BigNumber.from(86400 * 7)
 const UNIT = ethers.utils.parseEther('1')
 
-const TOKEN1_AMOUNT = ethers.utils.parseEther('75000000'); //here : CRV
-const TOKEN2_AMOUNT = ethers.utils.parseEther('80000000'); //here : DAI
 
-const GAUGE_CONTROLLER = "0x2F50D538606Fa9EDD2B11E2446BEb18C9D5846bB";
-
-const GAUGES = [
-    "0x903dA6213a5A12B61c821598154EfAd98C3B20E4",
-    "0xbFcF63294aD7105dEa65aA58F8AE5BE2D9d0952A",
-    "0xAB1927160EC7414C6Fa71763E2a9f3D107c126dd"
-]
-
-const TARGET_VOTES = [
-    BigNumber.from("20000000000000000000000000"),
-    BigNumber.from("2600000000000000000000000"),
-    BigNumber.from("40000000000000000000000000")
-]
-
-const BLACKLISTS = [
-    ["0x989AEb4d175e16225E39E87d0D97A3360524AD80"],
-    ["0x989AEb4d175e16225E39E87d0D97A3360524AD80", "0xF147b8125d2ef93FB6965Db97D6746952a133934"],
-    ["0x989AEb4d175e16225E39E87d0D97A3360524AD80", "0xdA106baeEcefd4c94F7D7D11A4F8be492E5D265B"]
-]
-
-describe('QuestBoard & GaugeController interaction tests', () => {
+describe('DarkQuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' version', () => {
     let admin: SignerWithAddress
 
     let mockChest: SignerWithAddress
@@ -88,6 +79,8 @@ describe('QuestBoard & GaugeController interaction tests', () => {
     let minToken2Amount = ethers.utils.parseEther("0.005")
 
     before(async () => {
+        await resetFork(BLOCK_NUMBER);
+
         [admin, mockChest, manager, creator1, creator2, creator3, fakeGauge, user1, user2, receiver] = await ethers.getSigners();
 
         boardFactory = await ethers.getContractFactory("DarkQuestBoard");
