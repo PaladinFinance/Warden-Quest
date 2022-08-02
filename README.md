@@ -14,6 +14,22 @@ Quest creates a new alternative to bribes on Curve Gauge Weight Votes, by allowi
   
 Quest parameters (such as the objective, the reward per vote, or the duration), can be changed by the Quest owner, but will only be applied to the next periods.
 
+### Deployed contracts
+
+Quest Treasure Chest:
+0x0482A2d6e2F895125b7237de70c675cd55FE17Ca  
+
+**veCRV:**
+Quest Board: 0xA6Ed52EB3e39891CE5029817CdB5eAc97A2834B3  
+
+MultiMerkleDistributor:
+0x3682518b529e4404fb05250F9ad590C3218E5F9f  
+
+**veBAL:**
+Quest Board: 0x8b2ba835056965808aD88e7Ad7866BD57aE75839  
+
+MultiMerkleDistributor:
+0x8EdcFE9Bc7d2a735117B94C16456D8303777abbb  
 
 ## Dependencies & Installation
 
