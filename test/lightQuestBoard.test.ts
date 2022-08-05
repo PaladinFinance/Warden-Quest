@@ -14,9 +14,10 @@ import { BigNumber } from "@ethersproject/bignumber";
 import {
     advanceTime,
     getERC20,
+    resetFork
 } from "./utils/utils";
 
-const { TOKEN1_ADDRESS, BIG_HOLDER1, TOKEN2_ADDRESS, BIG_HOLDER2 } = require("./utils/constant");
+const { TOKEN1_ADDRESS, BIG_HOLDER1, TOKEN2_ADDRESS, BIG_HOLDER2, BLOCK_NUMBER } = require("./utils/constant");
 
 
 chai.use(solidity);
@@ -71,6 +72,8 @@ describe('LightQuestBoard contract tests', () => {
     let minDAIAmount = ethers.utils.parseEther("0.005")
 
     before(async () => {
+        await resetFork();
+
         [admin, mockChest, gaugeVoter, manager, manager2, creator1, creator2, creator3, gauge1, gauge2, gauge3, user1, user2, receiver, newChest, newDistributor, otherAddress] = await ethers.getSigners();
 
         boardFactory = await ethers.getContractFactory("LightQuestBoard");
@@ -2069,7 +2072,7 @@ describe('LightQuestBoard contract tests', () => {
 
     });
 
-    
+
     describe('closePartOfQuestPeriod', async () => {
 
         let gauges: string[] = []
@@ -2363,6 +2366,7 @@ describe('LightQuestBoard contract tests', () => {
         });
 
     });
+
 
     describe('closeQuestPeriod & closePartOfQuestPeriod', async () => {
 
