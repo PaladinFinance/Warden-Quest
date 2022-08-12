@@ -25,7 +25,7 @@ import "../interfaces/ISimpleDistributor.sol";
     to have the most efficient Quest possible.
 */
 
-contract GovernanceQuestor is ReentrancyGuard {
+contract GovernanceDarkQuestor is ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /** @notice 1e18 scale */
@@ -33,29 +33,34 @@ contract GovernanceQuestor is ReentrancyGuard {
     /** @notice Max BPS value (100%) */
     uint256 private constant MAX_BPS = 10000;
 
-
+    /** @notice Dark Quest Board to create the Quests on */
     DarkQuestBoard public immutable board;
 
+    /** @notice Governance (contract, multisig, ...) entrusting tokens to this contract */
     address public immutable governance;
 
+    /** @notice Address that can update the Quests parameters */
     address public immutable manager;
 
+    /** @notice List of all Quests created by this contract */
     uint256[] public createdQuests;
 
+    /** @notice Flag set to true when contract killed by Governance */
     bool public killed;
 
     // Quest parameters
 
+    /** @notice Address of the Gauge for the Quest */
     address public gauge;
-    
+    /** @notice Token used as reward token for the Quest */
     address public rewardToken;
-    
+    /** @notice Duration of Quests  */
     uint48 public duration;
-    
+    /** @notice Target amount of votes for the Quest */
     uint256 public objective;
-    
+    /** @notice Reward per vote for the Quest */
     uint256 public rewardPerVote;
-
+    /** @notice List of address to blacklist */
     address[] public voterBlacklist;
 
 
@@ -113,7 +118,23 @@ contract GovernanceQuestor is ReentrancyGuard {
         objective = _objective;
         rewardPerVote = _rewardPerVote;
     }
+   
+    /**
+    * @notice Send the lsit of created Quests
+    * @dev Send the lsit of created Quests
+    */
+    function getCreatedQuests() external view returns(uint256[] memory) {
+        return createdQuests;
+    }
 
+    function getBlacklistedVoters() external view returns(address[] memory){
+        return voterBlacklist;
+    }
+
+    /**
+    * @notice Creates a Quest with this cotnract parameters
+    * @dev Creates a Quest with this cotnract parameters
+    */
     function createQuest() external notKilled onlyManager nonReentrant returns(uint256) {
         uint256 totalRewardAmount = (objective * rewardPerVote * duration) / UNIT;
         uint256 platformFee = board.platformFee();
@@ -128,12 +149,24 @@ contract GovernanceQuestor is ReentrancyGuard {
         return newQuestId;
 
     }
-
+   
+    /**
+    * @notice Withdraw non-distributed rewards from the Quest Board
+    * @dev Withdraw non-distributed rewards from the Quest Board
+    * @param questID ID of the Quest
+    * @param recipient Address to receive the tokens
+    */
     function withdrawUnusedRewards(uint256 questID, address recipient) external managerAndGov nonReentrant {
         if(recipient == address(0)) revert Errors.ZeroAddress();
         board.withdrawUnusedRewards(questID, recipient);
     }
-
+   
+    /**
+    * @notice Withdraw non-distributed rewards of multiple Quests from the Quest Board
+    * @dev Withdraw non-distributed rewards of multiple Quests from the Quest Board
+    * @param questIDs List of the Quest IDs
+    * @param recipient Address to receive the tokens
+    */
     function withdrawUnusedRewardsMultiple(uint256[] calldata questIDs, address recipient) external managerAndGov nonReentrant {
         if(recipient == address(0)) revert Errors.ZeroAddress();
         uint256 length = questIDs.length;
@@ -145,8 +178,19 @@ contract GovernanceQuestor is ReentrancyGuard {
         }
         
     }
-
-    function retrieveBlacklistRewards(
+   
+    /**
+    * @notice Retrieve rewards directed to this contract in the Quest Distributor
+    * @dev Retrieve rewards directed to this contract in the Quest Distributor
+    * @param distributor Address of the distributor
+    * @param recipient Address to receive the tokens
+    * @param questID ID of the Quest of the claim
+    * @param period Period of the claim
+    * @param index Index of the claim
+    * @param amount Amount ot claim
+    * @param merkleProof Merkle Proof for the claim
+    */
+    function retrieveRewards(
         address distributor,
         address recipient,
         uint256 questID,
@@ -163,12 +207,23 @@ contract GovernanceQuestor is ReentrancyGuard {
         IERC20(rewardToken).safeTransfer(recipient, amount);
 
     }
-
+   
+    /**
+    * @notice Emergency withdraw from the QuestBoard
+    * @dev Emergency withdraw from the QuestBoard
+    * @param questID ID of the Quest to retrieve tokens from
+    * @param recipient Address to receive the tokens
+    */
     function emergencyWithdraw(uint256 questID, address recipient) external managerAndGov nonReentrant {
         if(recipient == address(0)) revert Errors.ZeroAddress();
         board.emergencyWithdraw(questID, recipient);
     }
-
+   
+    /**
+    * @notice Updates the Duration parameter for the Quest creations
+    * @dev Updates the Duration parameter for the Quest creations
+    * @param newDuration New duration
+    */
     function changeDuration(uint48 newDuration) external onlyManager {
         if(newDuration == 0) revert Errors.NullAmount();
 
@@ -177,7 +232,12 @@ contract GovernanceQuestor is ReentrancyGuard {
 
         emit DurationUpdated(oldDuration, newDuration);
     }
-
+   
+    /**
+    * @notice Updates the Objective parameter for the Quest creations
+    * @dev Updates the Objective parameter for the Quest creations
+    * @param newObjective New Objective
+    */
     function changeObjective(uint256 newObjective) external onlyManager {
         if(newObjective == 0) revert Errors.NullAmount();
 
@@ -186,7 +246,12 @@ contract GovernanceQuestor is ReentrancyGuard {
 
         emit ObjectiveUpdated(oldOjective, newObjective);
     }
-
+   
+    /**
+    * @notice Updates the RewardPerVote parameter for the Quest creations
+    * @dev Updates the RewardPerVote parameter for the Quest creations
+    * @param newReward New RewardPerVote
+    */
     function changeRewardPerVote(uint256 newReward) external onlyManager {
         if(newReward == 0) revert Errors.NullAmount();
 
@@ -195,8 +260,14 @@ contract GovernanceQuestor is ReentrancyGuard {
 
         emit RewardPerVoteUpdated(oldReward, newReward);
     }
-
+   
+    /**
+    * @notice Add an address to the blacklist for Quests
+    * @dev Add an address to the blacklist for Quests
+    * @param account Address to add to the blacklist
+    */
     function addVoterBlacklist(address account) external managerAndGov notKilled returns(bool) {
+        if(account == address(0)) revert Errors.ZeroAddress();
         //We don't want to have 2x the same address in the list
         address[] memory _list = voterBlacklist;
         uint256 length = _list.length;
@@ -215,7 +286,12 @@ contract GovernanceQuestor is ReentrancyGuard {
 
         return true;
     }
-
+   
+    /**
+    * @notice Remove an address from the blacklist for Quests
+    * @dev Remove an address from the blacklist for Quests
+    * @param account Address to remove from the blacklist
+    */
     function removeVoterBlacklist(address account) external managerAndGov notKilled returns(bool) {
         address[] memory _list = voterBlacklist;
         uint256 length = _list.length;
@@ -240,7 +316,14 @@ contract GovernanceQuestor is ReentrancyGuard {
 
         return false;
     }
-
+   
+    /**
+    * @notice Allow to execute calls to other contracts
+    * @dev Allow to execute calls to other contracts (using delegatecall logic)
+    * @param to Address of the contract to call
+    * @param value Value for the call
+    * @param data Calldata
+    */
     function execute(
         address to,
         uint256 value,
@@ -265,8 +348,13 @@ contract GovernanceQuestor is ReentrancyGuard {
 
         return abi.decode(_returnData, (string));
     }
-
-
+   
+    /**
+    * @notice Recovers tokens sent to this contract by mistake
+    * @dev Recovers tokens sent to this contract by mistake
+    * @param token Address of the token to recover
+    * @param recipient Address to receive the token
+    */
     function recoverERC20(address token, address recipient) external onlyGov returns(bool) {
         if(recipient == address(0)) revert Errors.ZeroAddress();
         uint256 amount = IERC20(token).balanceOf(address(this));

@@ -27,7 +27,7 @@ import "../interfaces/ISimpleDistributor.sol";
     created by that contract
 */
 
-contract QuestPartner is Owner, ReentrancyGuard {
+contract DarkQuestPartner is Owner, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /** @notice 1e18 scale */
@@ -218,7 +218,7 @@ contract QuestPartner is Owner, ReentrancyGuard {
         require(_sendPartnerShare(rewardToken, feeAmount));
     }
 
-    function retrieveBlacklistRewards(
+    function retrieveRewards(
         address distributor,
         uint256 questID,
         uint256 period,
@@ -301,6 +301,7 @@ contract QuestPartner is Owner, ReentrancyGuard {
     }
 
     function addVoterBlacklist(address account) external onlyAllowed notKilled returns(bool) {
+        if(account == address(0)) revert Errors.ZeroAddress();
         //We don't want to have 2x the same address in the list
         address[] memory _list = voterBlacklist;
         uint256 length = _list.length;
