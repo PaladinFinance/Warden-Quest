@@ -1065,7 +1065,7 @@ describe('GovernanceQuestor contract tests', () => {
     });
 
 
-    describe('retrieveBlacklistRewards', async () => {
+    describe('retrieveRewards', async () => {
 
         let tree: BalanceTree
 
@@ -1113,7 +1113,7 @@ describe('GovernanceQuestor contract tests', () => {
             let old_balance = await rewardToken.balanceOf(governance.address)
     
             await expect(
-                questor.connect(governance).retrieveBlacklistRewards(
+                questor.connect(governance).retrieveRewards(
                     distributor.address,
                     governance.address,
                     quest_id,
@@ -1138,7 +1138,7 @@ describe('GovernanceQuestor contract tests', () => {
             let proof = tree.getProof(quest_id, period, 2, questor.address, wrapper_claim_amount);
 
             await expect(
-                questor.connect(user1).retrieveBlacklistRewards(
+                questor.connect(user1).retrieveRewards(
                     distributor.address,
                     governance.address,
                     quest_id,
@@ -1150,7 +1150,7 @@ describe('GovernanceQuestor contract tests', () => {
             ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
-                questor.connect(admin).retrieveBlacklistRewards(
+                questor.connect(admin).retrieveRewards(
                     distributor.address,
                     governance.address,
                     quest_id,
@@ -1168,7 +1168,7 @@ describe('GovernanceQuestor contract tests', () => {
             let proof = tree.getProof(quest_id, period, 2, questor.address, wrapper_claim_amount);
 
             await expect(
-                questor.connect(governance).retrieveBlacklistRewards(
+                questor.connect(governance).retrieveRewards(
                     ethers.constants.AddressZero,
                     governance.address,
                     quest_id,
@@ -1180,7 +1180,7 @@ describe('GovernanceQuestor contract tests', () => {
             ).to.be.revertedWith('ZeroAddress')
 
             await expect(
-                questor.connect(governance).retrieveBlacklistRewards(
+                questor.connect(governance).retrieveRewards(
                     distributor.address,
                     ethers.constants.AddressZero,
                     quest_id,
@@ -1192,7 +1192,7 @@ describe('GovernanceQuestor contract tests', () => {
             ).to.be.revertedWith('ZeroAddress')
 
             await expect(
-                questor.connect(governance).retrieveBlacklistRewards(
+                questor.connect(governance).retrieveRewards(
                     receiver.address,
                     governance.address,
                     quest_id,
@@ -1209,7 +1209,7 @@ describe('GovernanceQuestor contract tests', () => {
             let proof = tree.getProof(quest_id, period, 2, questor.address, wrapper_claim_amount);
 
             await expect(
-                questor.connect(governance).retrieveBlacklistRewards(
+                questor.connect(governance).retrieveRewards(
                     distributor.address,
                     governance.address,
                     112,
@@ -1221,7 +1221,7 @@ describe('GovernanceQuestor contract tests', () => {
             ).to.be.reverted
 
             await expect(
-                questor.connect(governance).retrieveBlacklistRewards(
+                questor.connect(governance).retrieveRewards(
                     distributor.address,
                     governance.address,
                     quest_id,
@@ -1233,7 +1233,7 @@ describe('GovernanceQuestor contract tests', () => {
             ).to.be.reverted
 
             await expect(
-                questor.connect(governance).retrieveBlacklistRewards(
+                questor.connect(governance).retrieveRewards(
                     distributor.address,
                     governance.address,
                     quest_id,
@@ -1245,7 +1245,7 @@ describe('GovernanceQuestor contract tests', () => {
             ).to.be.reverted
 
             await expect(
-                questor.connect(governance).retrieveBlacklistRewards(
+                questor.connect(governance).retrieveRewards(
                     distributor.address,
                     governance.address,
                     quest_id,
@@ -1257,7 +1257,7 @@ describe('GovernanceQuestor contract tests', () => {
             ).to.be.reverted
 
             await expect(
-                questor.connect(governance).retrieveBlacklistRewards(
+                questor.connect(governance).retrieveRewards(
                     distributor.address,
                     distributor.address,
                     quest_id,
