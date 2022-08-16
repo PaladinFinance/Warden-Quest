@@ -12,20 +12,16 @@ task('fork-get-all-ERC20', 'Steal ERC20 amount from holder to send to receiver o
     .setAction(async ({receiver, amount, token, holder}, hre) => {
 
         const token_list = [
-            /*{
+            {
                 address: "0xba100000625a3754423978a60c9317c58a424e3D", //BAL
-                amount: "1250000",
+                amount: "250000",
                 holder: "0xF977814e90dA44bFA03b6295A0616a897441aceC"
             },
             {
                 address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", //DAI
                 amount: "250000000",
                 holder: "0x075e72a5eDf65F0A5f44699c7654C1a76941Ddc8"
-<<<<<<< HEAD
             },
-=======
-            },*/
->>>>>>> 14a5797 (Quest for veBAL (#18))
             {
                 address: "0xD533a949740bb3306d119CC777fa900bA034cd52", //CRV
                 amount: "5000000",

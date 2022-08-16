@@ -32,7 +32,7 @@ const UNIT = ethers.utils.parseEther('1')
 // Quest params : 
 
 //Quest 1
-/*
+
 const gauge_address = "0x903dA6213a5A12B61c821598154EfAd98C3B20E4"
 
 const target_votes = ethers.utils.parseEther('20000000')
@@ -52,11 +52,11 @@ const blacklist = [
   "0x989AEb4d175e16225E39E87d0D97A3360524AD80",
   "0xF147b8125d2ef93FB6965Db97D6746952a133934",
   "0x52f541764E6e90eeBc5c21Ff570De0e2D63766B6"
-]*/
+]
 
 //Quest 2
 
-const gauge_address = "0x7E1444BA99dcdFfE8fBdb42C02F0005D14f13BE1"
+/*const gauge_address = "0x7E1444BA99dcdFfE8fBdb42C02F0005D14f13BE1"
 
 const target_votes = ethers.utils.parseEther('25000000')
 const reward_per_vote = ethers.utils.parseEther('0.075')
@@ -71,7 +71,7 @@ const total_fees = total_rewards_amount.mul(500).div(10000)
 const token_address = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 const minTokenAmount = ethers.utils.parseEther("0.005")
 
-const blacklist = ["0x989AEb4d175e16225E39E87d0D97A3360524AD80"]
+const blacklist = ["0x989AEb4d175e16225E39E87d0D97A3360524AD80"]*/
 
 
 
