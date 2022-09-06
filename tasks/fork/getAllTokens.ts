@@ -18,6 +18,11 @@ task('fork-get-all-ERC20', 'Steal ERC20 amount from holder to send to receiver o
                 holder: "0xF977814e90dA44bFA03b6295A0616a897441aceC"
             },
             {
+                address: "0xba100000625a3754423978a60c9317c58a424e3D", //BAL
+                amount: "250000",
+                holder: "0xF977814e90dA44bFA03b6295A0616a897441aceC"
+            },
+            {
                 address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", //DAI
                 amount: "250000000",
                 holder: "0x075e72a5eDf65F0A5f44699c7654C1a76941Ddc8"

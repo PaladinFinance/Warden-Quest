@@ -2,7 +2,7 @@ const hre = require("hardhat");
 import { ethers, waffle } from "hardhat";
 import chai from "chai";
 import { solidity } from "ethereum-waffle";
-import { QuestBoard } from "../typechain/QuestBoard";
+import { DarkQuestBoard } from "../typechain/DarkQuestBoard";
 import { MultiMerkleDistributor } from "../typechain/MultiMerkleDistributor";
 import { IGaugeController } from "../typechain/IGaugeController";
 import { IERC20 } from "../typechain/IERC20";
@@ -15,7 +15,7 @@ import { BigNumber } from "@ethersproject/bignumber";
 import {
     advanceTime,
     getERC20,
-    resetFork,
+    resetFork
 } from "./utils/utils";
 
 require("dotenv").config();
@@ -35,6 +35,7 @@ const {
     GAUGE_CONTROLLER,
     GAUGES,
     TARGET_VOTES,
+    BLACKLISTS,
     BLOCK_NUMBER
 } = require(constants_path);
 
@@ -48,7 +49,8 @@ let distributorFactory: ContractFactory
 const WEEK = BigNumber.from(86400 * 7)
 const UNIT = ethers.utils.parseEther('1')
 
-describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' version', () => {
+
+describe('DarkQuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' version', () => {
     let admin: SignerWithAddress
 
     let mockChest: SignerWithAddress
@@ -66,7 +68,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
     let receiver: SignerWithAddress
 
-    let board: QuestBoard
+    let board: DarkQuestBoard
     let distributor: MultiMerkleDistributor
     let controller: IGaugeController
 
@@ -81,7 +83,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
         [admin, mockChest, manager, creator1, creator2, creator3, fakeGauge, user1, user2, receiver] = await ethers.getSigners();
 
-        boardFactory = await ethers.getContractFactory("QuestBoard");
+        boardFactory = await ethers.getContractFactory("DarkQuestBoard");
 
         distributorFactory = await ethers.getContractFactory("MultiMerkleDistributor");
 
@@ -98,13 +100,29 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
         controller = IGaugeController__factory.connect(GAUGE_CONTROLLER, provider);
 
-        board = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as QuestBoard;
+        board = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as DarkQuestBoard;
         await board.deployed();
 
         distributor = (await distributorFactory.connect(admin).deploy(board.address)) as MultiMerkleDistributor;
         await distributor.deployed();
 
     });
+
+
+    const getUserBias = async (voter: string, gauge: string, period: BigNumber): Promise<BigNumber> => {
+        const last_user_vote = await controller.last_user_vote(voter, gauge)
+        const last_user_slope = (await controller.vote_user_slopes(voter, gauge)).slope
+        const user_end = (await controller.vote_user_slopes(voter, gauge)).end
+
+        let user_bias = BigNumber.from(0)
+
+        if(last_user_vote.lte(period) && user_end.gt(period) && !last_user_slope.eq(0)){
+            user_bias = last_user_slope.mul(user_end.sub(period))
+        }
+
+        return user_bias
+    }
+
 
     describe('Interactions with GaugeController', async () => {
 
@@ -156,6 +174,8 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
             let new_board_balance
             let new_chest_balance
 
+            let quest_blacklist
+
             // ---------------------------------
 
             rewards_per_period = TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
@@ -182,7 +202,8 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                 TARGET_VOTES[i],
                 reward_per_vote[i],
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                BLACKLISTS[i]
             )
 
             await expect(
@@ -235,6 +256,21 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
                 const ids_for_period = await board.getQuestIdsForPeriod(expected_future_period)
                 expect(ids_for_period[ids_for_period.length - 1]).to.be.eq(questIDs[i])
+            }
+
+            quest_blacklist = await board.getQuestBlacklsit(questIDs[i])
+
+            for(let j = 0; j < BLACKLISTS[i].length; j++){
+                expect(quest_blacklist[j]).to.be.eq(BLACKLISTS[i][j])
+                expect(await board.questBlacklist(questIDs[i], j)).to.be.eq(BLACKLISTS[i][j])
+
+                await expect(
+                    create_tx
+                ).to.emit(board, "AddVoterBlacklist")
+                    .withArgs(
+                        questIDs[i],
+                        BLACKLISTS[i][j]
+                    );
             }
 
             await expect(
@@ -289,7 +325,8 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                 TARGET_VOTES[i],
                 reward_per_vote[i],
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                BLACKLISTS[i]
             )
 
             await expect(
@@ -342,6 +379,21 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
                 const ids_for_period = await board.getQuestIdsForPeriod(expected_future_period)
                 expect(ids_for_period[ids_for_period.length - 1]).to.be.eq(questIDs[i])
+            }
+
+            quest_blacklist = await board.getQuestBlacklsit(questIDs[i])
+
+            for(let j = 0; j < BLACKLISTS[i].length; j++){
+                expect(quest_blacklist[j]).to.be.eq(BLACKLISTS[i][j])
+                expect(await board.questBlacklist(questIDs[i], j)).to.be.eq(BLACKLISTS[i][j])
+
+                await expect(
+                    create_tx
+                ).to.emit(board, "AddVoterBlacklist")
+                    .withArgs(
+                        questIDs[i],
+                        BLACKLISTS[i][j]
+                    );
             }
 
             await expect(
@@ -395,7 +447,8 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                 TARGET_VOTES[i],
                 reward_per_vote[i],
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                BLACKLISTS[i]
             )
 
             await expect(
@@ -450,6 +503,21 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                 expect(ids_for_period[ids_for_period.length - 1]).to.be.eq(questIDs[i])
             }
 
+            quest_blacklist = await board.getQuestBlacklsit(questIDs[i])
+
+            for(let j = 0; j < BLACKLISTS[i].length; j++){
+                expect(quest_blacklist[j]).to.be.eq(BLACKLISTS[i][j])
+                expect(await board.questBlacklist(questIDs[i], j)).to.be.eq(BLACKLISTS[i][j])
+
+                await expect(
+                    create_tx
+                ).to.emit(board, "AddVoterBlacklist")
+                    .withArgs(
+                        questIDs[i],
+                        BLACKLISTS[i][j]
+                    );
+            }
+
             await expect(
                 create_tx
             ).to.emit(distributor, "NewQuest")
@@ -497,7 +565,8 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                     TARGET_VOTES[i],
                     reward_per_vote[i],
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    BLACKLISTS[i]
                 )
             ).to.be.reverted
 
@@ -527,7 +596,8 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                     TARGET_VOTES[i],
                     reward_per_vote[i],
                     total_rewards_amount[i],
-                    total_fees[i]
+                    total_fees[i],
+                    BLACKLISTS[i]
                 )
             }
 
@@ -538,11 +608,20 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
             for (let i = 0; i < GAUGES.length; i++) {
                 const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
 
-                await controller.connect(admin).checkpoint_gauge(GAUGES[i]);
                 const next_period = first_period.add(WEEK)
+                await controller.connect(admin).checkpoint_gauge(GAUGES[i]);
+
                 const gauge_bias = (await controller.points_weight(GAUGES[i], next_period)).bias;
 
-                const expected_distribute_amount = gauge_bias.gte(TARGET_VOTES[i]) ? rewards_per_period[i] : gauge_bias.mul(reward_per_vote[i]).div(UNIT)
+                let sum_bl_bias = BigNumber.from(0)
+
+                for(let j = 0; j < BLACKLISTS[i].length; j++){
+                    sum_bl_bias = sum_bl_bias.add(await getUserBias(BLACKLISTS[i][j], GAUGES[i], next_period))
+                }
+
+                const reduced_bias = gauge_bias.sub(sum_bl_bias)
+
+                const expected_distribute_amount = reduced_bias.gte(TARGET_VOTES[i]) ? rewards_per_period[i] : reduced_bias.mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -589,7 +668,8 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                     TARGET_VOTES[i],
                     reward_per_vote[i],
                     total_rewards_amount[i],
-                    total_fees[i]
+                    total_fees[i],
+                    BLACKLISTS[i]
                 )
             }
 
@@ -605,7 +685,15 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                 const next_period = current_period.add(WEEK)
                 const gauge_bias = (await controller.points_weight(GAUGES[i], next_period)).bias;
 
-                const expected_distribute_amount = gauge_bias.gte(TARGET_VOTES[i]) ? rewards_per_period[i] : gauge_bias.mul(reward_per_vote[i]).div(UNIT)
+                let sum_bl_bias = BigNumber.from(0)
+
+                for(let j = 0; j < BLACKLISTS[i].length; j++){
+                    sum_bl_bias = sum_bl_bias.add(await getUserBias(BLACKLISTS[i][j], GAUGES[i], next_period))
+                }
+
+                const reduced_bias = gauge_bias.sub(sum_bl_bias)
+
+                const expected_distribute_amount = reduced_bias.gte(TARGET_VOTES[i]) ? rewards_per_period[i] : reduced_bias.mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -638,7 +726,15 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                 const next_period = current_period.add(WEEK)
                 const gauge_bias = (await controller.points_weight(GAUGES[i], next_period)).bias;
 
-                const expected_distribute_amount = gauge_bias.gte(TARGET_VOTES[i]) ? rewards_per_period[i] : gauge_bias.mul(reward_per_vote[i]).div(UNIT)
+                let sum_bl_bias = BigNumber.from(0)
+
+                for(let j = 0; j < BLACKLISTS[i].length; j++){
+                    sum_bl_bias = sum_bl_bias.add(await getUserBias(BLACKLISTS[i][j], GAUGES[i], next_period))
+                }
+
+                const reduced_bias = gauge_bias.sub(sum_bl_bias)
+
+                const expected_distribute_amount = reduced_bias.gte(TARGET_VOTES[i]) ? rewards_per_period[i] : reduced_bias.mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
