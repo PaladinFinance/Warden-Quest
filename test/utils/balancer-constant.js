@@ -36,6 +36,7 @@ const BLACKLISTS = [
 
 const BLOCK_NUMBER = 15260000
 
+
 module.exports = {
     TOKEN1_ADDRESS,
     TOKEN2_ADDRESS,
