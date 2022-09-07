@@ -24,12 +24,25 @@ Quest Board: 0xA6Ed52EB3e39891CE5029817CdB5eAc97A2834B3
 
 MultiMerkleDistributor:
 0x3682518b529e4404fb05250F9ad590C3218E5F9f  
+  
+
+Dark Quest Board: 0xF9F6F5F2250Bd151797DDF2e02644123b0c4A114  
+
+Dark MultiMerkleDistributor:
+0xce6dc32252d85e2e955Bfd3b85660917F040a933  
 
 **veBAL:**
 Quest Board: 0x8b2ba835056965808aD88e7Ad7866BD57aE75839  
 
 MultiMerkleDistributor:
 0x8EdcFE9Bc7d2a735117B94C16456D8303777abbb  
+  
+
+Dark Quest Board: 0x609FB23b9EA7CB3eDaF56DB5dAF07C8E94C155De  
+
+Dark MultiMerkleDistributor:
+0x358549D4Cb7f97f389812B86673a6cf8c1FF59D2  
+
 
 ## Dependencies & Installation
 
