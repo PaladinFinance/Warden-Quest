@@ -28,7 +28,7 @@ contract ExtraRewardsMultiMerkle is Owner, ReentrancyGuard {
 
     // Storage
 
-    // Address allowed to freeze the Roots & update them
+    /** @notice Address allowed to freeze the Roots & update them */
     address public rootManager;
 
     /** @notice Merkle Root for each token */
@@ -39,9 +39,8 @@ contract ExtraRewardsMultiMerkle is Owner, ReentrancyGuard {
     mapping(address => mapping(uint256 => mapping(uint256 => uint256))) private claimedBitMap;
     /** @notice Current update nonce for the token */
     mapping(address => uint256) public nonce;
-    /** @notice Current update nonce for the token */
+    /** @notice Frozen token (to block claim before updating the Merkle Root) */
     mapping(address => bool) public frozen;
-
 
     //Struct ClaimParams
     struct ClaimParams {
@@ -62,17 +61,20 @@ contract ExtraRewardsMultiMerkle is Owner, ReentrancyGuard {
         uint256 indexed nonce
     );
 
+    /** @notice Event emitted when a Merkle Root is updated */
     event UpdateRoot(
         address indexed rewardToken,
         bytes32 merkleRoot,
         uint256 indexed nonce
     );
 
+    /** @notice Event emitted when a token is frozen */
     event FrozenRoot(
         address indexed rewardToken,
         uint256 indexed nonce
     );
 
+    /** @notice Event emitted when the Root Manager is updated */
     event UpdateRootManager(
         address indexed oldManager,
         address indexed newManager
@@ -147,7 +149,7 @@ contract ExtraRewardsMultiMerkle is Owner, ReentrancyGuard {
 
     /**
     * @notice Claims multiple rewards for a given list
-    * @dev Calls the _claim() method for each entry in the claims array
+    * @dev Calls the claim() method for each entry in the claims array
     * @param account Address of the user claiming the rewards
     * @param claims List of ClaimParams struct data to claim
     */
@@ -164,6 +166,11 @@ contract ExtraRewardsMultiMerkle is Owner, ReentrancyGuard {
         }
     }
 
+    /**
+    * @notice Freezes the given token
+    * @dev Freezes the given token, blocking claims for this token
+    * @param token Address of the token to freeze
+    */
     function freezeRoot(address token) public onlyAllowed {
         if(token == address(0)) revert Errors.ZeroAddress();
         if(frozen[token]) revert Errors.AlreadyFrozen();
@@ -173,6 +180,11 @@ contract ExtraRewardsMultiMerkle is Owner, ReentrancyGuard {
         emit FrozenRoot(token, nonce[token]);
     }
 
+    /**
+    * @notice Freezes a list of tokens
+    * @dev Calls the freezeRoot() method for each entry in the tokens array
+    * @param tokens List of tokens to freeze
+    */
     function multiFreezeRoot(address[] calldata tokens) external onlyAllowed {
         uint256 length = tokens.length;
         
@@ -185,6 +197,12 @@ contract ExtraRewardsMultiMerkle is Owner, ReentrancyGuard {
         }
     }
 
+    /**
+    * @notice Udpates the Merkle Root for a given token
+    * @dev Updates the Merkle Root for a frozen token
+    * @param token Address of the token
+    * @param root Merkle Root
+    */
     function updateRoot(address token, bytes32 root) public onlyAllowed {
         if(token == address(0)) revert Errors.ZeroAddress();
         if(!frozen[token]) revert Errors.NotFrozen();
@@ -199,6 +217,12 @@ contract ExtraRewardsMultiMerkle is Owner, ReentrancyGuard {
         emit UpdateRoot(token, root, nonce[token]);
     }
 
+    /**
+    * @notice Updates the Merkle Roots for a list of tokens
+    * @dev Calls the updateRoot() method for each entry in the tokens array
+    * @param tokens List of tokens to update
+    * @param roots Merkle Root for each given token
+    */
     function multiUpdateRoot(address[] calldata tokens, bytes32[] calldata roots) external onlyAllowed {
         uint256 length = tokens.length;
         if(length == 0) revert Errors.EmptyArray();
@@ -212,6 +236,11 @@ contract ExtraRewardsMultiMerkle is Owner, ReentrancyGuard {
         }
     }
 
+    /**
+    * @notice Udpates the Root Manager
+    * @dev Udpates the Root Manager
+    * @param newManager Address of the new Root Manager
+    */
     function updateRootManager(address newManager) external onlyOwner {
         if(newManager == address(0)) revert Errors.ZeroAddress();
 
