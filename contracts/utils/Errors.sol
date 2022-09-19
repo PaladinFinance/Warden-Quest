@@ -30,6 +30,9 @@ library Errors {
     error InvalidProof();
     error EmptyMerkleRoot();
     error IncorrectRewardAmount();
+    error MerkleRootFrozen();
+    error NotFrozen();
+    error AlreadyFrozen();
 
 
     // Quest Errors
