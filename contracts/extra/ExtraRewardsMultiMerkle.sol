@@ -87,8 +87,8 @@ contract ExtraRewardsMultiMerkle is Owner, ReentrancyGuard {
         _;
     }
 
-    constructor(address _rootMaanger) {
-        rootManager = _rootMaanger;
+    constructor(address _rootManager) {
+        rootManager = _rootManager;
     }
 
 
