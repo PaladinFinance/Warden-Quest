@@ -2,8 +2,8 @@ const hre = require("hardhat");
 import { ethers, waffle } from "hardhat";
 import chai from "chai";
 import { solidity } from "ethereum-waffle";
-import { QuestBoard } from "../../typechain/QuestBoard";
-import { QuestPartner } from "../../typechain/QuestPartner";
+import { DarkQuestBoard } from "../../typechain/DarkQuestBoard";
+import { DarkQuestPartner } from "../../typechain/DarkQuestPartner";
 import { QuestTreasureChest } from "../../typechain/QuestTreasureChest";
 import { MultiMerkleDistributor } from "../../typechain/MultiMerkleDistributor";
 import { MockGaugeController } from "../../typechain/MockGaugeController";
@@ -56,10 +56,14 @@ describe('QuestPartner contract tests', () => {
     let user2: SignerWithAddress
     let user3: SignerWithAddress
 
+    let voter1: SignerWithAddress
+    let voter2: SignerWithAddress
+    let voter3: SignerWithAddress
+
     let receiver: SignerWithAddress
 
-    let board: QuestBoard
-    let partnerWrapper: QuestPartner
+    let board: DarkQuestBoard
+    let partnerWrapper: DarkQuestPartner
     let distributor: MultiMerkleDistributor
     let controller: MockGaugeController
     let chest: QuestTreasureChest
@@ -75,11 +79,11 @@ describe('QuestPartner contract tests', () => {
     before(async () => {
         await resetFork();
 
-        [admin, partner, partner_feesReceiver, manager, creator1, creator2, gauge1, gauge2, receiver, user1, user2, user3] = await ethers.getSigners();
+        [admin, partner, partner_feesReceiver, manager, creator1, creator2, gauge1, gauge2, receiver, user1, user2, user3, voter1, voter2, voter3] = await ethers.getSigners();
 
-        boardFactory = await ethers.getContractFactory("QuestBoard");
+        boardFactory = await ethers.getContractFactory("DarkQuestBoard");
 
-        partnerWrapperFactory = await ethers.getContractFactory("QuestPartner");
+        partnerWrapperFactory = await ethers.getContractFactory("DarkQuestPartner");
 
         distributorFactory = await ethers.getContractFactory("MultiMerkleDistributor");
 
@@ -107,7 +111,7 @@ describe('QuestPartner contract tests', () => {
         controller = (await controllerFactory.connect(admin).deploy()) as MockGaugeController;
         await controller.deployed();
 
-        board = (await boardFactory.connect(admin).deploy(controller.address, chest.address)) as QuestBoard;
+        board = (await boardFactory.connect(admin).deploy(controller.address, chest.address)) as DarkQuestBoard;
         await board.deployed();
 
         distributor = (await distributorFactory.connect(admin).deploy(board.address)) as MultiMerkleDistributor;
@@ -119,7 +123,7 @@ describe('QuestPartner contract tests', () => {
             partner.address,
             partner_feesReceiver.address,
             partner_share
-        )) as QuestPartner;
+        )) as DarkQuestPartner;
         await partnerWrapper.deployed();
 
     });
@@ -132,6 +136,139 @@ describe('QuestPartner contract tests', () => {
         expect(await partnerWrapper.partner()).to.be.eq(partner.address)
         expect(await partnerWrapper.feesReceiver()).to.be.eq(partner_feesReceiver.address)
         expect(await partnerWrapper.partnerShare()).to.be.eq(partner_share)
+
+    });
+
+
+    describe('Voter Blacklist', async () => {
+
+        it(' should add address to blacklist (& emit correct Event)', async () => {
+
+            const add_tx = await partnerWrapper.connect(admin).addVoterBlacklist(voter2.address)
+
+            await expect(
+                add_tx
+            ).to.emit(partnerWrapper, "AddVoterBlacklist")
+                .withArgs(voter2.address);
+
+            expect(await partnerWrapper.voterBlacklist(0)).to.be.eq(voter2.address)
+
+            const blacklist = await partnerWrapper.getBlacklistedVoters()
+
+            expect(blacklist.includes(voter2.address)).to.be.true
+
+        });
+
+        it(' should allow to add other address to blacklist', async () => {
+
+            await partnerWrapper.connect(admin).addVoterBlacklist(voter2.address)
+
+            expect(await partnerWrapper.voterBlacklist(0)).to.be.eq(voter2.address)
+
+            const blacklist = await partnerWrapper.getBlacklistedVoters()
+
+            expect(blacklist.includes(voter2.address)).to.be.true
+
+            const add_tx = await partnerWrapper.connect(partner).addVoterBlacklist(voter3.address)
+
+            await expect(
+                add_tx
+            ).to.emit(partnerWrapper, "AddVoterBlacklist")
+                .withArgs(voter3.address);
+
+            expect(await partnerWrapper.voterBlacklist(1)).to.be.eq(voter3.address)
+
+            const blacklist2 = await partnerWrapper.getBlacklistedVoters()
+
+            expect(blacklist2.includes(voter2.address)).to.be.true
+            expect(blacklist2.includes(voter3.address)).to.be.true
+
+        });
+
+        it(' should not allow to add the same address twice', async () => {
+
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
+
+            const previous_blacklist = await partnerWrapper.getBlacklistedVoters()
+            const previous_blacklist_size = previous_blacklist.length
+
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
+
+            const new_blacklist = await partnerWrapper.getBlacklistedVoters()
+            const new_blacklist_size = new_blacklist.length
+
+            expect(previous_blacklist).to.eql(new_blacklist)
+            expect(previous_blacklist_size).to.be.eq(new_blacklist_size)
+
+        });
+
+        it(' should remove the address correctly (& emit correct Event)', async () => {
+
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter3.address)
+
+            const remove_tx = await partnerWrapper.connect(admin).removeVoterBlacklist(voter2.address)
+
+            await expect(
+                remove_tx
+            ).to.emit(partnerWrapper, "RemoveVoterBlacklist")
+                .withArgs(voter2.address);
+
+            expect(await partnerWrapper.voterBlacklist(0)).to.be.eq(voter3.address)
+
+            const blacklist = await partnerWrapper.getBlacklistedVoters()
+    
+            expect(blacklist.includes(voter2.address)).to.be.false
+            expect(blacklist.includes(voter3.address)).to.be.true
+
+        });
+
+        it(' should allow to empty the list', async () => {
+
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter3.address)
+
+            await partnerWrapper.connect(partner).removeVoterBlacklist(voter2.address)
+            await partnerWrapper.connect(partner).removeVoterBlacklist(voter3.address)
+
+            const blacklist = await partnerWrapper.getBlacklistedVoters()
+
+            expect(blacklist.length).to.be.eq(0)
+    
+            expect(blacklist.includes(voter2.address)).to.be.false
+            expect(blacklist.includes(voter3.address)).to.be.false
+
+        });
+
+        it(' should not remove an address not blacklisted', async () => {
+
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
+
+            const previous_blacklist = await partnerWrapper.getBlacklistedVoters()
+            const previous_blacklist_size = previous_blacklist.length
+
+            await partnerWrapper.connect(partner).removeVoterBlacklist(voter3.address)
+
+            const new_blacklist = await partnerWrapper.getBlacklistedVoters()
+            const new_blacklist_size = new_blacklist.length
+
+            expect(previous_blacklist).to.eql(new_blacklist)
+            expect(previous_blacklist_size).to.be.eq(new_blacklist_size)
+
+        });
+
+        it(' should only allow partner & admin to call methods', async () => {
+
+            await expect(
+                partnerWrapper.connect(voter2).addVoterBlacklist(voter2.address)
+            ).to.be.revertedWith('CallerNotAllowed')
+
+            await expect(
+                partnerWrapper.connect(user3).removeVoterBlacklist(voter2.address)
+            ).to.be.revertedWith('CallerNotAllowed')
+
+        });
 
     });
 
@@ -172,6 +309,9 @@ describe('QuestPartner contract tests', () => {
             await DAI.connect(creator1).approve(partnerWrapper.address, total_rewards_amount.add(total_fees))
             //await CRV.connect(creator2).approve(partnerWrapper.address, total_rewards_amount2.add(total_fees2))
 
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
+
         });
 
         it(' should create the Quest correctly', async () => {
@@ -183,7 +323,7 @@ describe('QuestPartner contract tests', () => {
 
             const expected_id = await board.nextID()
 
-            await partnerWrapper.connect(creator1).createQuest(
+            const create_tx = await partnerWrapper.connect(creator1).createQuest(
                 gauge1.address,
                 DAI.address,
                 duration,
@@ -235,6 +375,29 @@ describe('QuestPartner contract tests', () => {
                 const ids_for_period = await board.getQuestIdsForPeriod(expected_future_period)
                 expect(ids_for_period[ids_for_period.length - 1]).to.be.eq(expected_id)
             }
+
+            const quest_blacklist = await board.getQuestBlacklsit(expected_id)
+
+            expect(quest_blacklist[0]).to.be.eq(voter1.address)
+            expect(await board.questBlacklist(expected_id, 0)).to.be.eq(voter1.address)
+            expect(quest_blacklist[1]).to.be.eq(voter2.address)
+            expect(await board.questBlacklist(expected_id, 1)).to.be.eq(voter2.address)
+
+            await expect(
+                create_tx
+            ).to.emit(board, "AddVoterBlacklist")
+                .withArgs(
+                    expected_id,
+                    voter1.address
+                );
+
+            await expect(
+                create_tx
+            ).to.emit(board, "AddVoterBlacklist")
+                .withArgs(
+                    expected_id,
+                    voter2.address
+                );
 
         });
 
@@ -483,6 +646,9 @@ describe('QuestPartner contract tests', () => {
             await DAI.connect(creator1).approve(partnerWrapper.address, total_rewards_amount.add(total_fees))
             await CRV.connect(creator2).approve(board.address, total_rewards_amount2.add(total_fees2))
 
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
+
             questID1 = await board.nextID()
 
             await partnerWrapper.connect(creator1).createQuest(
@@ -504,7 +670,8 @@ describe('QuestPartner contract tests', () => {
                 target_votes2,
                 reward_per_vote2,
                 total_rewards_amount2,
-                total_fees2
+                total_fees2,
+                [voter1.address, voter2.address]
             )
 
             await DAI.connect(admin).transfer(creator1.address, added_total_rewards_amount.add(added_total_fees))
@@ -716,6 +883,9 @@ describe('QuestPartner contract tests', () => {
 
             await DAI.connect(creator1).approve(partnerWrapper.address, total_rewards_amount.add(total_fees))
             await CRV.connect(creator2).approve(partnerWrapper.address, total_rewards_amount2.add(total_fees2))
+
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
 
             questID1 = await board.nextID()
 
@@ -970,6 +1140,9 @@ describe('QuestPartner contract tests', () => {
             await DAI.connect(creator1).approve(partnerWrapper.address, total_rewards_amount.add(total_fees))
             await CRV.connect(creator2).approve(partnerWrapper.address, total_rewards_amount2.add(total_fees2))
 
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
+
             questID1 = await board.nextID()
 
             await partnerWrapper.connect(creator1).createQuest(
@@ -1216,6 +1389,9 @@ describe('QuestPartner contract tests', () => {
             await controller.add_gauge(gauge1.address, 2)
             await controller.add_gauge(gauge2.address, 1)
 
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
+
             first_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
@@ -1239,6 +1415,17 @@ describe('QuestPartner contract tests', () => {
                     total_fees[i]
                 )
             }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            await controller.set_user_vote(voter1.address, gauge1.address, first_period, ethers.utils.parseEther('200'), current_ts.add(WEEK.mul(182)))
+            await controller.set_user_vote(voter1.address, gauge2.address, first_period, ethers.utils.parseEther('400'), current_ts.add(WEEK.mul(182)))
+
+            await controller.set_user_vote(voter2.address, gauge2.address, first_period, ethers.utils.parseEther('250'), current_ts.add(WEEK.mul(150)))
+
+            await controller.set_user_vote(voter3.address, gauge1.address, first_period, ethers.utils.parseEther('140'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge2.address, first_period, ethers.utils.parseEther('520'), current_ts.add(WEEK.mul(195)))
 
             for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
@@ -1367,6 +1554,9 @@ describe('QuestPartner contract tests', () => {
             await controller.add_gauge(gauge1.address, 2)
             await controller.add_gauge(gauge2.address, 1)
 
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
+
             first_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
@@ -1390,6 +1580,17 @@ describe('QuestPartner contract tests', () => {
                     total_fees[i]
                 )
             }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            await controller.set_user_vote(voter1.address, gauge1.address, first_period, ethers.utils.parseEther('200'), current_ts.add(WEEK.mul(182)))
+            await controller.set_user_vote(voter1.address, gauge2.address, first_period, ethers.utils.parseEther('400'), current_ts.add(WEEK.mul(182)))
+
+            await controller.set_user_vote(voter2.address, gauge2.address, first_period, ethers.utils.parseEther('250'), current_ts.add(WEEK.mul(150)))
+
+            await controller.set_user_vote(voter3.address, gauge1.address, first_period, ethers.utils.parseEther('140'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge2.address, first_period, ethers.utils.parseEther('520'), current_ts.add(WEEK.mul(195)))
 
             for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
@@ -1487,7 +1688,7 @@ describe('QuestPartner contract tests', () => {
     });
 
 
-    describe('retrieveBlacklistRewards', async () => {
+    describe('retrieveRewards', async () => {
 
         const target_votes = ethers.utils.parseEther('150000')
         const reward_per_vote = ethers.utils.parseEther('6')
@@ -1520,6 +1721,9 @@ describe('QuestPartner contract tests', () => {
 
             await controller.add_gauge(gauge1.address, 2)
 
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
+            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
+
             await DAI.connect(admin).transfer(creator1.address, total_rewards_amount.add(total_fees))
 
             await DAI.connect(creator1).approve(partnerWrapper.address, total_rewards_amount.add(total_fees))
@@ -1541,6 +1745,12 @@ describe('QuestPartner contract tests', () => {
             let period_end_to_set = period.add(WEEK).div(WEEK).mul(WEEK)
 
             await controller.set_points_weight(gauge1.address, period_end_to_set, ethers.utils.parseEther('8000'))
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            await controller.set_user_vote(voter1.address, gauge1.address, period, ethers.utils.parseEther('200'), current_ts.add(WEEK.mul(182)))
+            await controller.set_user_vote(voter2.address, gauge1.address, period, ethers.utils.parseEther('140'), current_ts.add(WEEK.mul(195)))
 
             await board.connect(manager).closeQuestPeriod(period)
 
@@ -1565,7 +1775,7 @@ describe('QuestPartner contract tests', () => {
             let old_balance = await DAI.balanceOf(creator1.address)
     
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     distributor.address,
                     quest_id,
                     period,
@@ -1589,7 +1799,7 @@ describe('QuestPartner contract tests', () => {
             let proof = tree.getProof(quest_id, period, 2, partnerWrapper.address, wrapper_claim_amount);
 
             await expect(
-                partnerWrapper.connect(creator2).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator2).retrieveRewards(
                     distributor.address,
                     quest_id,
                     period,
@@ -1600,7 +1810,7 @@ describe('QuestPartner contract tests', () => {
             ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
-                partnerWrapper.connect(user1).retrieveBlacklistRewards(
+                partnerWrapper.connect(user1).retrieveRewards(
                     distributor.address,
                     quest_id,
                     period,
@@ -1617,7 +1827,7 @@ describe('QuestPartner contract tests', () => {
             let proof = tree.getProof(quest_id, period, 2, partnerWrapper.address, wrapper_claim_amount);
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     ethers.constants.AddressZero,
                     quest_id,
                     period,
@@ -1628,7 +1838,7 @@ describe('QuestPartner contract tests', () => {
             ).to.be.revertedWith('ZeroAddress')
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     receiver.address,
                     quest_id,
                     period,
@@ -1644,7 +1854,7 @@ describe('QuestPartner contract tests', () => {
             let proof = tree.getProof(quest_id, period, 2, partnerWrapper.address, wrapper_claim_amount);
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     distributor.address,
                     112,
                     period,
@@ -1655,7 +1865,7 @@ describe('QuestPartner contract tests', () => {
             ).to.be.reverted
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     distributor.address,
                     quest_id,
                     period.add(WEEK),
@@ -1666,7 +1876,7 @@ describe('QuestPartner contract tests', () => {
             ).to.be.reverted
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     distributor.address,
                     quest_id,
                     period,
@@ -1677,7 +1887,7 @@ describe('QuestPartner contract tests', () => {
             ).to.be.reverted
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     distributor.address,
                     quest_id,
                     period,
@@ -1688,7 +1898,7 @@ describe('QuestPartner contract tests', () => {
             ).to.be.reverted
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     distributor.address,
                     quest_id,
                     period,
@@ -2067,7 +2277,7 @@ describe('QuestPartner contract tests', () => {
             ).to.be.revertedWith('Killed')
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     distributor.address,
                     questID,
                     10,
@@ -2096,139 +2306,6 @@ describe('QuestPartner contract tests', () => {
             await expect(
                 partnerWrapper.connect(user3).kill()
             ).to.be.revertedWith('Ownable: caller is not the owner')
-
-        });
-
-    });
-
-
-    describe('Voter Blacklist', async () => {
-
-        it(' should add address to blacklist (& emit correct Event)', async () => {
-
-            const add_tx = await partnerWrapper.connect(admin).addVoterBlacklist(user2.address)
-
-            await expect(
-                add_tx
-            ).to.emit(partnerWrapper, "AddVoterBlacklist")
-                .withArgs(user2.address);
-
-            expect(await partnerWrapper.voterBlacklist(0)).to.be.eq(user2.address)
-
-            const blacklist = await partnerWrapper.getBlacklistedVoters()
-
-            expect(blacklist.includes(user2.address)).to.be.true
-
-        });
-
-        it(' should allow to add other address to blacklist', async () => {
-
-            await partnerWrapper.connect(admin).addVoterBlacklist(user2.address)
-
-            expect(await partnerWrapper.voterBlacklist(0)).to.be.eq(user2.address)
-
-            const blacklist = await partnerWrapper.getBlacklistedVoters()
-
-            expect(blacklist.includes(user2.address)).to.be.true
-
-            const add_tx = await partnerWrapper.connect(partner).addVoterBlacklist(user3.address)
-
-            await expect(
-                add_tx
-            ).to.emit(partnerWrapper, "AddVoterBlacklist")
-                .withArgs(user3.address);
-
-            expect(await partnerWrapper.voterBlacklist(1)).to.be.eq(user3.address)
-
-            const blacklist2 = await partnerWrapper.getBlacklistedVoters()
-
-            expect(blacklist2.includes(user2.address)).to.be.true
-            expect(blacklist2.includes(user3.address)).to.be.true
-
-        });
-
-        it(' should not allow to add the same address twice', async () => {
-
-            await partnerWrapper.connect(partner).addVoterBlacklist(user2.address)
-
-            const previous_blacklist = await partnerWrapper.getBlacklistedVoters()
-            const previous_blacklist_size = previous_blacklist.length
-
-            await partnerWrapper.connect(partner).addVoterBlacklist(user2.address)
-
-            const new_blacklist = await partnerWrapper.getBlacklistedVoters()
-            const new_blacklist_size = new_blacklist.length
-
-            expect(previous_blacklist).to.eql(new_blacklist)
-            expect(previous_blacklist_size).to.be.eq(new_blacklist_size)
-
-        });
-
-        it(' should remove the address correctly (& emit correct Event)', async () => {
-
-            await partnerWrapper.connect(partner).addVoterBlacklist(user2.address)
-            await partnerWrapper.connect(partner).addVoterBlacklist(user3.address)
-
-            const remove_tx = await partnerWrapper.connect(admin).removeVoterBlacklist(user2.address)
-
-            await expect(
-                remove_tx
-            ).to.emit(partnerWrapper, "RemoveVoterBlacklist")
-                .withArgs(user2.address);
-
-            expect(await partnerWrapper.voterBlacklist(0)).to.be.eq(user3.address)
-
-            const blacklist = await partnerWrapper.getBlacklistedVoters()
-    
-            expect(blacklist.includes(user2.address)).to.be.false
-            expect(blacklist.includes(user3.address)).to.be.true
-
-        });
-
-        it(' should allow to empty the list', async () => {
-
-            await partnerWrapper.connect(partner).addVoterBlacklist(user2.address)
-            await partnerWrapper.connect(partner).addVoterBlacklist(user3.address)
-
-            await partnerWrapper.connect(partner).removeVoterBlacklist(user2.address)
-            await partnerWrapper.connect(partner).removeVoterBlacklist(user3.address)
-
-            const blacklist = await partnerWrapper.getBlacklistedVoters()
-
-            expect(blacklist.length).to.be.eq(0)
-    
-            expect(blacklist.includes(user2.address)).to.be.false
-            expect(blacklist.includes(user3.address)).to.be.false
-
-        });
-
-        it(' should not remove an address not blacklisted', async () => {
-
-            await partnerWrapper.connect(partner).addVoterBlacklist(user1.address)
-            await partnerWrapper.connect(partner).addVoterBlacklist(user2.address)
-
-            const previous_blacklist = await partnerWrapper.getBlacklistedVoters()
-            const previous_blacklist_size = previous_blacklist.length
-
-            await partnerWrapper.connect(partner).removeVoterBlacklist(user3.address)
-
-            const new_blacklist = await partnerWrapper.getBlacklistedVoters()
-            const new_blacklist_size = new_blacklist.length
-
-            expect(previous_blacklist).to.eql(new_blacklist)
-            expect(previous_blacklist_size).to.be.eq(new_blacklist_size)
-
-        });
-
-        it(' should only allow partner & admin to call methods', async () => {
-
-            await expect(
-                partnerWrapper.connect(user2).addVoterBlacklist(user2.address)
-            ).to.be.revertedWith('CallerNotAllowed')
-
-            await expect(
-                partnerWrapper.connect(user3).removeVoterBlacklist(user2.address)
-            ).to.be.revertedWith('CallerNotAllowed')
 
         });
 

@@ -30,6 +30,9 @@ library Errors {
     error InvalidProof();
     error EmptyMerkleRoot();
     error IncorrectRewardAmount();
+    error MerkleRootFrozen();
+    error NotFrozen();
+    error AlreadyFrozen();
 
 
     // Quest Errors
@@ -62,6 +65,7 @@ library Errors {
     error CalletNotQuestCreator();
     error LowerRewardPerVote();
     error LowerObjective();
+    error AlreadyBlacklisted();
 
 
     //Math
