@@ -9,8 +9,9 @@
     "compile": "npx hardhat compile",
     "merkle": "ts-node scripts/main.ts",
     "test": "npx hardhat test",
-    "deploy": "npx hardhat run --network mainnet",
-    "test-vebal": "VE_TOKEN=VEBAL npx hardhat test"
+    "test-vebal": "VE_TOKEN=VEBAL npx hardhat test",
+    "test-veangle": "VE_TOKEN=VEANGLE npx hardhat test",
+    "deploy": "npx hardhat run --network mainnet"
   },
   "author": "PALADIN",
   "license": "MIT",

@@ -12,7 +12,7 @@ const BIG_HOLDER2 = "0x075e72a5eDf65F0A5f44699c7654C1a76941Ddc8"; //here : DAI h
 const TOKEN1_AMOUNT = ethers.utils.parseEther('750000'); //here : BAL
 const TOKEN2_AMOUNT = ethers.utils.parseEther('8000000'); //here : DAI
 
-const VETOKEN_LOCKING_TIME = Math.floor((86400 * 365 * 4) / (86400 * 7)) * (86400 * 7)
+const VETOKEN_LOCKING_TIME = Math.floor((86400 * 365) / (86400 * 7)) * (86400 * 7)
 
 const GAUGE_CONTROLLER = "0xC128468b7Ce63eA702C1f104D55A2566b13D3ABD";
 

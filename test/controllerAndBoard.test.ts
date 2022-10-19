@@ -24,6 +24,7 @@ let constants_path = "./utils/constant" // by default: veCRV
 
 const VE_TOKEN = process.env.VE_TOKEN ? String(process.env.VE_TOKEN) : "VECRV";
 if(VE_TOKEN === "VEBAL") constants_path = "./utils/balancer-constant"
+else if(VE_TOKEN === "VEANGLE") constants_path = "./utils/angle-constant"
 
 const { 
     TOKEN1_ADDRESS,
