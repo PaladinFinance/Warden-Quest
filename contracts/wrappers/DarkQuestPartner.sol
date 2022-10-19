@@ -46,8 +46,6 @@ contract DarkQuestPartner is Owner, ReentrancyGuard {
 
     uint256 public partnerShare; //BPS
 
-    address[] public voterBlacklist;
-
     uint256[] public partnerQuests;
 
     mapping(uint256 => address) public creators;
@@ -111,10 +109,6 @@ contract DarkQuestPartner is Owner, ReentrancyGuard {
         return partnerQuests;
     }
 
-    function getBlacklistedVoters() external view returns(address[] memory){
-        return voterBlacklist;
-    }
-
     function createQuest(
         address gauge,
         address rewardToken,
@@ -122,7 +116,8 @@ contract DarkQuestPartner is Owner, ReentrancyGuard {
         uint256 objective,
         uint256 rewardPerVote,
         uint256 totalRewardAmount,
-        uint256 feeAmount
+        uint256 feeAmount,
+        address[] calldata blacklist
     ) external notKilled nonReentrant returns(uint256) {
         if(gauge == address(0) || rewardToken == address(0)) revert Errors.ZeroAddress();
         if(duration == 0) revert Errors.IncorrectDuration();
@@ -136,7 +131,7 @@ contract DarkQuestPartner is Owner, ReentrancyGuard {
 
         require(_pullTokens(rewardToken, msg.sender, totalRewardAmount + feeAmount));
 
-        uint256 newQuestId = board.createQuest(gauge, rewardToken, duration, objective, rewardPerVote, totalRewardAmount, feeAmount, voterBlacklist);
+        uint256 newQuestId = board.createQuest(gauge, rewardToken, duration, objective, rewardPerVote, totalRewardAmount, feeAmount, blacklist);
 
         creators[newQuestId] = msg.sender;
         rewardTokens[newQuestId] = rewardToken;
@@ -298,52 +293,6 @@ contract DarkQuestPartner is Owner, ReentrancyGuard {
         IERC20(token).safeTransfer(owner(), amount);
 
         return true;
-    }
-
-    function addVoterBlacklist(address account) external onlyAllowed notKilled returns(bool) {
-        if(account == address(0)) revert Errors.ZeroAddress();
-        //We don't want to have 2x the same address in the list
-        address[] memory _list = voterBlacklist;
-        uint256 length = _list.length;
-        for(uint256 i = 0; i < length;){
-            if(_list[i] == account){
-                return false;
-            }
-            unchecked {
-                ++i;
-            }
-        }
-
-        voterBlacklist.push(account);
-
-        emit AddVoterBlacklist(account);
-
-        return true;
-    }
-
-    function removeVoterBlacklist(address account) external onlyAllowed notKilled returns(bool) {
-        address[] memory _list = voterBlacklist;
-        uint256 length = _list.length;
-
-        for(uint256 i = 0; i < length;){
-            if(_list[i] == account){
-                if(i != length - 1){
-                    voterBlacklist[i] = _list[length - 1];
-                }
-
-                voterBlacklist.pop();
-
-                emit RemoveVoterBlacklist(account);
-
-                return true;
-            }
-
-            unchecked {
-                ++i;
-            }
-        }
-
-        return false;
     }
 
 
