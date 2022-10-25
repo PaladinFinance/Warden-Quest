@@ -100,7 +100,7 @@ To deploy some contracts only, see the scripts in [scripts/deploy](https://githu
 ## Security & Audit
 
 
-On-going
+Warden Quest was audited by Spearbit: [Report](https://github.com/PaladinFinance/Warden-Quest/blob/526eecb1594353223ebc6d3459867ecfadbc38e7/audit/Spearbit%20-%20Quest%20audit.pdf)
 
 
 ## Ressources
