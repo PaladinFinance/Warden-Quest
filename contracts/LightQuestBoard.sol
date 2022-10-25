@@ -107,7 +107,7 @@ contract LightQuestBoard is Owner, ReentrancyGuard {
 
 
     /** @notice Platform fees ratio (in BPS) */
-    uint256 public platformFee = 500;
+    uint256 public platformFee = 400;
 
     /** @notice Minimum Objective required */
     uint256 public minObjective;

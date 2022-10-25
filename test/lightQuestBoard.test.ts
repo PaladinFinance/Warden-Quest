@@ -116,7 +116,7 @@ describe('LightQuestBoard contract tests', () => {
 
         expect(await board.nextID()).to.be.eq(0)
 
-        expect(await board.platformFee()).to.be.eq(500)
+        expect(await board.platformFee()).to.be.eq(400)
 
         expect(await board.minObjective()).to.be.eq(ethers.utils.parseEther('1000'))
 
@@ -180,7 +180,7 @@ describe('LightQuestBoard contract tests', () => {
         const duration = 4
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
 
         beforeEach(async () => {
 
@@ -404,7 +404,7 @@ describe('LightQuestBoard contract tests', () => {
             const duration2 = 4
 
             const total_rewards_amount2 = rewards_per_period2.mul(duration2)
-            const total_fees2 = total_rewards_amount2.mul(500).div(10000)
+            const total_fees2 = total_rewards_amount2.mul(400).div(10000)
 
 
             await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
@@ -492,7 +492,7 @@ describe('LightQuestBoard contract tests', () => {
             const duration2 = 4
 
             const total_rewards_amount2 = rewards_per_period2.mul(duration2)
-            const total_fees2 = total_rewards_amount2.mul(500).div(10000)
+            const total_fees2 = total_rewards_amount2.mul(400).div(10000)
 
 
             await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
@@ -736,7 +736,7 @@ describe('LightQuestBoard contract tests', () => {
         it(' should fail if given amounts (rewards or fees) are incorrect', async () => {
 
             const wrong_total_rewards_amount = ethers.utils.parseEther('800000').mul(duration)
-            const wrong_total_fees = total_rewards_amount.mul(400).div(10000)
+            const wrong_total_fees = total_rewards_amount.mul(300).div(10000)
 
             await DAI.connect(creator1).approve(board.address, total_rewards_amount.add(total_fees))
 
@@ -779,11 +779,11 @@ describe('LightQuestBoard contract tests', () => {
         const duration = 4
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
 
         const extend_duration = 3
         const added_total_rewards_amount = rewards_per_period.mul(extend_duration)
-        const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
+        const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
         let questID: BigNumber;
 
@@ -1080,7 +1080,7 @@ describe('LightQuestBoard contract tests', () => {
         it(' should fail if given amounts (rewards or fees) are incorrect', async () => {
 
             const wrong_total_rewards_amount = ethers.utils.parseEther('40000').mul(extend_duration)
-            const wrong_total_fees = added_total_rewards_amount.mul(400).div(10000)
+            const wrong_total_fees = added_total_rewards_amount.mul(300).div(10000)
 
             await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
 
@@ -1119,12 +1119,12 @@ describe('LightQuestBoard contract tests', () => {
         const remainingDuration = duration - ellapsedDuration
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
 
         const new_reward_per_vote = ethers.utils.parseEther('0.6')
         const new_rewards_per_period = ethers.utils.parseEther('90000')
         const added_total_rewards_amount = new_rewards_per_period.sub(rewards_per_period).mul(remainingDuration)
-        const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
+        const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
         let questID: BigNumber;
 
@@ -1325,7 +1325,7 @@ describe('LightQuestBoard contract tests', () => {
 
             const lower_reward_per_vote = reward_per_vote.div(2)
             const lower_total_rewards_amount = rewards_per_period.div(2).mul(remainingDuration)
-            const lower_total_fees = lower_total_rewards_amount.mul(500).div(10000)
+            const lower_total_fees = lower_total_rewards_amount.mul(400).div(10000)
 
             await DAI.connect(creator1).approve(board.address, lower_total_rewards_amount.add(lower_total_fees))
 
@@ -1433,7 +1433,7 @@ describe('LightQuestBoard contract tests', () => {
         it(' should fail if given amounts (rewards or fees) are incorrect', async () => {
 
             const wrong_total_rewards_amount = ethers.utils.parseEther('80000').sub(rewards_per_period).mul(remainingDuration)
-            const wrong_total_fees = added_total_rewards_amount.mul(400).div(10000)
+            const wrong_total_fees = added_total_rewards_amount.mul(300).div(10000)
 
             await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
 
@@ -1474,12 +1474,12 @@ describe('LightQuestBoard contract tests', () => {
         const remainingDuration = duration - ellapsedDuration
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
 
         const new_target_votes = ethers.utils.parseEther('20000')
         const new_rewards_per_period = ethers.utils.parseEther('6000')
         const added_total_rewards_amount = new_rewards_per_period.sub(rewards_per_period).mul(remainingDuration)
-        const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
+        const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
         let questID: BigNumber;
 
@@ -1680,7 +1680,7 @@ describe('LightQuestBoard contract tests', () => {
 
             const lower_target_votes = target_votes.div(2)
             const lower_total_rewards_amount = reward_per_vote.mul(lower_target_votes).mul(remainingDuration)
-            const lower_total_fees = lower_total_rewards_amount.mul(500).div(10000)
+            const lower_total_fees = lower_total_rewards_amount.mul(400).div(10000)
 
             await DAI.connect(creator1).approve(board.address, lower_total_rewards_amount.add(lower_total_fees))
 
@@ -1779,7 +1779,7 @@ describe('LightQuestBoard contract tests', () => {
         it(' should fail if given amounts (rewards or fees) are incorrect', async () => {
 
             const wrong_total_rewards_amount = ethers.utils.parseEther('50000').sub(rewards_per_period).mul(remainingDuration)
-            const wrong_total_fees = added_total_rewards_amount.mul(400).div(10000)
+            const wrong_total_fees = added_total_rewards_amount.mul(300).div(10000)
 
             await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
 
@@ -1871,7 +1871,7 @@ describe('LightQuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -2138,7 +2138,7 @@ describe('LightQuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -2435,7 +2435,7 @@ describe('LightQuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -2626,7 +2626,7 @@ describe('LightQuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -2853,7 +2853,7 @@ describe('LightQuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -3134,11 +3134,11 @@ describe('LightQuestBoard contract tests', () => {
             const duration = 4
 
             const total_rewards_amount = rewards_per_period.mul(duration)
-            const total_fees = total_rewards_amount.mul(500).div(10000)
+            const total_fees = total_rewards_amount.mul(400).div(10000)
 
             const extend_duration = 3
             const added_total_rewards_amount = rewards_per_period.mul(extend_duration)
-            const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
+            const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
             await expect(
                 board.connect(creator1).createQuest(
@@ -3241,7 +3241,7 @@ describe('LightQuestBoard contract tests', () => {
             const duration = 4
 
             const total_rewards_amount = rewards_per_period.mul(duration)
-            const total_fees = total_rewards_amount.mul(500).div(10000)
+            const total_fees = total_rewards_amount.mul(400).div(10000)
 
             await board.connect(admin).initiateDistributor(distributor.address)
 
@@ -3356,7 +3356,7 @@ describe('LightQuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -3952,7 +3952,7 @@ describe('LightQuestBoard contract tests', () => {
 
     describe('updateMinObjective', async () => {
 
-        const new_min = ethers.utils.parseEther('500')
+        const new_min = ethers.utils.parseEther('400')
 
         it(' should update the min objective', async () => {
 
