@@ -38,7 +38,7 @@ const WEEK = BigNumber.from(86400 * 7)
 const UNIT = ethers.utils.parseEther('1')
 
 
-describe('QuestPartner contract tests', () => {
+describe('DarkQuestPartner contract tests', () => {
     let admin: SignerWithAddress
 
     let partner: SignerWithAddress
@@ -140,139 +140,6 @@ describe('QuestPartner contract tests', () => {
     });
 
 
-    describe('Voter Blacklist', async () => {
-
-        it(' should add address to blacklist (& emit correct Event)', async () => {
-
-            const add_tx = await partnerWrapper.connect(admin).addVoterBlacklist(voter2.address)
-
-            await expect(
-                add_tx
-            ).to.emit(partnerWrapper, "AddVoterBlacklist")
-                .withArgs(voter2.address);
-
-            expect(await partnerWrapper.voterBlacklist(0)).to.be.eq(voter2.address)
-
-            const blacklist = await partnerWrapper.getBlacklistedVoters()
-
-            expect(blacklist.includes(voter2.address)).to.be.true
-
-        });
-
-        it(' should allow to add other address to blacklist', async () => {
-
-            await partnerWrapper.connect(admin).addVoterBlacklist(voter2.address)
-
-            expect(await partnerWrapper.voterBlacklist(0)).to.be.eq(voter2.address)
-
-            const blacklist = await partnerWrapper.getBlacklistedVoters()
-
-            expect(blacklist.includes(voter2.address)).to.be.true
-
-            const add_tx = await partnerWrapper.connect(partner).addVoterBlacklist(voter3.address)
-
-            await expect(
-                add_tx
-            ).to.emit(partnerWrapper, "AddVoterBlacklist")
-                .withArgs(voter3.address);
-
-            expect(await partnerWrapper.voterBlacklist(1)).to.be.eq(voter3.address)
-
-            const blacklist2 = await partnerWrapper.getBlacklistedVoters()
-
-            expect(blacklist2.includes(voter2.address)).to.be.true
-            expect(blacklist2.includes(voter3.address)).to.be.true
-
-        });
-
-        it(' should not allow to add the same address twice', async () => {
-
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
-
-            const previous_blacklist = await partnerWrapper.getBlacklistedVoters()
-            const previous_blacklist_size = previous_blacklist.length
-
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
-
-            const new_blacklist = await partnerWrapper.getBlacklistedVoters()
-            const new_blacklist_size = new_blacklist.length
-
-            expect(previous_blacklist).to.eql(new_blacklist)
-            expect(previous_blacklist_size).to.be.eq(new_blacklist_size)
-
-        });
-
-        it(' should remove the address correctly (& emit correct Event)', async () => {
-
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter3.address)
-
-            const remove_tx = await partnerWrapper.connect(admin).removeVoterBlacklist(voter2.address)
-
-            await expect(
-                remove_tx
-            ).to.emit(partnerWrapper, "RemoveVoterBlacklist")
-                .withArgs(voter2.address);
-
-            expect(await partnerWrapper.voterBlacklist(0)).to.be.eq(voter3.address)
-
-            const blacklist = await partnerWrapper.getBlacklistedVoters()
-    
-            expect(blacklist.includes(voter2.address)).to.be.false
-            expect(blacklist.includes(voter3.address)).to.be.true
-
-        });
-
-        it(' should allow to empty the list', async () => {
-
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter3.address)
-
-            await partnerWrapper.connect(partner).removeVoterBlacklist(voter2.address)
-            await partnerWrapper.connect(partner).removeVoterBlacklist(voter3.address)
-
-            const blacklist = await partnerWrapper.getBlacklistedVoters()
-
-            expect(blacklist.length).to.be.eq(0)
-    
-            expect(blacklist.includes(voter2.address)).to.be.false
-            expect(blacklist.includes(voter3.address)).to.be.false
-
-        });
-
-        it(' should not remove an address not blacklisted', async () => {
-
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
-
-            const previous_blacklist = await partnerWrapper.getBlacklistedVoters()
-            const previous_blacklist_size = previous_blacklist.length
-
-            await partnerWrapper.connect(partner).removeVoterBlacklist(voter3.address)
-
-            const new_blacklist = await partnerWrapper.getBlacklistedVoters()
-            const new_blacklist_size = new_blacklist.length
-
-            expect(previous_blacklist).to.eql(new_blacklist)
-            expect(previous_blacklist_size).to.be.eq(new_blacklist_size)
-
-        });
-
-        it(' should only allow partner & admin to call methods', async () => {
-
-            await expect(
-                partnerWrapper.connect(voter2).addVoterBlacklist(voter2.address)
-            ).to.be.revertedWith('CallerNotAllowed')
-
-            await expect(
-                partnerWrapper.connect(user3).removeVoterBlacklist(voter2.address)
-            ).to.be.revertedWith('CallerNotAllowed')
-
-        });
-
-    });
-
-
     describe('createQuest', async () => {
 
         const target_votes = ethers.utils.parseEther('150000')
@@ -287,9 +154,9 @@ describe('QuestPartner contract tests', () => {
         const duration2 = 2
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
         const total_rewards_amount2 = rewards_per_period2.mul(duration2)
-        const total_fees2 = total_rewards_amount2.mul(500).div(10000)
+        const total_fees2 = total_rewards_amount2.mul(400).div(10000)
 
         beforeEach(async () => {
 
@@ -309,9 +176,6 @@ describe('QuestPartner contract tests', () => {
             await DAI.connect(creator1).approve(partnerWrapper.address, total_rewards_amount.add(total_fees))
             //await CRV.connect(creator2).approve(partnerWrapper.address, total_rewards_amount2.add(total_fees2))
 
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
-
         });
 
         it(' should create the Quest correctly', async () => {
@@ -330,7 +194,8 @@ describe('QuestPartner contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                [voter1.address, voter2.address]
             )
 
             expect(await board.nextID()).to.be.eq(expected_id.add(1))
@@ -412,7 +277,8 @@ describe('QuestPartner contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                [voter1.address, voter2.address]
             )
 
             expect(await board.nextID()).to.be.eq(expected_id.add(1))
@@ -443,7 +309,8 @@ describe('QuestPartner contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                [voter1.address, voter2.address]
             )
 
             await expect(
@@ -488,7 +355,8 @@ describe('QuestPartner contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    [voter1.address, voter2.address]
                 )
             ).to.be.revertedWith('CallerNotAllowed')
 
@@ -504,7 +372,8 @@ describe('QuestPartner contract tests', () => {
                     target_votes2,
                     reward_per_vote2,
                     total_rewards_amount2,
-                    total_fees2
+                    total_fees2,
+                    [voter1.address, voter2.address]
                 )
             ).to.be.reverted
 
@@ -520,7 +389,8 @@ describe('QuestPartner contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    [voter1.address, voter2.address]
                 )
             ).to.be.revertedWith('ZeroAddress')
 
@@ -532,7 +402,8 @@ describe('QuestPartner contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    [voter1.address, voter2.address]
                 )
             ).to.be.revertedWith('ZeroAddress')
 
@@ -544,7 +415,8 @@ describe('QuestPartner contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    [voter1.address, voter2.address]
                 )
             ).to.be.revertedWith('IncorrectDuration')
 
@@ -556,7 +428,8 @@ describe('QuestPartner contract tests', () => {
                     target_votes,
                     0,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    [voter1.address, voter2.address]
                 )
             ).to.be.revertedWith('NullAmount')
 
@@ -568,7 +441,8 @@ describe('QuestPartner contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     0,
-                    total_fees
+                    total_fees,
+                    [voter1.address, voter2.address]
                 )
             ).to.be.revertedWith('NullAmount')
 
@@ -580,7 +454,8 @@ describe('QuestPartner contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    0
+                    0,
+                    [voter1.address, voter2.address]
                 )
             ).to.be.revertedWith('NullAmount')
 
@@ -592,7 +467,8 @@ describe('QuestPartner contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount.div(2),
-                    total_fees
+                    total_fees,
+                    [voter1.address, voter2.address]
                 )
             ).to.be.revertedWith('IncorrectTotalRewardAmount')
 
@@ -617,13 +493,13 @@ describe('QuestPartner contract tests', () => {
         const duration2 = 2
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
         const total_rewards_amount2 = rewards_per_period2.mul(duration2)
-        const total_fees2 = total_rewards_amount2.mul(500).div(10000)
+        const total_fees2 = total_rewards_amount2.mul(400).div(10000)
 
         const extend_duration = 3
         const added_total_rewards_amount = rewards_per_period.mul(extend_duration)
-        const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
+        const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
         let questID1: BigNumber;
         let questID2: BigNumber;
@@ -646,9 +522,6 @@ describe('QuestPartner contract tests', () => {
             await DAI.connect(creator1).approve(partnerWrapper.address, total_rewards_amount.add(total_fees))
             await CRV.connect(creator2).approve(board.address, total_rewards_amount2.add(total_fees2))
 
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
-
             questID1 = await board.nextID()
 
             await partnerWrapper.connect(creator1).createQuest(
@@ -658,7 +531,8 @@ describe('QuestPartner contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                [voter1.address, voter2.address]
             )
 
             questID2 = await board.nextID()
@@ -851,9 +725,9 @@ describe('QuestPartner contract tests', () => {
         const duration2 = 2
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
         const total_rewards_amount2 = rewards_per_period2.mul(duration2)
-        const total_fees2 = total_rewards_amount2.mul(500).div(10000)
+        const total_fees2 = total_rewards_amount2.mul(400).div(10000)
 
         const ellapsedDuration = 3
         const remainingDuration = duration - ellapsedDuration
@@ -861,7 +735,7 @@ describe('QuestPartner contract tests', () => {
         const new_reward_per_vote = ethers.utils.parseEther('0.6')
         const new_rewards_per_period = ethers.utils.parseEther('90000')
         const added_total_rewards_amount = new_rewards_per_period.sub(rewards_per_period).mul(remainingDuration)
-        const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
+        const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
         let questID1: BigNumber;
         let questID2: BigNumber;
@@ -884,9 +758,6 @@ describe('QuestPartner contract tests', () => {
             await DAI.connect(creator1).approve(partnerWrapper.address, total_rewards_amount.add(total_fees))
             await CRV.connect(creator2).approve(partnerWrapper.address, total_rewards_amount2.add(total_fees2))
 
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
-
             questID1 = await board.nextID()
 
             await partnerWrapper.connect(creator1).createQuest(
@@ -896,7 +767,8 @@ describe('QuestPartner contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                [voter1.address, voter2.address]
             )
 
             questID2 = await board.nextID()
@@ -908,7 +780,8 @@ describe('QuestPartner contract tests', () => {
                 target_votes2,
                 reward_per_vote2,
                 total_rewards_amount2,
-                total_fees2
+                total_fees2,
+                [voter1.address, voter2.address]
             )
 
             await DAI.connect(admin).transfer(creator1.address, added_total_rewards_amount.add(added_total_fees))
@@ -1107,9 +980,9 @@ describe('QuestPartner contract tests', () => {
         const duration2 = 2
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
         const total_rewards_amount2 = rewards_per_period2.mul(duration2)
-        const total_fees2 = total_rewards_amount2.mul(500).div(10000)
+        const total_fees2 = total_rewards_amount2.mul(400).div(10000)
 
         const ellapsedDuration = 2
         const remainingDuration = duration - ellapsedDuration
@@ -1117,7 +990,7 @@ describe('QuestPartner contract tests', () => {
         const new_target_votes = ethers.utils.parseEther('20000')
         const new_rewards_per_period = ethers.utils.parseEther('6000')
         const added_total_rewards_amount = new_rewards_per_period.sub(rewards_per_period).mul(remainingDuration)
-        const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
+        const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
         let questID1: BigNumber;
         let questID2: BigNumber;
@@ -1140,9 +1013,6 @@ describe('QuestPartner contract tests', () => {
             await DAI.connect(creator1).approve(partnerWrapper.address, total_rewards_amount.add(total_fees))
             await CRV.connect(creator2).approve(partnerWrapper.address, total_rewards_amount2.add(total_fees2))
 
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
-
             questID1 = await board.nextID()
 
             await partnerWrapper.connect(creator1).createQuest(
@@ -1152,7 +1022,8 @@ describe('QuestPartner contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                [voter1.address, voter2.address]
             )
 
             questID2 = await board.nextID()
@@ -1164,7 +1035,8 @@ describe('QuestPartner contract tests', () => {
                 target_votes2,
                 reward_per_vote2,
                 total_rewards_amount2,
-                total_fees2
+                total_fees2,
+                [voter1.address, voter2.address]
             )
 
             await DAI.connect(admin).transfer(creator1.address, added_total_rewards_amount.add(added_total_fees))
@@ -1389,15 +1261,12 @@ describe('QuestPartner contract tests', () => {
             await controller.add_gauge(gauge1.address, 2)
             await controller.add_gauge(gauge2.address, 1)
 
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
-
             first_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(partnerWrapper.address, 0)
@@ -1412,7 +1281,8 @@ describe('QuestPartner contract tests', () => {
                     target_votes[i],
                     reward_per_vote[i],
                     total_rewards_amount[i],
-                    total_fees[i]
+                    total_fees[i],
+                    [voter1.address, voter2.address]
                 )
             }
 
@@ -1554,15 +1424,12 @@ describe('QuestPartner contract tests', () => {
             await controller.add_gauge(gauge1.address, 2)
             await controller.add_gauge(gauge2.address, 1)
 
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
-
             first_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(partnerWrapper.address, 0)
@@ -1577,7 +1444,8 @@ describe('QuestPartner contract tests', () => {
                     target_votes[i],
                     reward_per_vote[i],
                     total_rewards_amount[i],
-                    total_fees[i]
+                    total_fees[i],
+                    [voter1.address, voter2.address]
                 )
             }
 
@@ -1698,7 +1566,7 @@ describe('QuestPartner contract tests', () => {
         const duration = 4
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
 
         let tree: BalanceTree
 
@@ -1721,9 +1589,6 @@ describe('QuestPartner contract tests', () => {
 
             await controller.add_gauge(gauge1.address, 2)
 
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter1.address)
-            await partnerWrapper.connect(partner).addVoterBlacklist(voter2.address)
-
             await DAI.connect(admin).transfer(creator1.address, total_rewards_amount.add(total_fees))
 
             await DAI.connect(creator1).approve(partnerWrapper.address, total_rewards_amount.add(total_fees))
@@ -1738,7 +1603,8 @@ describe('QuestPartner contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                [voter1.address, voter2.address]
             )
             await advanceTime(WEEK.mul(2).toNumber())
             
@@ -1925,7 +1791,7 @@ describe('QuestPartner contract tests', () => {
         beforeEach(async () => {
 
             const function_ABI_1 = ["function transferERC20(address token, address recipient, uint256 amount)"]
-            const args1 = [DAI.address, partner.address, ethers.utils.parseEther('500')]
+            const args1 = [DAI.address, partner.address, ethers.utils.parseEther('400')]
     
             const function_ABI_2 = ["function setValue(uint256 _value)"]
             const args2 = [12]
@@ -2018,9 +1884,9 @@ describe('QuestPartner contract tests', () => {
         const duration2 = 2
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
         const total_rewards_amount2 = rewards_per_period2.mul(duration2)
-        const total_fees2 = total_rewards_amount2.mul(500).div(10000)
+        const total_fees2 = total_rewards_amount2.mul(400).div(10000)
 
         beforeEach(async () => {
 
@@ -2068,7 +1934,8 @@ describe('QuestPartner contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                [voter1.address, voter2.address]
             )
 
             await expect(
@@ -2114,7 +1981,8 @@ describe('QuestPartner contract tests', () => {
                 target_votes2,
                 reward_per_vote2,
                 total_rewards_amount2,
-                total_fees2
+                total_fees2,
+                [voter1.address, voter2.address]
             )
 
             await expect(
@@ -2208,7 +2076,7 @@ describe('QuestPartner contract tests', () => {
         const duration = 4
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
 
         const ellapsedDuration = 2
 
@@ -2217,7 +2085,7 @@ describe('QuestPartner contract tests', () => {
         const new_reward_per_vote = ethers.utils.parseEther('0.6')
 
         const added_total_rewards_amount = ethers.utils.parseEther('5000')
-        const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
+        const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
         it(' should block all notKilled methods', async () => {
 
@@ -2231,7 +2099,8 @@ describe('QuestPartner contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    [voter1.address, voter2.address]
                 )
             ).to.be.revertedWith('Killed')
 

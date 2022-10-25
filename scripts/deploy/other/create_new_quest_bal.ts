@@ -43,7 +43,7 @@ const rewards_per_period = target_votes.mul(reward_per_vote).div(UNIT)
 const duration = 8
 
 const total_rewards_amount = rewards_per_period.mul(duration)
-const total_fees = total_rewards_amount.mul(500).div(10000)
+const total_fees = total_rewards_amount.mul(400).div(10000)
 
 const token_address = "0xba100000625a3754423978a60c9317c58a424e3D"
 const minTokenAmount = ethers.utils.parseEther("0.0001")*/
@@ -60,7 +60,7 @@ const rewards_per_period = target_votes.mul(reward_per_vote).div(UNIT)
 const duration = 8
 
 const total_rewards_amount = rewards_per_period.mul(duration)
-const total_fees = total_rewards_amount.mul(500).div(10000)
+const total_fees = total_rewards_amount.mul(400).div(10000)
 
 const token_address = "0x6B175474E89094C44Da98b954EedeAC495271d0F"
 const minTokenAmount = ethers.utils.parseEther("0.005")

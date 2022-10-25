@@ -160,7 +160,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
             rewards_per_period = TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
             total_rewards_amount = rewards_per_period.mul(duration[i])
-            total_fees = total_rewards_amount.mul(500).div(10000)
+            total_fees = total_rewards_amount.mul(400).div(10000)
 
             await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount.add(total_fees))
             await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -267,7 +267,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
             rewards_per_period = TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
             total_rewards_amount = rewards_per_period.mul(duration[i])
-            total_fees = total_rewards_amount.mul(500).div(10000)
+            total_fees = total_rewards_amount.mul(400).div(10000)
 
             await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount.add(total_fees))
             await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -373,7 +373,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
             rewards_per_period = TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
             total_rewards_amount = rewards_per_period.mul(duration[i])
-            total_fees = total_rewards_amount.mul(500).div(10000)
+            total_fees = total_rewards_amount.mul(400).div(10000)
 
             await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount.add(total_fees))
             await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -481,7 +481,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
             let rewards_per_period = TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
             let total_rewards_amount = rewards_per_period.mul(duration[i])
-            let total_fees = total_rewards_amount.mul(500).div(10000)
+            let total_fees = total_rewards_amount.mul(400).div(10000)
 
             await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount.add(total_fees))
             await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -512,7 +512,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
             for (let i = 0; i < GAUGES.length; i++) {
                 rewards_per_period[i] = TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -574,7 +574,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
             for (let i = 0; i < GAUGES.length; i++) {
                 rewards_per_period[i] = TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(board.address, 0)
