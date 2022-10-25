@@ -150,9 +150,9 @@ describe('QuestPartner contract tests', () => {
         const duration2 = 2
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
         const total_rewards_amount2 = rewards_per_period2.mul(duration2)
-        const total_fees2 = total_rewards_amount2.mul(500).div(10000)
+        const total_fees2 = total_rewards_amount2.mul(400).div(10000)
 
         beforeEach(async () => {
 
@@ -454,13 +454,13 @@ describe('QuestPartner contract tests', () => {
         const duration2 = 2
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
         const total_rewards_amount2 = rewards_per_period2.mul(duration2)
-        const total_fees2 = total_rewards_amount2.mul(500).div(10000)
+        const total_fees2 = total_rewards_amount2.mul(400).div(10000)
 
         const extend_duration = 3
         const added_total_rewards_amount = rewards_per_period.mul(extend_duration)
-        const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
+        const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
         let questID1: BigNumber;
         let questID2: BigNumber;
@@ -684,9 +684,9 @@ describe('QuestPartner contract tests', () => {
         const duration2 = 2
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
         const total_rewards_amount2 = rewards_per_period2.mul(duration2)
-        const total_fees2 = total_rewards_amount2.mul(500).div(10000)
+        const total_fees2 = total_rewards_amount2.mul(400).div(10000)
 
         const ellapsedDuration = 3
         const remainingDuration = duration - ellapsedDuration
@@ -694,7 +694,7 @@ describe('QuestPartner contract tests', () => {
         const new_reward_per_vote = ethers.utils.parseEther('0.6')
         const new_rewards_per_period = ethers.utils.parseEther('90000')
         const added_total_rewards_amount = new_rewards_per_period.sub(rewards_per_period).mul(remainingDuration)
-        const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
+        const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
         let questID1: BigNumber;
         let questID2: BigNumber;
@@ -937,9 +937,9 @@ describe('QuestPartner contract tests', () => {
         const duration2 = 2
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
         const total_rewards_amount2 = rewards_per_period2.mul(duration2)
-        const total_fees2 = total_rewards_amount2.mul(500).div(10000)
+        const total_fees2 = total_rewards_amount2.mul(400).div(10000)
 
         const ellapsedDuration = 2
         const remainingDuration = duration - ellapsedDuration
@@ -947,7 +947,7 @@ describe('QuestPartner contract tests', () => {
         const new_target_votes = ethers.utils.parseEther('20000')
         const new_rewards_per_period = ethers.utils.parseEther('6000')
         const added_total_rewards_amount = new_rewards_per_period.sub(rewards_per_period).mul(remainingDuration)
-        const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
+        const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
         let questID1: BigNumber;
         let questID2: BigNumber;
@@ -1221,7 +1221,7 @@ describe('QuestPartner contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(partnerWrapper.address, 0)
@@ -1372,7 +1372,7 @@ describe('QuestPartner contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(500).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(partnerWrapper.address, 0)
@@ -1497,7 +1497,7 @@ describe('QuestPartner contract tests', () => {
         const duration = 4
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
 
         let tree: BalanceTree
 
@@ -1715,7 +1715,7 @@ describe('QuestPartner contract tests', () => {
         beforeEach(async () => {
 
             const function_ABI_1 = ["function transferERC20(address token, address recipient, uint256 amount)"]
-            const args1 = [DAI.address, partner.address, ethers.utils.parseEther('500')]
+            const args1 = [DAI.address, partner.address, ethers.utils.parseEther('400')]
     
             const function_ABI_2 = ["function setValue(uint256 _value)"]
             const args2 = [12]
@@ -1808,9 +1808,9 @@ describe('QuestPartner contract tests', () => {
         const duration2 = 2
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
         const total_rewards_amount2 = rewards_per_period2.mul(duration2)
-        const total_fees2 = total_rewards_amount2.mul(500).div(10000)
+        const total_fees2 = total_rewards_amount2.mul(400).div(10000)
 
         beforeEach(async () => {
 
@@ -1998,7 +1998,7 @@ describe('QuestPartner contract tests', () => {
         const duration = 4
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(500).div(10000)
+        const total_fees = total_rewards_amount.mul(400).div(10000)
 
         const ellapsedDuration = 2
 
@@ -2007,7 +2007,7 @@ describe('QuestPartner contract tests', () => {
         const new_reward_per_vote = ethers.utils.parseEther('0.6')
 
         const added_total_rewards_amount = ethers.utils.parseEther('5000')
-        const added_total_fees = added_total_rewards_amount.mul(500).div(10000)
+        const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
         it(' should block all notKilled methods', async () => {
 
