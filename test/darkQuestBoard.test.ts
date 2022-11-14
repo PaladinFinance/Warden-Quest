@@ -1237,7 +1237,7 @@ describe('DarkQuestBoard contract tests', () => {
 
         const duration = 6
         const ellapsedDuration = 3
-        const remainingDuration = duration - ellapsedDuration
+        const remainingDuration = duration - ellapsedDuration + 1
 
         const total_rewards_amount = rewards_per_period.mul(duration)
         const total_fees = total_rewards_amount.mul(500).div(10000)
@@ -1277,7 +1277,7 @@ describe('DarkQuestBoard contract tests', () => {
 
         });
 
-        it(' should update the upcoming Periods & not change past and current period (& emit the correct Event)', async () => {
+        it(' should update the current and upcoming Periods & not change past Periods (& emit the correct Event)', async () => {
 
             await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
 
@@ -1294,14 +1294,13 @@ describe('DarkQuestBoard contract tests', () => {
             )
 
             const current_period = await board.getCurrentPeriod()
-            const applied_period = current_period.add(WEEK).div(WEEK).mul(WEEK)
 
             await expect(
                 increase_tx
             ).to.emit(board, "IncreasedQuestReward")
                 .withArgs(
                     questID,
-                    applied_period,
+                    current_period,
                     new_reward_per_vote,
                     added_total_rewards_amount
                 );
@@ -1320,7 +1319,7 @@ describe('DarkQuestBoard contract tests', () => {
 
                 let old_quest_period = old_quest_periods[i]
 
-                if (BigNumber.from(quest_period.periodStart).lte(current_period)) {
+                if (BigNumber.from(quest_period.periodStart).lt(current_period)) {
                     //Past & current should stay the same
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
@@ -1424,7 +1423,7 @@ describe('DarkQuestBoard contract tests', () => {
 
                 let old_quest_period = old_quest_periods[i]
 
-                if (BigNumber.from(quest_period.periodStart).lte(current_period)) {
+                if (BigNumber.from(quest_period.periodStart).lt(current_period)) {
                     //Past & current should stay the same
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
@@ -1588,7 +1587,7 @@ describe('DarkQuestBoard contract tests', () => {
 
         const duration = 6
         const ellapsedDuration = 3
-        const remainingDuration = duration - ellapsedDuration
+        const remainingDuration = duration - ellapsedDuration + 1
 
         const total_rewards_amount = rewards_per_period.mul(duration)
         const total_fees = total_rewards_amount.mul(500).div(10000)
@@ -1628,7 +1627,7 @@ describe('DarkQuestBoard contract tests', () => {
 
         });
 
-        it(' should update the upcoming Periods & not change past and current period (& emit the correct Event)', async () => {
+        it(' should update the current and upcoming Periods & not change past Periods (& emit the correct Event)', async () => {
 
             await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
 
@@ -1645,14 +1644,13 @@ describe('DarkQuestBoard contract tests', () => {
             )
 
             const current_period = await board.getCurrentPeriod()
-            const applied_period = current_period.add(WEEK).div(WEEK).mul(WEEK)
 
             await expect(
                 increase_tx
             ).to.emit(board, "IncreasedQuestObjective")
                 .withArgs(
                     questID,
-                    applied_period,
+                    current_period,
                     new_target_votes,
                     added_total_rewards_amount
                 );
@@ -1671,7 +1669,7 @@ describe('DarkQuestBoard contract tests', () => {
 
                 let old_quest_period = old_quest_periods[i]
 
-                if (BigNumber.from(quest_period.periodStart).lte(current_period)) {
+                if (BigNumber.from(quest_period.periodStart).lt(current_period)) {
                     //Past & current should stay the same
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
@@ -1775,7 +1773,7 @@ describe('DarkQuestBoard contract tests', () => {
 
                 let old_quest_period = old_quest_periods[i]
 
-                if (BigNumber.from(quest_period.periodStart).lte(current_period)) {
+                if (BigNumber.from(quest_period.periodStart).lt(current_period)) {
                     //Past & current should stay the same
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
