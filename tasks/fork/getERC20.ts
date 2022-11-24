@@ -11,9 +11,9 @@ task('fork-get-ERC20', 'Steal ERC20 amount from holder to send to receiver on th
     )
     .addPositionalParam(
         'amount',
-        'Amount of ETH to send'
+        'Amount of ERC20 to send'
     )
-    .addPositionalParam(
+    .addPositionalParam( // 0x31429d1856aD1377A8A0079410B297e1a9e214c2 => ANGLE
         'token',
         'Address of the ERC20 token'
     )
@@ -34,10 +34,10 @@ task('fork-get-ERC20', 'Steal ERC20 amount from holder to send to receiver on th
 
         console.log("Sending", amount, " tokens to", receiver)
     
-        /*await hre.network.provider.request({
+        await hre.network.provider.request({
             method: "hardhat_setBalance",
-            params: [holder, hre.ethers.utils.parseEther("500000").toHexString()],
-        });*/
+            params: [holder, hre.ethers.utils.parseEther("50000000").toHexString()],
+        });
 
         await hre.network.provider.request({
             method: "hardhat_impersonateAccount",
