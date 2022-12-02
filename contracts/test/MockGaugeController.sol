@@ -6,15 +6,15 @@ pragma solidity ^0.8.0;
  * @dev Mock GaugeController used for tests
  */
 contract MockGaugeController {
-
-    uint256 constant private MAXTIME = 4 * 365 * 86400;  // 4 years
+    
+    uint256 constant public MAXTIME = 4 * 365 * 86400;  // 4 years
 
     struct VotedSlope {
         uint slope;
         uint power;
         uint end;
     }
-    
+
     struct Point {
         uint bias;
         uint slope;
@@ -69,7 +69,7 @@ contract MockGaugeController {
 
         userVotes[gauge][user] = VotedSlope(
             slope,
-            10000,
+            10000, //We don't care about the percent of balance here, can put all to 100%, since we can put multiple votes per voters
             end
         );
 

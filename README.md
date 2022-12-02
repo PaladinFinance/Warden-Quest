@@ -30,6 +30,12 @@ Dark Quest Board: 0xF9F6F5F2250Bd151797DDF2e02644123b0c4A114
 
 Dark MultiMerkleDistributor:
 0xce6dc32252d85e2e955Bfd3b85660917F040a933  
+  
+
+Light Quest Board - vlCVX: 0x05CaDb2CCC5bE3f6BF8592B9be39c78FF03Cc0DB  
+
+Light MultiMerkleDistributor - vlCVX:
+0xE329134C2384cF59c34c98B0ABD0C70aB524e335 
 
 **veBAL:**
 Quest Board: 0x8b2ba835056965808aD88e7Ad7866BD57aE75839  
@@ -42,6 +48,12 @@ Dark Quest Board: 0x609FB23b9EA7CB3eDaF56DB5dAF07C8E94C155De
 
 Dark MultiMerkleDistributor:
 0x358549D4Cb7f97f389812B86673a6cf8c1FF59D2  
+  
+
+Light Quest Board - vlAURA: 0x653D8f14292A1C5239d6183b333De1F2e8669310  
+
+Light MultiMerkleDistributor - vlAURA:
+0xbc269b4e4D056821edDa92D936b8EC8979b1129C 
 
 
 ## Dependencies & Installation

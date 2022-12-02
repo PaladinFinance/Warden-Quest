@@ -2,7 +2,7 @@ const hre = require("hardhat");
 import { ethers, waffle } from "hardhat";
 import chai from "chai";
 import { solidity } from "ethereum-waffle";
-import { QuestBoard } from "../typechain/QuestBoard";
+import { LightQuestBoard } from "../typechain/LightQuestBoard";
 import { MultiMerkleDistributor } from "../typechain/MultiMerkleDistributor";
 import { IGaugeController } from "../typechain/IGaugeController";
 import { IERC20 } from "../typechain/IERC20";
@@ -34,7 +34,8 @@ const {
     TOKEN2_AMOUNT,
     GAUGE_CONTROLLER,
     GAUGES,
-    TARGET_VOTES,
+    LIGHT_TARGET_VOTES,
+    GAUGE_VOTER,
     BLOCK_NUMBER
 } = require(constants_path);
 
@@ -48,7 +49,7 @@ let distributorFactory: ContractFactory
 const WEEK = BigNumber.from(86400 * 7)
 const UNIT = ethers.utils.parseEther('1')
 
-describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' version', () => {
+describe('LightQuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' version', () => {
     let admin: SignerWithAddress
 
     let mockChest: SignerWithAddress
@@ -66,7 +67,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
     let receiver: SignerWithAddress
 
-    let board: QuestBoard
+    let board: LightQuestBoard
     let distributor: MultiMerkleDistributor
     let controller: IGaugeController
 
@@ -81,7 +82,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
         [admin, mockChest, manager, creator1, creator2, creator3, fakeGauge, user1, user2, receiver] = await ethers.getSigners();
 
-        boardFactory = await ethers.getContractFactory("QuestBoard");
+        boardFactory = await ethers.getContractFactory("LightQuestBoard");
 
         distributorFactory = await ethers.getContractFactory("MultiMerkleDistributor");
 
@@ -98,13 +99,27 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
         controller = IGaugeController__factory.connect(GAUGE_CONTROLLER, provider);
 
-        board = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as QuestBoard;
+        board = (await boardFactory.connect(admin).deploy(controller.address, GAUGE_VOTER, mockChest.address)) as LightQuestBoard;
         await board.deployed();
 
         distributor = (await distributorFactory.connect(admin).deploy(board.address)) as MultiMerkleDistributor;
         await distributor.deployed();
 
     });
+
+    const getVoterBias = async (voter: string, gauge: string, period: BigNumber): Promise<BigNumber> => {
+        const last_user_vote = await controller.last_user_vote(voter, gauge)
+        const last_user_slope = (await controller.vote_user_slopes(voter, gauge)).slope
+        const user_end = (await controller.vote_user_slopes(voter, gauge)).end
+
+        let user_bias = BigNumber.from(0)
+
+        if(last_user_vote.lte(period) && user_end.gt(period) && !last_user_slope.eq(0)){
+            user_bias = last_user_slope.mul(user_end.sub(period))
+        }
+
+        return user_bias
+    }
 
     describe('Interactions with GaugeController', async () => {
 
@@ -158,7 +173,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
             // ---------------------------------
 
-            rewards_per_period = TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
+            rewards_per_period = LIGHT_TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
             total_rewards_amount = rewards_per_period.mul(duration[i])
             total_fees = total_rewards_amount.mul(400).div(10000)
 
@@ -179,7 +194,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                 GAUGES[i],
                 rewardToken[i].address,
                 duration[i],
-                TARGET_VOTES[i],
+                LIGHT_TARGET_VOTES[i],
                 reward_per_vote[i],
                 total_rewards_amount,
                 total_fees
@@ -195,7 +210,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                     rewardToken[i].address,
                     duration[i],
                     expected_period,
-                    TARGET_VOTES[i],
+                    LIGHT_TARGET_VOTES[i],
                     reward_per_vote[i]
                 );
 
@@ -227,7 +242,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                 expect(quest_period.periodStart).to.be.eq(expected_future_period)
                 expect(quest_period.rewardAmountPerPeriod).to.be.eq(rewards_per_period)
                 expect(quest_period.rewardPerVote).to.be.eq(reward_per_vote[i])
-                expect(quest_period.objectiveVotes).to.be.eq(TARGET_VOTES[i])
+                expect(quest_period.objectiveVotes).to.be.eq(LIGHT_TARGET_VOTES[i])
                 expect(quest_period.rewardAmountDistributed).to.be.eq(0)
                 expect(quest_period.withdrawableAmount).to.be.eq(0)
 
@@ -265,7 +280,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
             i = 1
 
-            rewards_per_period = TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
+            rewards_per_period = LIGHT_TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
             total_rewards_amount = rewards_per_period.mul(duration[i])
             total_fees = total_rewards_amount.mul(400).div(10000)
 
@@ -286,7 +301,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                 GAUGES[i],
                 rewardToken[i].address,
                 duration[i],
-                TARGET_VOTES[i],
+                LIGHT_TARGET_VOTES[i],
                 reward_per_vote[i],
                 total_rewards_amount,
                 total_fees
@@ -302,7 +317,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                     rewardToken[i].address,
                     duration[i],
                     expected_period,
-                    TARGET_VOTES[i],
+                    LIGHT_TARGET_VOTES[i],
                     reward_per_vote[i]
                 );
 
@@ -334,7 +349,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                 expect(quest_period.periodStart).to.be.eq(expected_future_period)
                 expect(quest_period.rewardAmountPerPeriod).to.be.eq(rewards_per_period)
                 expect(quest_period.rewardPerVote).to.be.eq(reward_per_vote[i])
-                expect(quest_period.objectiveVotes).to.be.eq(TARGET_VOTES[i])
+                expect(quest_period.objectiveVotes).to.be.eq(LIGHT_TARGET_VOTES[i])
                 expect(quest_period.rewardAmountDistributed).to.be.eq(0)
                 expect(quest_period.withdrawableAmount).to.be.eq(0)
 
@@ -371,7 +386,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
             i = 2
 
-            rewards_per_period = TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
+            rewards_per_period = LIGHT_TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
             total_rewards_amount = rewards_per_period.mul(duration[i])
             total_fees = total_rewards_amount.mul(400).div(10000)
 
@@ -392,7 +407,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                 GAUGES[i],
                 rewardToken[i].address,
                 duration[i],
-                TARGET_VOTES[i],
+                LIGHT_TARGET_VOTES[i],
                 reward_per_vote[i],
                 total_rewards_amount,
                 total_fees
@@ -408,7 +423,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                     rewardToken[i].address,
                     duration[i],
                     expected_period,
-                    TARGET_VOTES[i],
+                    LIGHT_TARGET_VOTES[i],
                     reward_per_vote[i]
                 );
 
@@ -440,7 +455,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                 expect(quest_period.periodStart).to.be.eq(expected_future_period)
                 expect(quest_period.rewardAmountPerPeriod).to.be.eq(rewards_per_period)
                 expect(quest_period.rewardPerVote).to.be.eq(reward_per_vote[i])
-                expect(quest_period.objectiveVotes).to.be.eq(TARGET_VOTES[i])
+                expect(quest_period.objectiveVotes).to.be.eq(LIGHT_TARGET_VOTES[i])
                 expect(quest_period.rewardAmountDistributed).to.be.eq(0)
                 expect(quest_period.withdrawableAmount).to.be.eq(0)
 
@@ -479,7 +494,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
             let i = 0;
 
-            let rewards_per_period = TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
+            let rewards_per_period = LIGHT_TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
             let total_rewards_amount = rewards_per_period.mul(duration[i])
             let total_fees = total_rewards_amount.mul(400).div(10000)
 
@@ -494,7 +509,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                     fakeGauge.address,
                     rewardToken[i].address,
                     duration[i],
-                    TARGET_VOTES[i],
+                    LIGHT_TARGET_VOTES[i],
                     reward_per_vote[i],
                     total_rewards_amount,
                     total_fees
@@ -510,7 +525,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
             let total_fees: BigNumber[] = []
 
             for (let i = 0; i < GAUGES.length; i++) {
-                rewards_per_period[i] = TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
+                rewards_per_period[i] = LIGHT_TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
                 total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
 
@@ -524,7 +539,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                     GAUGES[i],
                     rewardToken[i].address,
                     duration[i],
-                    TARGET_VOTES[i],
+                    LIGHT_TARGET_VOTES[i],
                     reward_per_vote[i],
                     total_rewards_amount[i],
                     total_fees[i]
@@ -540,9 +555,9 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
                 await controller.connect(admin).checkpoint_gauge(GAUGES[i]);
                 const next_period = first_period.add(WEEK)
-                const gauge_bias = (await controller.points_weight(GAUGES[i], next_period)).bias;
+                const voterBias = await getVoterBias(GAUGE_VOTER, GAUGES[i], next_period)
 
-                const expected_distribute_amount = gauge_bias.gte(TARGET_VOTES[i]) ? rewards_per_period[i] : gauge_bias.mul(reward_per_vote[i]).div(UNIT)
+                const expected_distribute_amount = voterBias.gte(LIGHT_TARGET_VOTES[i]) ? rewards_per_period[i] : voterBias.mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -551,10 +566,12 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
                 expect(await distributor.questRewardsPerPeriod(questIDs[i], first_period)).to.be.eq(questPriod_data.rewardAmountDistributed)
 
-                await expect(
-                    close_tx
-                ).to.emit(rewardToken[i], "Transfer")
-                    .withArgs(board.address, distributor.address, expected_distribute_amount);
+                if(!expected_distribute_amount.eq(0)){
+                    await expect(
+                        close_tx
+                    ).to.emit(rewardToken[i], "Transfer")
+                        .withArgs(board.address, distributor.address, expected_distribute_amount);
+                }
 
                 await expect(
                     close_tx
@@ -572,7 +589,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
             let total_fees: BigNumber[] = []
 
             for (let i = 0; i < GAUGES.length; i++) {
-                rewards_per_period[i] = TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
+                rewards_per_period[i] = LIGHT_TARGET_VOTES[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
                 total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
 
@@ -586,7 +603,7 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
                     GAUGES[i],
                     rewardToken[i].address,
                     duration[i],
-                    TARGET_VOTES[i],
+                    LIGHT_TARGET_VOTES[i],
                     reward_per_vote[i],
                     total_rewards_amount[i],
                     total_fees[i]
@@ -603,9 +620,9 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
                 await controller.connect(admin).checkpoint_gauge(GAUGES[i]);
                 const next_period = current_period.add(WEEK)
-                const gauge_bias = (await controller.points_weight(GAUGES[i], next_period)).bias;
+                const voterBias = await getVoterBias(GAUGE_VOTER, GAUGES[i], next_period)
 
-                const expected_distribute_amount = gauge_bias.gte(TARGET_VOTES[i]) ? rewards_per_period[i] : gauge_bias.mul(reward_per_vote[i]).div(UNIT)
+                const expected_distribute_amount = voterBias.gte(LIGHT_TARGET_VOTES[i]) ? rewards_per_period[i] : voterBias.mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -614,10 +631,12 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
                 expect(await distributor.questRewardsPerPeriod(questIDs[i], current_period)).to.be.eq(questPriod_data.rewardAmountDistributed)
 
-                await expect(
-                    close_tx
-                ).to.emit(rewardToken[i], "Transfer")
-                    .withArgs(board.address, distributor.address, expected_distribute_amount);
+                if(!expected_distribute_amount.eq(0)){
+                    await expect(
+                        close_tx
+                    ).to.emit(rewardToken[i], "Transfer")
+                        .withArgs(board.address, distributor.address, expected_distribute_amount);
+                }
 
                 await expect(
                     close_tx
@@ -636,9 +655,9 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
                 await controller.connect(admin).checkpoint_gauge(GAUGES[i]);
                 const next_period = current_period.add(WEEK)
-                const gauge_bias = (await controller.points_weight(GAUGES[i], next_period)).bias;
+                const voterBias = await getVoterBias(GAUGE_VOTER, GAUGES[i], next_period)
 
-                const expected_distribute_amount = gauge_bias.gte(TARGET_VOTES[i]) ? rewards_per_period[i] : gauge_bias.mul(reward_per_vote[i]).div(UNIT)
+                const expected_distribute_amount = voterBias.gte(LIGHT_TARGET_VOTES[i]) ? rewards_per_period[i] : voterBias.mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -647,10 +666,12 @@ describe('QuestBoard & GaugeController interaction tests - ' + VE_TOKEN + ' vers
 
                 expect(await distributor.questRewardsPerPeriod(questIDs[i], current_period)).to.be.eq(questPriod_data.rewardAmountDistributed)
 
-                await expect(
-                    close_tx
-                ).to.emit(rewardToken[i], "Transfer")
-                    .withArgs(board.address, distributor.address, expected_distribute_amount);
+                if(!expected_distribute_amount.eq(0)){
+                    await expect(
+                        close_tx
+                    ).to.emit(rewardToken[i], "Transfer")
+                        .withArgs(board.address, distributor.address, expected_distribute_amount);
+                }
 
                 await expect(
                     close_tx

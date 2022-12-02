@@ -2,7 +2,7 @@ const hre = require("hardhat");
 import { ethers, waffle } from "hardhat";
 import chai from "chai";
 import { solidity } from "ethereum-waffle";
-import { QuestBoard } from "../typechain/QuestBoard";
+import { LightQuestBoard } from "../typechain/LightQuestBoard";
 import { MultiMerkleDistributor } from "../typechain/MultiMerkleDistributor";
 import { MockGaugeController } from "../typechain/MockGaugeController";
 import { IERC20 } from "../typechain/IERC20";
@@ -31,10 +31,12 @@ let controllerFactory: ContractFactory
 const WEEK = BigNumber.from(86400 * 7)
 const UNIT = ethers.utils.parseEther('1')
 
-describe('QuestBoard contract tests', () => {
+describe('LightQuestBoard contract tests', () => {
     let admin: SignerWithAddress
 
     let mockChest: SignerWithAddress
+
+    let gaugeVoter: SignerWithAddress
 
     let gauge1: SignerWithAddress
     let gauge2: SignerWithAddress
@@ -57,7 +59,7 @@ describe('QuestBoard contract tests', () => {
 
     let otherAddress: SignerWithAddress
 
-    let board: QuestBoard
+    let board: LightQuestBoard
     let distributor: MultiMerkleDistributor
     let controller: MockGaugeController
 
@@ -72,9 +74,9 @@ describe('QuestBoard contract tests', () => {
     before(async () => {
         await resetFork();
 
-        [admin, mockChest, manager, manager2, creator1, creator2, creator3, gauge1, gauge2, gauge3, user1, user2, receiver, newChest, newDistributor, otherAddress] = await ethers.getSigners();
+        [admin, mockChest, gaugeVoter, manager, manager2, creator1, creator2, creator3, gauge1, gauge2, gauge3, user1, user2, receiver, newChest, newDistributor, otherAddress] = await ethers.getSigners();
 
-        boardFactory = await ethers.getContractFactory("QuestBoard");
+        boardFactory = await ethers.getContractFactory("LightQuestBoard");
 
         distributorFactory = await ethers.getContractFactory("MultiMerkleDistributor");
 
@@ -97,7 +99,7 @@ describe('QuestBoard contract tests', () => {
         controller = (await controllerFactory.connect(admin).deploy()) as MockGaugeController;
         await controller.deployed();
 
-        board = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as QuestBoard;
+        board = (await boardFactory.connect(admin).deploy(controller.address, gaugeVoter.address, mockChest.address)) as LightQuestBoard;
         await board.deployed();
 
         distributor = (await distributorFactory.connect(admin).deploy(board.address)) as MultiMerkleDistributor;
@@ -109,6 +111,7 @@ describe('QuestBoard contract tests', () => {
         expect(board.address).to.properAddress
 
         expect(await board.GAUGE_CONTROLLER()).to.be.eq(controller.address)
+        expect(await board.GAUGE_VOTER()).to.be.eq(gaugeVoter.address)
         expect(await board.questChest()).to.be.eq(mockChest.address)
 
         expect(await board.nextID()).to.be.eq(0)
@@ -135,48 +138,7 @@ describe('QuestBoard contract tests', () => {
 
     });
 
-    /*describe('updatePeriod', async () => {
-
-
-        it(' should update the period correctly', async () => {
-
-            const block_number = await provider.getBlockNumber()
-            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
-            const expected_period = current_ts.div(WEEK).mul(WEEK)
-
-            expect(await board.getCurrentPeriod()).to.be.eq(expected_period)
-
-            await advanceTime(WEEK.toNumber())
-
-            const next_expected_period = expected_period.add(WEEK).div(WEEK).mul(WEEK)
-
-            await board.updatePeriod()
-
-            expect(await board.getCurrentPeriod()).to.be.eq(next_expected_period)
-
-        });
-
-        it(' should update the period correctly after multiple missed periods', async () => {
-
-            const block_number = await provider.getBlockNumber()
-            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
-            const expected_period = current_ts.div(WEEK).mul(WEEK)
-
-            expect(await board.getCurrentPeriod()).to.be.eq(expected_period)
-
-            await advanceTime(WEEK.mul(3).toNumber())
-
-            const next_expected_period = expected_period.add(WEEK.mul(3)).div(WEEK).mul(WEEK)
-
-            await board.updatePeriod()
-
-            expect(await board.getCurrentPeriod()).to.be.eq(next_expected_period)
-
-        });
-
-    });*/
-
-
+    
     describe('initiateDistributor', async () => {
 
         it(' should set the correct distributor address', async () => {
@@ -595,7 +557,7 @@ describe('QuestBoard contract tests', () => {
 
         it(' should fail if no distributor set', async () => {
 
-            let otherBoard = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as QuestBoard;
+            let otherBoard = (await boardFactory.connect(admin).deploy(controller.address, gaugeVoter.address, mockChest.address)) as LightQuestBoard;
             await otherBoard.deployed();
 
             await otherBoard.connect(admin).whitelistToken(DAI.address, minDAIAmount)
@@ -975,6 +937,11 @@ describe('QuestBoard contract tests', () => {
 
             const start_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+            const end_ts = current_ts.add(await controller.MAXTIME())
+            await controller.set_user_vote(gaugeVoter.address, gauge1.address, start_period, ethers.utils.parseEther('3500'), end_ts)
+
             for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = start_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
 
@@ -1294,6 +1261,11 @@ describe('QuestBoard contract tests', () => {
             const gauge1_biases = [ethers.utils.parseEther('8000'), ethers.utils.parseEther('10000'), ethers.utils.parseEther('12000')]
 
             const start_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+            const end_ts = current_ts.add(await controller.MAXTIME())
+            await controller.set_user_vote(gaugeVoter.address, gauge1.address, start_period, ethers.utils.parseEther('3500'), end_ts)
 
             for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = start_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
@@ -1645,6 +1617,11 @@ describe('QuestBoard contract tests', () => {
 
             const start_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
 
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+            const end_ts = current_ts.add(await controller.MAXTIME())
+            await controller.set_user_vote(gaugeVoter.address, gauge1.address, start_period, ethers.utils.parseEther('3500'), end_ts)
+
             for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = start_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
 
@@ -1836,7 +1813,7 @@ describe('QuestBoard contract tests', () => {
         let gauges: string[] = []
         let rewardToken: IERC20[] = []
 
-        const target_votes = [ethers.utils.parseEther('15000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('8000')]
+        const target_votes = [ethers.utils.parseEther('5000'), ethers.utils.parseEther('12000'), ethers.utils.parseEther('8000')]
         const reward_per_vote = [ethers.utils.parseEther('2'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.5')]
         const duration = [6, 4, 7]
 
@@ -1853,6 +1830,23 @@ describe('QuestBoard contract tests', () => {
         let rewards_per_period: BigNumber[] = []
         let total_rewards_amount: BigNumber[] = []
         let total_fees: BigNumber[] = []
+
+        const gaugeVoter_amounts = [ethers.utils.parseEther('3500'), ethers.utils.parseEther('11000'), ethers.utils.parseEther('10000')]
+        const gaugeVoter_amounts2 = [ethers.utils.parseEther('4000'), ethers.utils.parseEther('9600'), ethers.utils.parseEther('0')]
+
+        const getVoterBias = async (voter: string, gauge: string, period: BigNumber): Promise<BigNumber> => {
+            const last_user_vote = await controller.last_user_vote(voter, gauge)
+            const last_user_slope = (await controller.vote_user_slopes(voter, gauge)).slope
+            const user_end = (await controller.vote_user_slopes(voter, gauge)).end
+
+            let user_bias = BigNumber.from(0)
+
+            if(last_user_vote.lte(period) && user_end.gt(period) && !last_user_slope.eq(0)){
+                user_bias = last_user_slope.mul(user_end.sub(period))
+            }
+
+            return user_bias
+        }
 
         beforeEach(async () => {
 
@@ -1895,6 +1889,16 @@ describe('QuestBoard contract tests', () => {
                     total_fees[i]
                 )
             }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            const end_ts = current_ts.add(await controller.MAXTIME())
+
+            // mock votes
+            await controller.set_user_vote(gaugeVoter.address, gauge1.address, first_period, gaugeVoter_amounts[0], end_ts)
+            await controller.set_user_vote(gaugeVoter.address, gauge2.address, first_period, gaugeVoter_amounts[1], end_ts)
+            await controller.set_user_vote(gaugeVoter.address, gauge3.address, first_period, gaugeVoter_amounts[2], end_ts)
 
             //setup the gauges slopes
             for (let i = 0; i < gauge1_biases.length; i++) {
@@ -1929,7 +1933,10 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
 
-                const expected_distribute_amount = all_biases[i][0].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][0].mul(reward_per_vote[i]).div(UNIT)
+                const next_period = first_period.add(WEEK)
+                const voterBias = await getVoterBias(gaugeVoter.address, gauges[i], next_period)
+
+                const expected_distribute_amount = voterBias.gte(target_votes[i]) ? rewards_per_period[i] : voterBias.mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -1964,6 +1971,16 @@ describe('QuestBoard contract tests', () => {
         it(' multiple period - should close the periods correctly & update all questPeriods for each (& emit the correct event)', async () => {
             await advanceTime(WEEK.mul(4).toNumber())
 
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            const end_ts = current_ts.add(await controller.MAXTIME())
+
+            // mock votes
+            await controller.set_user_vote(gaugeVoter.address, gauge1.address, first_period.add(WEEK.mul(2)), gaugeVoter_amounts2[0], end_ts.sub(WEEK))
+            await controller.set_user_vote(gaugeVoter.address, gauge2.address, first_period.add(WEEK.mul(2)), gaugeVoter_amounts2[1], end_ts.sub(WEEK))
+            await controller.set_user_vote(gaugeVoter.address, gauge3.address, first_period.add(WEEK.mul(2)), gaugeVoter_amounts2[2], end_ts.sub(WEEK))
+
             const ellapsed_periods = 3
 
             for (let j = 0; j < ellapsed_periods; j++) {
@@ -1974,7 +1991,10 @@ describe('QuestBoard contract tests', () => {
                 for (let i = 0; i < gauges.length; i++) {
                     let questPriod_data = await board.periodsByQuest(questIDs[i], toClose_period)
 
-                    let expected_distribute_amount = all_biases[i][j].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][j].mul(reward_per_vote[i]).div(UNIT)
+                    let next_period = toClose_period.add(WEEK)
+                    let voterBias = await getVoterBias(gaugeVoter.address, gauges[i], next_period)
+
+                    let expected_distribute_amount = voterBias.gte(target_votes[i]) ? rewards_per_period[i] : voterBias.mul(reward_per_vote[i]).div(UNIT)
                     let expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                     expect(questPriod_data.currentState).to.be.eq(2)
@@ -1983,10 +2003,12 @@ describe('QuestBoard contract tests', () => {
 
                     expect(await distributor.questRewardsPerPeriod(questIDs[i], toClose_period)).to.be.eq(questPriod_data.rewardAmountDistributed)
 
-                    await expect(
-                        close_tx
-                    ).to.emit(rewardToken[i], "Transfer")
-                        .withArgs(board.address, distributor.address, expected_distribute_amount);
+                    if(!expected_distribute_amount.eq(0)){
+                        await expect(
+                            close_tx
+                        ).to.emit(rewardToken[i], "Transfer")
+                            .withArgs(board.address, distributor.address, expected_distribute_amount);
+                    }
 
                     await expect(
                         close_tx
@@ -2021,7 +2043,7 @@ describe('QuestBoard contract tests', () => {
 
         it(' should fail if no distributor set', async () => {
 
-            let otherBoard = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as QuestBoard;
+            let otherBoard = (await boardFactory.connect(admin).deploy(controller.address, gaugeVoter.address, mockChest.address)) as LightQuestBoard;
             await otherBoard.deployed();
 
             await otherBoard.connect(admin).whitelistToken(DAI.address, minDAIAmount)
@@ -2050,13 +2072,13 @@ describe('QuestBoard contract tests', () => {
 
     });
 
-    
+
     describe('closePartOfQuestPeriod', async () => {
 
         let gauges: string[] = []
         let rewardToken: IERC20[] = []
 
-        const target_votes = [ethers.utils.parseEther('15000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('8000')]
+        const target_votes = [ethers.utils.parseEther('5000'), ethers.utils.parseEther('12000'), ethers.utils.parseEther('8000')]
         const reward_per_vote = [ethers.utils.parseEther('2'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.5')]
         const duration = [6, 4, 7]
 
@@ -2074,7 +2096,24 @@ describe('QuestBoard contract tests', () => {
         let total_rewards_amount: BigNumber[] = []
         let total_fees: BigNumber[] = []
 
-        let toCloseIDs: BigNumber[] = []; 
+        let toCloseIDs: BigNumber[] = [];
+
+        const gaugeVoter_amounts = [ethers.utils.parseEther('3500'), ethers.utils.parseEther('11000'), ethers.utils.parseEther('10000')]
+        const gaugeVoter_amounts2 = [ethers.utils.parseEther('4000'), ethers.utils.parseEther('9600'), ethers.utils.parseEther('0')]
+
+        const getVoterBias = async (voter: string, gauge: string, period: BigNumber): Promise<BigNumber> => {
+            const last_user_vote = await controller.last_user_vote(voter, gauge)
+            const last_user_slope = (await controller.vote_user_slopes(voter, gauge)).slope
+            const user_end = (await controller.vote_user_slopes(voter, gauge)).end
+
+            let user_bias = BigNumber.from(0)
+
+            if(last_user_vote.lte(period) && user_end.gt(period) && !last_user_slope.eq(0)){
+                user_bias = last_user_slope.mul(user_end.sub(period))
+            }
+
+            return user_bias
+        }
 
         beforeEach(async () => {
 
@@ -2117,6 +2156,16 @@ describe('QuestBoard contract tests', () => {
                     total_fees[i]
                 )
             }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            const end_ts = current_ts.add(await controller.MAXTIME())
+
+            // mock votes
+            await controller.set_user_vote(gaugeVoter.address, gauge1.address, first_period, gaugeVoter_amounts[0], end_ts)
+            await controller.set_user_vote(gaugeVoter.address, gauge2.address, first_period, gaugeVoter_amounts[1], end_ts)
+            await controller.set_user_vote(gaugeVoter.address, gauge3.address, first_period, gaugeVoter_amounts[2], end_ts)
 
             //setup the gauges slopes
             for (let i = 0; i < gauge1_biases.length; i++) {
@@ -2155,7 +2204,10 @@ describe('QuestBoard contract tests', () => {
 
                 const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
 
-                const expected_distribute_amount = all_biases[i][0].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][0].mul(reward_per_vote[i]).div(UNIT)
+                const next_period = first_period.add(WEEK)
+                const voterBias = await getVoterBias(gaugeVoter.address, gauges[i], next_period)
+
+                const expected_distribute_amount = voterBias.gte(target_votes[i]) ? rewards_per_period[i] : voterBias.mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -2205,6 +2257,16 @@ describe('QuestBoard contract tests', () => {
 
             const ellapsed_periods = 3
 
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            const end_ts = current_ts.add(await controller.MAXTIME())
+
+            // mock votes
+            await controller.set_user_vote(gaugeVoter.address, gauge1.address, first_period.add(WEEK.mul(2)), gaugeVoter_amounts2[0], end_ts.sub(WEEK))
+            await controller.set_user_vote(gaugeVoter.address, gauge2.address, first_period.add(WEEK.mul(2)), gaugeVoter_amounts2[1], end_ts.sub(WEEK))
+            await controller.set_user_vote(gaugeVoter.address, gauge3.address, first_period.add(WEEK.mul(2)), gaugeVoter_amounts2[2], end_ts.sub(WEEK))
+
             for (let j = 0; j < ellapsed_periods; j++) {
                 let toClose_period = first_period.add(WEEK.mul(j)).div(WEEK).mul(WEEK)
 
@@ -2216,7 +2278,10 @@ describe('QuestBoard contract tests', () => {
 
                     let questPriod_data = await board.periodsByQuest(questIDs[i], toClose_period)
 
-                    let expected_distribute_amount = all_biases[i][j].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][j].mul(reward_per_vote[i]).div(UNIT)
+                    let next_period = toClose_period.add(WEEK)
+                    let voterBias = await getVoterBias(gaugeVoter.address, gauges[i], next_period)
+
+                    let expected_distribute_amount = voterBias.gte(target_votes[i]) ? rewards_per_period[i] : voterBias.mul(reward_per_vote[i]).div(UNIT)
                     let expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                     expect(questPriod_data.currentState).to.be.eq(2)
@@ -2225,10 +2290,12 @@ describe('QuestBoard contract tests', () => {
 
                     expect(await distributor.questRewardsPerPeriod(questIDs[i], toClose_period)).to.be.eq(questPriod_data.rewardAmountDistributed)
 
-                    await expect(
-                        close_tx
-                    ).to.emit(rewardToken[i], "Transfer")
-                        .withArgs(board.address, distributor.address, expected_distribute_amount);
+                    if(!expected_distribute_amount.eq(0)){
+                        await expect(
+                            close_tx
+                        ).to.emit(rewardToken[i], "Transfer")
+                            .withArgs(board.address, distributor.address, expected_distribute_amount);
+                    }
 
                     await expect(
                         close_tx
@@ -2271,7 +2338,7 @@ describe('QuestBoard contract tests', () => {
 
         it(' should fail if no distributor set', async () => {
 
-            let otherBoard = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as QuestBoard;
+            let otherBoard = (await boardFactory.connect(admin).deploy(controller.address, gaugeVoter.address, mockChest.address)) as LightQuestBoard;
             await otherBoard.deployed();
 
             await otherBoard.connect(admin).whitelistToken(DAI.address, minDAIAmount)
@@ -2300,12 +2367,13 @@ describe('QuestBoard contract tests', () => {
 
     });
 
+
     describe('closeQuestPeriod & closePartOfQuestPeriod', async () => {
 
         let gauges: string[] = []
         let rewardToken: IERC20[] = []
 
-        const target_votes = [ethers.utils.parseEther('15000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('8000')]
+        const target_votes = [ethers.utils.parseEther('5000'), ethers.utils.parseEther('12000'), ethers.utils.parseEther('8000')]
         const reward_per_vote = [ethers.utils.parseEther('2'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.5')]
         const duration = [6, 4, 7]
 
@@ -2323,7 +2391,23 @@ describe('QuestBoard contract tests', () => {
         let total_rewards_amount: BigNumber[] = []
         let total_fees: BigNumber[] = []
 
-        let toCloseIDs: BigNumber[] = []; 
+        let toCloseIDs: BigNumber[] = [];
+
+        const gaugeVoter_amounts = [ethers.utils.parseEther('3500'), ethers.utils.parseEther('11000'), ethers.utils.parseEther('10000')]
+
+        const getVoterBias = async (voter: string, gauge: string, period: BigNumber): Promise<BigNumber> => {
+            const last_user_vote = await controller.last_user_vote(voter, gauge)
+            const last_user_slope = (await controller.vote_user_slopes(voter, gauge)).slope
+            const user_end = (await controller.vote_user_slopes(voter, gauge)).end
+
+            let user_bias = BigNumber.from(0)
+
+            if(last_user_vote.lte(period) && user_end.gt(period) && !last_user_slope.eq(0)){
+                user_bias = last_user_slope.mul(user_end.sub(period))
+            }
+
+            return user_bias
+        }
 
         beforeEach(async () => {
 
@@ -2374,6 +2458,16 @@ describe('QuestBoard contract tests', () => {
                 )
             }
 
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            const end_ts = current_ts.add(await controller.MAXTIME())
+
+            // mock votes
+            await controller.set_user_vote(gaugeVoter.address, gauge1.address, first_period, gaugeVoter_amounts[0], end_ts)
+            await controller.set_user_vote(gaugeVoter.address, gauge2.address, first_period, gaugeVoter_amounts[1], end_ts)
+            await controller.set_user_vote(gaugeVoter.address, gauge3.address, first_period, gaugeVoter_amounts[2], end_ts)
+
             //setup the gauges slopes
             for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
@@ -2397,7 +2491,10 @@ describe('QuestBoard contract tests', () => {
 
                 const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
 
-                const expected_distribute_amount = all_biases[i][0].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][0].mul(reward_per_vote[i]).div(UNIT)
+                const next_period = first_period.add(WEEK)
+                const voterBias = await getVoterBias(gaugeVoter.address, gauges[i], next_period)
+
+                const expected_distribute_amount = voterBias.gte(target_votes[i]) ? rewards_per_period[i] : voterBias.mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -2439,7 +2536,10 @@ describe('QuestBoard contract tests', () => {
 
                 const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
 
-                const expected_distribute_amount = all_biases[i][0].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][0].mul(reward_per_vote[i]).div(UNIT)
+                const next_period = first_period.add(WEEK)
+                const voterBias = await getVoterBias(gaugeVoter.address, gauges[i], next_period)
+
+                const expected_distribute_amount = voterBias.gte(target_votes[i]) ? rewards_per_period[i] : voterBias.mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -2501,6 +2601,8 @@ describe('QuestBoard contract tests', () => {
 
         let total_distributed_rewards: BigNumber[] = []
 
+        const gaugeVoter_amounts = [ethers.utils.parseEther('3500'), ethers.utils.parseEther('11000'), ethers.utils.parseEther('10000')]
+
         beforeEach(async () => {
 
             gauges = [gauge1.address, gauge2.address, gauge3.address]
@@ -2542,6 +2644,16 @@ describe('QuestBoard contract tests', () => {
                     total_fees[i]
                 )
             }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            const end_ts = current_ts.add(await controller.MAXTIME())
+
+            // mock votes
+            await controller.set_user_vote(gaugeVoter.address, gauge1.address, first_period, gaugeVoter_amounts[0], end_ts)
+            await controller.set_user_vote(gaugeVoter.address, gauge2.address, first_period, gaugeVoter_amounts[1], end_ts)
+            await controller.set_user_vote(gaugeVoter.address, gauge3.address, first_period, gaugeVoter_amounts[2], end_ts)
 
             for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
@@ -2716,6 +2828,8 @@ describe('QuestBoard contract tests', () => {
         let total_rewards_amount: BigNumber[] = []
         let total_fees: BigNumber[] = []
 
+        const gaugeVoter_amounts = [ethers.utils.parseEther('3500'), ethers.utils.parseEther('11000'), ethers.utils.parseEther('10000')]
+
         beforeEach(async () => {
 
             gauges = [gauge1.address, gauge2.address, gauge3.address]
@@ -2757,6 +2871,16 @@ describe('QuestBoard contract tests', () => {
                     total_fees[i]
                 )
             }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            const end_ts = current_ts.add(await controller.MAXTIME())
+
+            // mock votes
+            await controller.set_user_vote(gaugeVoter.address, gauge1.address, first_period, gaugeVoter_amounts[0], end_ts)
+            await controller.set_user_vote(gaugeVoter.address, gauge2.address, first_period, gaugeVoter_amounts[1], end_ts)
+            await controller.set_user_vote(gaugeVoter.address, gauge3.address, first_period, 0, end_ts)
 
             for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
@@ -3207,6 +3331,8 @@ describe('QuestBoard contract tests', () => {
         let total_rewards_amount: BigNumber[] = []
         let total_fees: BigNumber[] = []
 
+        const gaugeVoter_amounts = [ethers.utils.parseEther('3500'), ethers.utils.parseEther('11000'), ethers.utils.parseEther('10000')]
+
         beforeEach(async () => {
 
             gauges = [gauge1.address, gauge2.address, gauge3.address]
@@ -3248,6 +3374,16 @@ describe('QuestBoard contract tests', () => {
                     total_fees[i]
                 )
             }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            const end_ts = current_ts.add(await controller.MAXTIME())
+
+            // mock votes
+            await controller.set_user_vote(gaugeVoter.address, gauge1.address, first_period, gaugeVoter_amounts[0], end_ts)
+            await controller.set_user_vote(gaugeVoter.address, gauge2.address, first_period, gaugeVoter_amounts[1], end_ts)
+            await controller.set_user_vote(gaugeVoter.address, gauge3.address, first_period, 0, end_ts)
 
             for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
