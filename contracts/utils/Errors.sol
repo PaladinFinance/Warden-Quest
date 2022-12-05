@@ -66,6 +66,9 @@ library Errors {
     error LowerRewardPerVote();
     error LowerObjective();
     error AlreadyBlacklisted();
+    error CreatorNotAllowed();
+    error AlreadyListed();
+    error NotListed();
 
 
     //Math

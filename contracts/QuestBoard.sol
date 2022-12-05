@@ -256,12 +256,12 @@ contract QuestBoard is Owner, ReentrancyGuard {
     function _getRemainingDuration(uint256 questID) internal view returns(uint256) {
         // Since we have the current period, the start period for the Quest, and each period is 1 WEEK
         // We can find the number of remaining periods in the Quest simply by dividing the remaining time between
-        // currentPeriod and the last QuestPeriod start by a WEEK.
-        // If the current period is the last period of the Quest, we want to return 0
+        // currentPeriod and the last QuestPeriod start, plus 1 WEEK, by a WEEK.
+        // If the current period is the last period of the Quest, we want to return 1
         if(questPeriods[questID].length == 0) revert Errors.EmptyQuest();
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
         uint256 currentPeriod = getCurrentPeriod();
-        return lastPeriod < currentPeriod ? 0: (lastPeriod - currentPeriod) / WEEK;
+        return lastPeriod < currentPeriod ? 0: ((lastPeriod - currentPeriod) + WEEK) / WEEK;
     }
 
 
@@ -476,16 +476,16 @@ contract QuestBoard is Owner, ReentrancyGuard {
         if(remainingDuration == 0) revert Errors.ExpiredQuest();
 
         // The new reward amount must be higher 
-        uint256 nextPeriod = getCurrentPeriod() + WEEK;
-        if(newRewardPerVote <= periodsByQuest[questID][nextPeriod].rewardPerVote) revert Errors.LowerRewardPerVote();
+        uint256 currentPeriod = getCurrentPeriod();
+        if(newRewardPerVote <= periodsByQuest[questID][currentPeriod].rewardPerVote) revert Errors.LowerRewardPerVote();
 
-        // For all non active QuestPeriods (non Closed, nor the current Active one)
+        // For all non closed QuestPeriods
         // Calculates the amount of reward token needed with the new rewardPerVote value
         // by calculating the new amount of reward per period, and the difference with the current amount of reward per period
-        // to have the exact amount to add for each non-active period, and the exact total amount to add to the Quest
-        // (because we don't want to pay for Periods that are Closed or the current period)
-        uint256 newRewardPerPeriod = (periodsByQuest[questID][nextPeriod].objectiveVotes * newRewardPerVote) / UNIT;
-        uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][nextPeriod].rewardAmountPerPeriod;
+        // to have the exact amount to add for each non-closed period, and the exact total amount to add to the Quest
+        // (because we don't want to pay for Periods that are Closed)
+        uint256 newRewardPerPeriod = (periodsByQuest[questID][currentPeriod].objectiveVotes * newRewardPerVote) / UNIT;
+        uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
 
         if((diffRewardPerPeriod * remainingDuration) != addedRewardAmount) revert Errors.IncorrectAddedRewardAmount();
         if((addedRewardAmount * platformFee)/MAX_BPS != feeAmount) revert Errors.IncorrectFeeAmount();
@@ -496,14 +496,14 @@ contract QuestBoard is Owner, ReentrancyGuard {
         // And transfer the fees from the Quest creator to the Chest contract
         IERC20(rewardToken).safeTransferFrom(msg.sender, questChest, feeAmount);
 
-        uint256 periodIterator = nextPeriod;
+        uint256 periodIterator = currentPeriod;
 
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
 
         // Update the Quest struct with the added reward amount
         quests[questID].totalRewardAmount += addedRewardAmount;
 
-        // Update all QuestPeriods, starting with the nextPeriod one
+        // Update all QuestPeriods, starting with the currentPeriod one
         for(uint256 i; i < remainingDuration;){
 
             if(periodIterator > lastPeriod) break; //Safety check, we never want to write on non-initialized QuestPeriods (that were not initialized)
@@ -517,7 +517,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
             unchecked{ ++i; }
         }
 
-        emit IncreasedQuestReward(questID, nextPeriod, newRewardPerVote, addedRewardAmount);
+        emit IncreasedQuestReward(questID, currentPeriod, newRewardPerVote, addedRewardAmount);
     }
    
     /**
@@ -543,16 +543,16 @@ contract QuestBoard is Owner, ReentrancyGuard {
 
         // No need to compare to minObjective : the new value must be higher than current Objective
         // and current objective needs to be >= minObjective
-        uint256 nextPeriod = getCurrentPeriod() + WEEK;
-        if(newObjective <= periodsByQuest[questID][nextPeriod].objectiveVotes) revert Errors.LowerObjective();
+        uint256 currentPeriod = getCurrentPeriod();
+        if(newObjective <= periodsByQuest[questID][currentPeriod].objectiveVotes) revert Errors.LowerObjective();
 
-        // For all non active QuestPeriods (non Closed, nor the current Active one)
+        // For all non closed QuestPeriods
         // Calculates the amount of reward token needed with the new objective bias
         // by calculating the new amount of reward per period, and the difference with the current amount of reward per period
-        // to have the exact amount to add for each non-active period, and the exact total amount to add to the Quest
-        // (because we don't want to pay for Periods that are Closed or the current period)
-        uint256 newRewardPerPeriod = (newObjective * periodsByQuest[questID][nextPeriod].rewardPerVote) / UNIT;
-        uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][nextPeriod].rewardAmountPerPeriod;
+        // to have the exact amount to add for each non-closed period, and the exact total amount to add to the Quest
+        // (because we don't want to pay for Periods that are Closed)
+        uint256 newRewardPerPeriod = (newObjective * periodsByQuest[questID][currentPeriod].rewardPerVote) / UNIT;
+        uint256 diffRewardPerPeriod = newRewardPerPeriod - periodsByQuest[questID][currentPeriod].rewardAmountPerPeriod;
 
         if((diffRewardPerPeriod * remainingDuration) != addedRewardAmount) revert Errors.IncorrectAddedRewardAmount();
         if((addedRewardAmount * platformFee)/MAX_BPS != feeAmount) revert Errors.IncorrectFeeAmount();
@@ -564,14 +564,14 @@ contract QuestBoard is Owner, ReentrancyGuard {
         IERC20(rewardToken).safeTransferFrom(msg.sender, questChest, feeAmount);
 
 
-        uint256 periodIterator = nextPeriod;
+        uint256 periodIterator = currentPeriod;
 
         uint256 lastPeriod = questPeriods[questID][questPeriods[questID].length - 1];
 
         // Update the Quest struct with the added reward amount
         quests[questID].totalRewardAmount += addedRewardAmount;
 
-        // Update all QuestPeriods, starting with the nextPeriod one
+        // Update all QuestPeriods, starting with the currentPeriod one
         for(uint256 i; i < remainingDuration;){
 
             if(periodIterator > lastPeriod) break; //Safety check, we never want to write on non-existing QuestPeriods (that were not initialized)
@@ -585,7 +585,7 @@ contract QuestBoard is Owner, ReentrancyGuard {
             unchecked{ ++i; }
         }
 
-        emit IncreasedQuestObjective(questID, nextPeriod, newObjective, addedRewardAmount);
+        emit IncreasedQuestObjective(questID, currentPeriod, newObjective, addedRewardAmount);
     }
    
     /**

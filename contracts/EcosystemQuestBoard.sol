@@ -17,14 +17,15 @@ import "./MultiMerkleDistributor.sol";
 import "./interfaces/IGaugeController.sol";
 import "./utils/Errors.sol";
 
-/** @title Warden Dark Quest Board  */
+/** @title Warden Ecosystem Quest Board  */
 /// @author Paladin
 /*
-    Version of Warden Quest Board allowing to blacklist veToken voters
-    And not account their Bias for rewards distribution
+    Version of the Dark Quest Board with a Whitelist
+    to only allow ecosystem partners to create Quest
+    with a lower fee ratio then a normal Quest
 */
 
-contract DarkQuestBoard is Owner, ReentrancyGuard {
+contract EcosystemQuestBoard is Owner, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /** @notice Address of the Curve Gauge Controller */
@@ -103,7 +104,7 @@ contract DarkQuestBoard is Owner, ReentrancyGuard {
 
 
     /** @notice Platform fees ratio (in BPS) */
-    uint256 public platformFee = 400;
+    uint256 public platformFee = 250;
 
     /** @notice Minimum Objective required */
     uint256 public minObjective;
@@ -126,6 +127,9 @@ contract DarkQuestBoard is Owner, ReentrancyGuard {
     uint256 public kill_ts;
     /** @notice Delay where contract can be unkilled */
     uint256 public constant KILL_DELAY = 2 * 604800; //2 weeks
+
+    /** @notice Address approved to use methods to manage funds */
+    mapping(address => bool) public approvedCreators;
 
     // Events
 
@@ -169,6 +173,9 @@ contract DarkQuestBoard is Owner, ReentrancyGuard {
     event Unkilled(uint256 unkillTime);
     /** @notice Event emitted when the Quest creator withdraw all unused funds (if the contract was killed) */
     event EmergencyWithdraw(uint256 indexed questID, address recipient, uint256 amount);
+
+    event AddedCreator(address indexed creator);
+    event RemovedCreator(address indexed creator);
 
     event InitDistributor(address distributor);
     event ApprovedManager(address indexed manager);
@@ -332,6 +339,7 @@ contract DarkQuestBoard is Owner, ReentrancyGuard {
         if(gauge == address(0) || rewardToken == address(0)) revert Errors.ZeroAddress();
         if(IGaugeController(GAUGE_CONTROLLER).gauge_types(gauge) < 0) revert Errors.InvalidGauge();
         if(!whitelistedTokens[rewardToken]) revert Errors.TokenNotWhitelisted();
+        if(!approvedCreators[vars.creator]) revert Errors.CreatorNotAllowed();
         if(duration == 0) revert Errors.IncorrectDuration();
         if(objective < minObjective) revert Errors.ObjectiveTooLow();
         if(rewardPerVote == 0 || totalRewardAmount == 0 || feeAmount == 0) revert Errors.NullAmount();
@@ -1067,6 +1075,34 @@ contract DarkQuestBoard is Owner, ReentrancyGuard {
         distributor = newDistributor;
 
         emit InitDistributor(newDistributor);
+    }
+
+    /**
+    * @notice Adds a new creator to the list
+    * @dev Adds a new creator to the list
+    * @param creator Address to add
+    */
+    function addCreator(address creator) external onlyOwner {
+        if(creator == address(0)) revert Errors.ZeroAddress();
+        if(approvedCreators[creator]) revert Errors.AlreadyListed();
+
+        approvedCreators[creator] = true;
+
+        emit AddedCreator(creator);
+    }
+   
+    /**
+    * @notice Removes a new creator from the list
+    * @dev Removes a new creator from the list
+    * @param creator Address to remove
+    */
+    function removeCreator(address creator) external onlyOwner {
+        if(creator == address(0)) revert Errors.ZeroAddress();
+        if(!approvedCreators[creator]) revert Errors.NotListed();
+
+        approvedCreators[creator] = false;
+
+        emit RemovedCreator(creator);
     }
 
 

@@ -2,7 +2,7 @@ const hre = require("hardhat");
 import { ethers, waffle } from "hardhat";
 import chai from "chai";
 import { solidity } from "ethereum-waffle";
-import { QuestBoard } from "../typechain/QuestBoard";
+import { EcosystemQuestBoard } from "../typechain/EcosystemQuestBoard";
 import { MultiMerkleDistributor } from "../typechain/MultiMerkleDistributor";
 import { MockGaugeController } from "../typechain/MockGaugeController";
 import { IERC20 } from "../typechain/IERC20";
@@ -14,10 +14,10 @@ import { BigNumber } from "@ethersproject/bignumber";
 import {
     advanceTime,
     getERC20,
-    resetFork
+    resetFork,
 } from "./utils/utils";
 
-const { TOKEN1_ADDRESS, BIG_HOLDER1, TOKEN2_ADDRESS, BIG_HOLDER2, BLOCK_NUMBER } = require("./utils/constant");
+const { TOKEN1_ADDRESS, BIG_HOLDER1, TOKEN2_ADDRESS, BIG_HOLDER2 } = require("./utils/constant");
 
 
 chai.use(solidity);
@@ -31,7 +31,7 @@ let controllerFactory: ContractFactory
 const WEEK = BigNumber.from(86400 * 7)
 const UNIT = ethers.utils.parseEther('1')
 
-describe('QuestBoard contract tests', () => {
+describe('EcosystemQuestBoard contract tests', () => {
     let admin: SignerWithAddress
 
     let mockChest: SignerWithAddress
@@ -50,6 +50,10 @@ describe('QuestBoard contract tests', () => {
     let user1: SignerWithAddress
     let user2: SignerWithAddress
 
+    let voter1: SignerWithAddress
+    let voter2: SignerWithAddress
+    let voter3: SignerWithAddress
+
     let receiver: SignerWithAddress
 
     let newChest: SignerWithAddress
@@ -57,7 +61,7 @@ describe('QuestBoard contract tests', () => {
 
     let otherAddress: SignerWithAddress
 
-    let board: QuestBoard
+    let board: EcosystemQuestBoard
     let distributor: MultiMerkleDistributor
     let controller: MockGaugeController
 
@@ -69,19 +73,22 @@ describe('QuestBoard contract tests', () => {
     let minCRVAmount = ethers.utils.parseEther("0.0001")
     let minDAIAmount = ethers.utils.parseEther("0.005")
 
+    let BLACKLIST: string[]
+
     before(async () => {
         await resetFork();
+        [admin, mockChest, manager, manager2, creator1, creator2, creator3, gauge1, gauge2, gauge3, user1, user2, voter1, voter2, voter3, receiver, newChest, newDistributor, otherAddress] = await ethers.getSigners();
 
-        [admin, mockChest, manager, manager2, creator1, creator2, creator3, gauge1, gauge2, gauge3, user1, user2, receiver, newChest, newDistributor, otherAddress] = await ethers.getSigners();
+        BLACKLIST = [voter1.address, voter2.address]
 
-        boardFactory = await ethers.getContractFactory("QuestBoard");
+        boardFactory = await ethers.getContractFactory("EcosystemQuestBoard");
 
         distributorFactory = await ethers.getContractFactory("MultiMerkleDistributor");
 
         controllerFactory = await ethers.getContractFactory("MockGaugeController");
 
         const crv_amount = ethers.utils.parseEther('75000000');
-        const dai_amount = ethers.utils.parseEther('80000000');
+        const dai_amount = ethers.utils.parseEther('92000000');
 
         CRV = IERC20__factory.connect(TOKEN1_ADDRESS, provider);
         DAI = IERC20__factory.connect(TOKEN2_ADDRESS, provider);
@@ -97,7 +104,7 @@ describe('QuestBoard contract tests', () => {
         controller = (await controllerFactory.connect(admin).deploy()) as MockGaugeController;
         await controller.deployed();
 
-        board = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as QuestBoard;
+        board = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as EcosystemQuestBoard;
         await board.deployed();
 
         distributor = (await distributorFactory.connect(admin).deploy(board.address)) as MultiMerkleDistributor;
@@ -113,7 +120,7 @@ describe('QuestBoard contract tests', () => {
 
         expect(await board.nextID()).to.be.eq(0)
 
-        expect(await board.platformFee()).to.be.eq(400)
+        expect(await board.platformFee()).to.be.eq(250)
 
         expect(await board.minObjective()).to.be.eq(ethers.utils.parseEther('1000'))
 
@@ -134,47 +141,6 @@ describe('QuestBoard contract tests', () => {
         expect(await board.whitelistedTokens(otherAddress.address)).to.be.false
 
     });
-
-    /*describe('updatePeriod', async () => {
-
-
-        it(' should update the period correctly', async () => {
-
-            const block_number = await provider.getBlockNumber()
-            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
-            const expected_period = current_ts.div(WEEK).mul(WEEK)
-
-            expect(await board.getCurrentPeriod()).to.be.eq(expected_period)
-
-            await advanceTime(WEEK.toNumber())
-
-            const next_expected_period = expected_period.add(WEEK).div(WEEK).mul(WEEK)
-
-            await board.updatePeriod()
-
-            expect(await board.getCurrentPeriod()).to.be.eq(next_expected_period)
-
-        });
-
-        it(' should update the period correctly after multiple missed periods', async () => {
-
-            const block_number = await provider.getBlockNumber()
-            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
-            const expected_period = current_ts.div(WEEK).mul(WEEK)
-
-            expect(await board.getCurrentPeriod()).to.be.eq(expected_period)
-
-            await advanceTime(WEEK.mul(3).toNumber())
-
-            const next_expected_period = expected_period.add(WEEK.mul(3)).div(WEEK).mul(WEEK)
-
-            await board.updatePeriod()
-
-            expect(await board.getCurrentPeriod()).to.be.eq(next_expected_period)
-
-        });
-
-    });*/
 
 
     describe('initiateDistributor', async () => {
@@ -207,6 +173,100 @@ describe('QuestBoard contract tests', () => {
 
     });
 
+    describe('addCreator', async () => {
+
+        beforeEach(async () => {
+
+            await board.connect(admin).initiateDistributor(distributor.address)
+
+        });
+
+        it(' should add the creator to the list correctly (& emit Event)', async () => {
+
+            const add_tx = await board.connect(admin).addCreator(creator1.address)
+
+            expect(await board.approvedCreators(creator1.address)).to.be.true
+
+            await expect(add_tx).to.emit(board, "AddedCreator").withArgs(creator1.address);
+
+        });
+
+        it(' should fail if already listed', async () => {
+
+            await board.connect(admin).addCreator(creator1.address)
+
+            await expect(
+                board.connect(admin).addCreator(creator1.address)
+            ).to.be.revertedWith('AlreadyListed')
+            
+        });
+
+        it(' should fail if given address 0x0', async () => {
+
+            await expect(
+                board.connect(admin).addCreator(ethers.constants.AddressZero)
+            ).to.be.revertedWith('ZeroAddress')
+            
+        });
+
+        it(' should only be callable by admin', async () => {
+
+            await expect(
+                board.connect(creator1).addCreator(creator1.address)
+            ).to.be.revertedWith('Ownable: caller is not the owner')
+            
+        });
+
+    });
+
+    describe('removeCreator', async () => {
+
+        beforeEach(async () => {
+
+            await board.connect(admin).initiateDistributor(distributor.address)
+
+            await board.connect(admin).addCreator(creator1.address)
+            await board.connect(admin).addCreator(creator2.address)
+
+        });
+
+        it(' should remove the creator from the list correctly (& emit Event)', async () => {
+
+            const remove_tx = await board.connect(admin).removeCreator(creator1.address)
+
+            expect(await board.approvedCreators(creator1.address)).to.be.false
+            expect(await board.approvedCreators(creator2.address)).to.be.true
+
+            await expect(remove_tx).to.emit(board, "RemovedCreator").withArgs(creator1.address);
+
+        });
+
+        it(' should fail if already listed', async () => {
+
+            await expect(
+                board.connect(admin).removeCreator(creator3.address)
+            ).to.be.revertedWith('NotListed')
+            
+        });
+
+        it(' should fail if given address 0x0', async () => {
+
+            await expect(
+                board.connect(admin).removeCreator(ethers.constants.AddressZero)
+            ).to.be.revertedWith('ZeroAddress')
+            
+        });
+
+        it(' should only be callable by admin', async () => {
+
+            await expect(
+                board.connect(creator2).removeCreator(creator1.address)
+            ).to.be.revertedWith('Ownable: caller is not the owner')
+            
+        });
+
+    });
+
 
     describe('createQuest', async () => {
 
@@ -218,13 +278,17 @@ describe('QuestBoard contract tests', () => {
         const duration = 4
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(400).div(10000)
+        const total_fees = total_rewards_amount.mul(250).div(10000)
 
         beforeEach(async () => {
 
             await board.connect(admin).initiateDistributor(distributor.address)
 
             await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+
+            await board.connect(admin).addCreator(creator1.address)
+            await board.connect(admin).addCreator(creator2.address)
+            await board.connect(admin).addCreator(creator3.address)
 
             await controller.add_gauge(gauge1.address, 2)
 
@@ -250,7 +314,8 @@ describe('QuestBoard contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                BLACKLIST
             )
 
             expect(await board.getCurrentPeriod()).to.be.eq(expected_period)
@@ -275,7 +340,8 @@ describe('QuestBoard contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                BLACKLIST
             )
 
             await expect(
@@ -336,7 +402,8 @@ describe('QuestBoard contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                BLACKLIST
             )
 
             const quest_periods = await board.getAllQuestPeriodsForQuestId(expected_id)
@@ -360,6 +427,50 @@ describe('QuestBoard contract tests', () => {
 
         });
 
+        it(' should have set the correct blacklsit for the Quest', async () => {
+            
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            const expected_id = await board.nextID()
+
+            await DAI.connect(creator1).approve(board.address, total_rewards_amount.add(total_fees))
+
+            const create_tx = await board.connect(creator1).createQuest(
+                gauge1.address,
+                DAI.address,
+                duration,
+                target_votes,
+                reward_per_vote,
+                total_rewards_amount,
+                total_fees,
+                BLACKLIST
+            )
+
+            const quest_blacklist = await board.getQuestBlacklsit(expected_id)
+
+            expect(quest_blacklist[0]).to.be.eq(BLACKLIST[0])
+            expect(await board.questBlacklist(expected_id, 0)).to.be.eq(BLACKLIST[0])
+            expect(quest_blacklist[1]).to.be.eq(BLACKLIST[1])
+            expect(await board.questBlacklist(expected_id, 1)).to.be.eq(BLACKLIST[1])
+
+            await expect(
+                create_tx
+            ).to.emit(board, "AddVoterBlacklist")
+                .withArgs(
+                    expected_id,
+                    voter1.address
+                );
+
+            await expect(
+                create_tx
+            ).to.emit(board, "AddVoterBlacklist")
+                .withArgs(
+                    expected_id,
+                    voter2.address
+                );
+        });
+
         it(' should do the transfer correctly', async () => {
 
             const old_board_balance = await DAI.balanceOf(board.address)
@@ -374,7 +485,8 @@ describe('QuestBoard contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                BLACKLIST
             )
 
             await expect(
@@ -408,7 +520,8 @@ describe('QuestBoard contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                BLACKLIST
             )
 
             await expect(
@@ -431,7 +544,8 @@ describe('QuestBoard contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                BLACKLIST
             )
 
             const target_votes2 = ethers.utils.parseEther('1000000')
@@ -442,7 +556,7 @@ describe('QuestBoard contract tests', () => {
             const duration2 = 4
 
             const total_rewards_amount2 = rewards_per_period2.mul(duration2)
-            const total_fees2 = total_rewards_amount2.mul(400).div(10000)
+            const total_fees2 = total_rewards_amount2.mul(250).div(10000)
 
 
             await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
@@ -468,7 +582,8 @@ describe('QuestBoard contract tests', () => {
                 target_votes2,
                 reward_per_vote2,
                 total_rewards_amount2,
-                total_fees2
+                total_fees2,
+                BLACKLIST
             )
 
             await expect(
@@ -514,7 +629,8 @@ describe('QuestBoard contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                BLACKLIST
             )
 
 
@@ -530,7 +646,7 @@ describe('QuestBoard contract tests', () => {
             const duration2 = 4
 
             const total_rewards_amount2 = rewards_per_period2.mul(duration2)
-            const total_fees2 = total_rewards_amount2.mul(400).div(10000)
+            const total_fees2 = total_rewards_amount2.mul(250).div(10000)
 
 
             await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
@@ -556,7 +672,8 @@ describe('QuestBoard contract tests', () => {
                 target_votes2,
                 reward_per_vote2,
                 total_rewards_amount2,
-                total_fees2
+                total_fees2,
+                BLACKLIST
             )
 
             await expect(
@@ -593,9 +710,29 @@ describe('QuestBoard contract tests', () => {
 
         });
 
+        it(' should fail if the creator is not whitelisted', async () => {
+
+            await DAI.connect(admin).transfer(manager.address, total_rewards_amount.add(total_fees))
+            await DAI.connect(manager).approve(board.address, total_rewards_amount.add(total_fees))
+
+            await expect(
+                board.connect(manager).createQuest(
+                    gauge1.address,
+                    DAI.address,
+                    duration,
+                    target_votes,
+                    reward_per_vote,
+                    total_rewards_amount,
+                    total_fees,
+                    BLACKLIST
+                )
+            ).to.be.revertedWith('CreatorNotAllowed')
+
+        });
+
         it(' should fail if no distributor set', async () => {
 
-            let otherBoard = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as QuestBoard;
+            let otherBoard = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as EcosystemQuestBoard;
             await otherBoard.deployed();
 
             await otherBoard.connect(admin).whitelistToken(DAI.address, minDAIAmount)
@@ -615,7 +752,8 @@ describe('QuestBoard contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    BLACKLIST
                 )
             ).to.be.revertedWith('NoDistributorSet')
 
@@ -633,7 +771,8 @@ describe('QuestBoard contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    BLACKLIST
                 )
             ).to.be.revertedWith('ZeroAddress')
 
@@ -645,7 +784,8 @@ describe('QuestBoard contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    BLACKLIST
                 )
             ).to.be.revertedWith('ZeroAddress')
 
@@ -657,7 +797,8 @@ describe('QuestBoard contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    BLACKLIST
                 )
             ).to.be.revertedWith('IncorrectDuration')
 
@@ -669,7 +810,8 @@ describe('QuestBoard contract tests', () => {
                     ethers.utils.parseEther('50'),
                     reward_per_vote,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    BLACKLIST
                 )
             ).to.be.revertedWith('ObjectiveTooLow')
 
@@ -681,7 +823,8 @@ describe('QuestBoard contract tests', () => {
                     0,
                     reward_per_vote,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    BLACKLIST
                 )
             ).to.be.revertedWith('ObjectiveTooLow')
 
@@ -693,7 +836,8 @@ describe('QuestBoard contract tests', () => {
                     target_votes,
                     0,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    BLACKLIST
                 )
             ).to.be.revertedWith('NullAmount')
 
@@ -705,7 +849,8 @@ describe('QuestBoard contract tests', () => {
                     target_votes,
                     500000,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    BLACKLIST
                 )
             ).to.be.revertedWith('RewardPerVoteTooLow')
 
@@ -717,7 +862,8 @@ describe('QuestBoard contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     0,
-                    total_fees
+                    total_fees,
+                    BLACKLIST
                 )
             ).to.be.revertedWith('NullAmount')
 
@@ -729,7 +875,8 @@ describe('QuestBoard contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    0
+                    0,
+                    BLACKLIST
                 )
             ).to.be.revertedWith('NullAmount')
 
@@ -747,7 +894,8 @@ describe('QuestBoard contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    BLACKLIST
                 )
             ).to.be.revertedWith('TokenNotWhitelisted')
 
@@ -765,7 +913,8 @@ describe('QuestBoard contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    BLACKLIST
                 )
             ).to.be.revertedWith('InvalidGauge')
 
@@ -774,7 +923,7 @@ describe('QuestBoard contract tests', () => {
         it(' should fail if given amounts (rewards or fees) are incorrect', async () => {
 
             const wrong_total_rewards_amount = ethers.utils.parseEther('800000').mul(duration)
-            const wrong_total_fees = total_rewards_amount.mul(300).div(10000)
+            const wrong_total_fees = total_rewards_amount.mul(400).div(10000)
 
             await DAI.connect(creator1).approve(board.address, total_rewards_amount.add(total_fees))
 
@@ -786,7 +935,8 @@ describe('QuestBoard contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     wrong_total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    BLACKLIST
                 )
             ).to.be.revertedWith('IncorrectTotalRewardAmount')
 
@@ -798,10 +948,65 @@ describe('QuestBoard contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    wrong_total_fees
+                    wrong_total_fees,
+                    BLACKLIST
                 )
             ).to.be.revertedWith('IncorrectFeeAmount')
 
+        });
+
+        it(' should fail if given an incorrect blacklist', async () => {
+
+            await DAI.connect(creator1).approve(board.address, total_rewards_amount.add(total_fees))
+
+            await expect(
+                board.connect(creator1).createQuest(
+                    gauge1.address,
+                    DAI.address,
+                    duration,
+                    target_votes,
+                    reward_per_vote,
+                    total_rewards_amount,
+                    total_fees,
+                    [voter1.address, ethers.constants.AddressZero]
+                )
+            ).to.be.revertedWith('ZeroAddress')
+
+            await expect(
+                board.connect(creator1).createQuest(
+                    gauge1.address,
+                    DAI.address,
+                    duration,
+                    target_votes,
+                    reward_per_vote,
+                    total_rewards_amount,
+                    total_fees,
+                    [voter1.address, voter1.address]
+                )
+            ).to.be.revertedWith('AlreadyBlacklisted')
+
+        });
+
+        it(' should not set a blacklist of given an empty array', async () => {
+
+            const expected_id = await board.nextID()
+
+            await DAI.connect(creator1).approve(board.address, total_rewards_amount.add(total_fees))
+
+            await board.connect(creator1).createQuest(
+                gauge1.address,
+                DAI.address,
+                duration,
+                target_votes,
+                reward_per_vote,
+                total_rewards_amount,
+                total_fees,
+                []
+            )
+
+            const quest_blacklist = await board.getQuestBlacklsit(expected_id)
+
+            expect(quest_blacklist).to.be.empty
         });
 
     });
@@ -817,11 +1022,11 @@ describe('QuestBoard contract tests', () => {
         const duration = 4
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(400).div(10000)
+        const total_fees = total_rewards_amount.mul(250).div(10000)
 
         const extend_duration = 3
         const added_total_rewards_amount = rewards_per_period.mul(extend_duration)
-        const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
+        const added_total_fees = added_total_rewards_amount.mul(250).div(10000)
 
         let questID: BigNumber;
 
@@ -830,6 +1035,10 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).initiateDistributor(distributor.address)
 
             await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+
+            await board.connect(admin).addCreator(creator1.address)
+            await board.connect(admin).addCreator(creator2.address)
+            await board.connect(admin).addCreator(creator3.address)
 
             await controller.add_gauge(gauge1.address, 2)
 
@@ -845,7 +1054,8 @@ describe('QuestBoard contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                BLACKLIST
             )
 
             await DAI.connect(admin).transfer(creator1.address, added_total_rewards_amount.add(added_total_fees))
@@ -1113,7 +1323,7 @@ describe('QuestBoard contract tests', () => {
         it(' should fail if given amounts (rewards or fees) are incorrect', async () => {
 
             const wrong_total_rewards_amount = ethers.utils.parseEther('40000').mul(extend_duration)
-            const wrong_total_fees = added_total_rewards_amount.mul(300).div(10000)
+            const wrong_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
             await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
 
@@ -1152,12 +1362,12 @@ describe('QuestBoard contract tests', () => {
         const remainingDuration = duration - ellapsedDuration + 1
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(400).div(10000)
+        const total_fees = total_rewards_amount.mul(250).div(10000)
 
         const new_reward_per_vote = ethers.utils.parseEther('0.6')
         const new_rewards_per_period = ethers.utils.parseEther('90000')
         const added_total_rewards_amount = new_rewards_per_period.sub(rewards_per_period).mul(remainingDuration)
-        const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
+        const added_total_fees = added_total_rewards_amount.mul(250).div(10000)
 
         let questID: BigNumber;
 
@@ -1166,6 +1376,10 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).initiateDistributor(distributor.address)
 
             await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+
+            await board.connect(admin).addCreator(creator1.address)
+            await board.connect(admin).addCreator(creator2.address)
+            await board.connect(admin).addCreator(creator3.address)
 
             await controller.add_gauge(gauge1.address, 2)
 
@@ -1181,7 +1395,8 @@ describe('QuestBoard contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                BLACKLIST
             )
 
             await DAI.connect(admin).transfer(creator1.address, added_total_rewards_amount.add(added_total_fees))
@@ -1352,7 +1567,7 @@ describe('QuestBoard contract tests', () => {
 
             const lower_reward_per_vote = reward_per_vote.div(2)
             const lower_total_rewards_amount = rewards_per_period.div(2).mul(remainingDuration)
-            const lower_total_fees = lower_total_rewards_amount.mul(400).div(10000)
+            const lower_total_fees = lower_total_rewards_amount.mul(250).div(10000)
 
             await DAI.connect(creator1).approve(board.address, lower_total_rewards_amount.add(lower_total_fees))
 
@@ -1460,7 +1675,7 @@ describe('QuestBoard contract tests', () => {
         it(' should fail if given amounts (rewards or fees) are incorrect', async () => {
 
             const wrong_total_rewards_amount = ethers.utils.parseEther('80000').sub(rewards_per_period).mul(remainingDuration)
-            const wrong_total_fees = added_total_rewards_amount.mul(300).div(10000)
+            const wrong_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
             await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
 
@@ -1498,15 +1713,15 @@ describe('QuestBoard contract tests', () => {
 
         const duration = 6
         const ellapsedDuration = 3
-        const remainingDuration = duration - ellapsedDuration +1
+        const remainingDuration = duration - ellapsedDuration + 1
 
         const total_rewards_amount = rewards_per_period.mul(duration)
-        const total_fees = total_rewards_amount.mul(400).div(10000)
+        const total_fees = total_rewards_amount.mul(250).div(10000)
 
         const new_target_votes = ethers.utils.parseEther('20000')
         const new_rewards_per_period = ethers.utils.parseEther('6000')
         const added_total_rewards_amount = new_rewards_per_period.sub(rewards_per_period).mul(remainingDuration)
-        const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
+        const added_total_fees = added_total_rewards_amount.mul(250).div(10000)
 
         let questID: BigNumber;
 
@@ -1515,6 +1730,10 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).initiateDistributor(distributor.address)
 
             await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+
+            await board.connect(admin).addCreator(creator1.address)
+            await board.connect(admin).addCreator(creator2.address)
+            await board.connect(admin).addCreator(creator3.address)
 
             await controller.add_gauge(gauge1.address, 2)
 
@@ -1530,7 +1749,8 @@ describe('QuestBoard contract tests', () => {
                 target_votes,
                 reward_per_vote,
                 total_rewards_amount,
-                total_fees
+                total_fees,
+                BLACKLIST
             )
 
             await DAI.connect(admin).transfer(creator1.address, added_total_rewards_amount.add(added_total_fees))
@@ -1701,7 +1921,7 @@ describe('QuestBoard contract tests', () => {
 
             const lower_target_votes = target_votes.div(2)
             const lower_total_rewards_amount = reward_per_vote.mul(lower_target_votes).mul(remainingDuration)
-            const lower_total_fees = lower_total_rewards_amount.mul(400).div(10000)
+            const lower_total_fees = lower_total_rewards_amount.mul(250).div(10000)
 
             await DAI.connect(creator1).approve(board.address, lower_total_rewards_amount.add(lower_total_fees))
 
@@ -1800,7 +2020,7 @@ describe('QuestBoard contract tests', () => {
         it(' should fail if given amounts (rewards or fees) are incorrect', async () => {
 
             const wrong_total_rewards_amount = ethers.utils.parseEther('50000').sub(rewards_per_period).mul(remainingDuration)
-            const wrong_total_fees = added_total_rewards_amount.mul(300).div(10000)
+            const wrong_total_fees = added_total_rewards_amount.mul(400).div(10000)
 
             await DAI.connect(creator1).approve(board.address, added_total_rewards_amount.add(added_total_fees))
 
@@ -1829,7 +2049,7 @@ describe('QuestBoard contract tests', () => {
     });
 
 
-    describe('closeQuestPeriod', async () => {
+    describe('getCurrentReducedBias', async () => {
 
         let gauges: string[] = []
         let rewardToken: IERC20[] = []
@@ -1866,6 +2086,10 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
             await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
 
+            await board.connect(admin).addCreator(creator1.address)
+            await board.connect(admin).addCreator(creator2.address)
+            await board.connect(admin).addCreator(creator3.address)
+
             await controller.add_gauge(gauge1.address, 2)
             await controller.add_gauge(gauge2.address, 1)
             await controller.add_gauge(gauge3.address, 2)
@@ -1875,7 +2099,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(250).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -1890,9 +2114,562 @@ describe('QuestBoard contract tests', () => {
                     target_votes[i],
                     reward_per_vote[i],
                     total_rewards_amount[i],
-                    total_fees[i]
+                    total_fees[i],
+                    [voter1.address, voter2.address, voter3.address]
                 )
             }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            // mock votes
+            await controller.set_user_vote(voter1.address, gauge1.address, first_period, ethers.utils.parseEther('200'), current_ts.add(WEEK.mul(182)))
+            await controller.set_user_vote(voter1.address, gauge2.address, first_period, ethers.utils.parseEther('400'), current_ts.add(WEEK.mul(182)))
+
+            await controller.set_user_vote(voter2.address, gauge2.address, first_period, ethers.utils.parseEther('250'), current_ts.add(WEEK.mul(150)))
+            await controller.set_user_vote(voter2.address, gauge3.address, first_period, ethers.utils.parseEther('275'), current_ts.add(WEEK.mul(150)))
+
+            await controller.set_user_vote(voter3.address, gauge1.address, first_period, ethers.utils.parseEther('140'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge2.address, first_period, ethers.utils.parseEther('520'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge3.address, first_period, ethers.utils.parseEther('370'), current_ts.add(WEEK.mul(195)))
+
+            //setup the gauges slopes
+            for (let i = 0; i < gauge1_biases.length; i++) {
+                let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
+
+                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_biases[i])
+                await controller.set_points_weight(gauge2.address, period_end_to_set, gauge2_biases[i])
+                await controller.set_points_weight(gauge3.address, period_end_to_set, gauge3_biases[i])
+            }
+        });
+
+        const getUserBias = async (voter: string, gauge: string, period: BigNumber): Promise<BigNumber> => {
+            const last_user_vote = await controller.last_user_vote(voter, gauge)
+            const last_user_slope = (await controller.vote_user_slopes(voter, gauge)).slope
+            const user_end = (await controller.vote_user_slopes(voter, gauge)).end
+
+            let user_bias = BigNumber.from(0)
+
+            if(last_user_vote.lte(period) && user_end.gt(period) && !last_user_slope.eq(0)){
+                user_bias = last_user_slope.mul(user_end.sub(period))
+            }
+
+            return user_bias
+        }
+
+        it(' should return the correct value', async () => {
+            let user1_bias: BigNumber
+            let user2_bias: BigNumber
+            let user3_bias: BigNumber
+
+            await advanceTime(WEEK.toNumber())
+            
+            const next_period = first_period.add(WEEK)
+
+            //Gauge1
+            user1_bias = await getUserBias(voter1.address, gauge1.address, next_period)
+            user3_bias = await getUserBias(voter3.address, gauge1.address, next_period)
+
+            const expected_reduced_bias_1 = gauge1_biases[0].sub(user1_bias.add(user3_bias))
+
+            expect(await board.getCurrentReducedBias(questIDs[0])).to.be.eq(expected_reduced_bias_1)
+
+            //Gauge2
+            user1_bias = await getUserBias(voter1.address, gauge2.address, next_period)
+            user2_bias = await getUserBias(voter2.address, gauge2.address, next_period)
+            user3_bias = await getUserBias(voter3.address, gauge2.address, next_period)
+
+            const expected_reduced_bias_2 = gauge2_biases[0].sub(user1_bias.add(user2_bias).add(user3_bias))
+
+            expect(await board.getCurrentReducedBias(questIDs[1])).to.be.eq(expected_reduced_bias_2)
+
+            //Gauge3
+            user2_bias = await getUserBias(voter2.address, gauge3.address, next_period)
+            user3_bias = await getUserBias(voter3.address, gauge3.address, next_period)
+
+            const expected_reduced_bias_3 = gauge3_biases[0].sub(user2_bias.add(user3_bias))
+
+            expect(await board.getCurrentReducedBias(questIDs[2])).to.be.eq(expected_reduced_bias_3)
+
+        });
+
+        it(' should return 0 if reduced bias is > gauge bias', async () => {
+            await advanceTime(WEEK.toNumber())
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            await controller.set_user_vote(voter3.address, gauge3.address, first_period, ethers.utils.parseEther('37000'), current_ts.add(WEEK.mul(195)))
+            
+            await advanceTime(WEEK.toNumber())
+
+            expect(await board.getCurrentReducedBias(questIDs[2])).to.be.eq(0)
+
+        });
+
+
+    });
+
+    describe('addToBlacklist / addMultipleToBlacklist / removeFromBlacklist', async () => {
+
+        let gauges: string[] = []
+        let rewardToken: IERC20[] = []
+
+        const target_votes = [ethers.utils.parseEther('15000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('8000')]
+        const reward_per_vote = [ethers.utils.parseEther('2'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.5')]
+        const duration = [6, 4, 7]
+
+        let questIDs: BigNumber[] = [];
+
+        const gauge1_biases = [ethers.utils.parseEther('8000'), ethers.utils.parseEther('10000'), ethers.utils.parseEther('12000')]
+        const gauge2_biases = [ethers.utils.parseEther('18000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('30000')]
+        const gauge3_biases = [ethers.utils.parseEther('10000'), ethers.utils.parseEther('11000'), ethers.utils.parseEther('15000')]
+
+        const all_biases = [gauge1_biases, gauge2_biases, gauge3_biases]
+
+        let first_period: BigNumber;
+
+        let rewards_per_period: BigNumber[] = []
+        let total_rewards_amount: BigNumber[] = []
+        let total_fees: BigNumber[] = []
+
+        let blacklists: string[][]
+
+        beforeEach(async () => {
+
+            gauges = [gauge1.address, gauge2.address, gauge3.address]
+            rewardToken = [DAI, CRV, DAI]
+
+            blacklists = [
+                [voter1.address, voter2.address],
+                [voter2.address],
+                [voter1.address, voter2.address, voter3.address]
+            ]
+
+            let creators = [creator1, creator2, creator3]
+
+            await board.connect(admin).initiateDistributor(distributor.address)
+
+            await board.connect(admin).approveManager(manager.address)
+
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+            await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
+
+            await board.connect(admin).addCreator(creator1.address)
+            await board.connect(admin).addCreator(creator2.address)
+            await board.connect(admin).addCreator(creator3.address)
+
+            await controller.add_gauge(gauge1.address, 2)
+            await controller.add_gauge(gauge2.address, 1)
+            await controller.add_gauge(gauge3.address, 2)
+
+            first_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+
+            for (let i = 0; i < gauges.length; i++) {
+                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
+                total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
+                total_fees[i] = total_rewards_amount[i].mul(250).div(10000)
+
+                await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
+                await rewardToken[i].connect(creators[i]).approve(board.address, 0)
+                await rewardToken[i].connect(creators[i]).approve(board.address, total_rewards_amount[i].add(total_fees[i]))
+
+                questIDs[i] = await board.nextID()
+
+                await board.connect(creators[i]).createQuest(
+                    gauges[i],
+                    rewardToken[i].address,
+                    duration[i],
+                    target_votes[i],
+                    reward_per_vote[i],
+                    total_rewards_amount[i],
+                    total_fees[i],
+                    blacklists[i]
+                )
+            }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            // mock votes
+            await controller.set_user_vote(voter1.address, gauge1.address, first_period, ethers.utils.parseEther('200'), current_ts.add(WEEK.mul(182)))
+            await controller.set_user_vote(voter1.address, gauge2.address, first_period, ethers.utils.parseEther('400'), current_ts.add(WEEK.mul(182)))
+
+            await controller.set_user_vote(voter2.address, gauge2.address, first_period, ethers.utils.parseEther('250'), current_ts.add(WEEK.mul(150)))
+            await controller.set_user_vote(voter2.address, gauge3.address, first_period, ethers.utils.parseEther('275'), current_ts.add(WEEK.mul(150)))
+
+            await controller.set_user_vote(voter3.address, gauge1.address, first_period, ethers.utils.parseEther('140'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge2.address, first_period, ethers.utils.parseEther('520'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge3.address, first_period, ethers.utils.parseEther('370'), current_ts.add(WEEK.mul(195)))
+
+            //setup the gauges slopes
+            for (let i = 0; i < gauge1_biases.length; i++) {
+                let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
+
+                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_biases[i])
+                await controller.set_points_weight(gauge2.address, period_end_to_set, gauge2_biases[i])
+                await controller.set_points_weight(gauge3.address, period_end_to_set, gauge3_biases[i])
+            }
+        });
+
+        const getUserBias = async (voter: string, gauge: string, period: BigNumber): Promise<BigNumber> => {
+            const last_user_vote = await controller.last_user_vote(voter, gauge)
+            const last_user_slope = (await controller.vote_user_slopes(voter, gauge)).slope
+            const user_end = (await controller.vote_user_slopes(voter, gauge)).end
+
+            let user_bias = BigNumber.from(0)
+
+            if(last_user_vote.lte(period) && user_end.gt(period) && !last_user_slope.eq(0)){
+                user_bias = last_user_slope.mul(user_end.sub(period))
+            }
+
+            return user_bias
+        }
+
+        it(' should list the new address correctly (& emit correct Event)', async () => {
+            
+            const add_tx = await board.connect(creator1).addToBlacklist(questIDs[0], voter3.address)
+
+            await expect(
+                add_tx
+            ).to.emit(board, "AddVoterBlacklist")
+                .withArgs(
+                    questIDs[0],
+                    voter3.address
+                );
+
+            const quest_blacklist = await board.getQuestBlacklsit(questIDs[0])
+
+            expect(quest_blacklist[0]).to.be.eq(blacklists[0][0])
+            expect(await board.questBlacklist(questIDs[0], 0)).to.be.eq(blacklists[0][0])
+            expect(quest_blacklist[1]).to.be.eq(blacklists[0][1])
+            expect(await board.questBlacklist(questIDs[0], 1)).to.be.eq(blacklists[0][1])
+            expect(quest_blacklist[2]).to.be.eq(voter3.address)
+            expect(await board.questBlacklist(questIDs[0], 2)).to.be.eq(voter3.address)
+
+        });
+
+        it(' should list multiple new addresses correctly (& emit correct Event)', async () => {
+            
+            const add_tx = await board.connect(creator2).addMultipleToBlacklist(questIDs[1], [voter3.address, voter1.address])
+
+            await expect(
+                add_tx
+            ).to.emit(board, "AddVoterBlacklist")
+                .withArgs(
+                    questIDs[1],
+                    voter3.address
+                );
+
+            await expect(
+                add_tx
+            ).to.emit(board, "AddVoterBlacklist")
+                .withArgs(
+                    questIDs[1],
+                    voter1.address
+                );
+
+            const quest_blacklist = await board.getQuestBlacklsit(questIDs[1])
+
+            expect(quest_blacklist[0]).to.be.eq(blacklists[1][0])
+            expect(await board.questBlacklist(questIDs[1], 0)).to.be.eq(blacklists[1][0])
+            expect(quest_blacklist[1]).to.be.eq(voter3.address)
+            expect(await board.questBlacklist(questIDs[1], 1)).to.be.eq(voter3.address)
+            expect(quest_blacklist[2]).to.be.eq(voter1.address)
+            expect(await board.questBlacklist(questIDs[1], 2)).to.be.eq(voter1.address)
+
+        });
+
+        it(' should remove the address from the list correctly (& emit correct Event)', async () => {
+            
+            const remove_tx = await board.connect(creator3).removeFromBlacklist(questIDs[2], voter2.address)
+
+            await expect(
+                remove_tx
+            ).to.emit(board, "RemoveVoterBlacklist")
+                .withArgs(
+                    questIDs[2],
+                    voter2.address
+                );
+
+            const quest_blacklist = await board.getQuestBlacklsit(questIDs[2])
+
+            expect(quest_blacklist[0]).to.be.eq(voter1.address)
+            expect(await board.questBlacklist(questIDs[2], 0)).to.be.eq(voter1.address)
+            expect(quest_blacklist[1]).to.be.eq(voter3.address)
+            expect(await board.questBlacklist(questIDs[2], 1)).to.be.eq(voter3.address)
+
+        });
+
+        it(' should not allow to add the same address twice', async () => {
+            
+            await expect(
+                board.connect(creator1).addToBlacklist(questIDs[0], voter2.address)
+            ).to.be.revertedWith('AlreadyBlacklisted')
+
+            await expect(
+                board.connect(creator2).addMultipleToBlacklist(questIDs[1], [voter2.address, voter1.address])
+            ).to.be.revertedWith('AlreadyBlacklisted')
+
+            await expect(
+                board.connect(creator2).addMultipleToBlacklist(questIDs[1], [voter3.address, voter3.address])
+            ).to.be.revertedWith('AlreadyBlacklisted')
+
+        });
+
+        it(' should not change anything if trying to remove non listed address', async () => {
+            
+            await board.connect(creator3).removeFromBlacklist(questIDs[2], user1.address)
+
+            const quest_blacklist = await board.getQuestBlacklsit(questIDs[2])
+
+            expect(quest_blacklist[0]).to.be.eq(voter1.address)
+            expect(await board.questBlacklist(questIDs[2], 0)).to.be.eq(voter1.address)
+            expect(quest_blacklist[1]).to.be.eq(voter2.address)
+            expect(await board.questBlacklist(questIDs[2], 1)).to.be.eq(voter2.address)
+            expect(quest_blacklist[2]).to.be.eq(voter3.address)
+            expect(await board.questBlacklist(questIDs[2], 2)).to.be.eq(voter3.address)
+
+        });
+
+        it(' should fail if given address 0', async () => {
+            
+            await expect(
+                board.connect(creator1).addToBlacklist(questIDs[0], ethers.constants.AddressZero)
+            ).to.be.revertedWith('ZeroAddress')
+
+            await expect(
+                board.connect(creator2).addMultipleToBlacklist(questIDs[1], [ethers.constants.AddressZero])
+            ).to.be.revertedWith('ZeroAddress')
+
+            await expect(
+                board.connect(creator2).addMultipleToBlacklist(questIDs[1], [voter3.address, ethers.constants.AddressZero])
+            ).to.be.revertedWith('ZeroAddress')
+
+            await expect(
+                board.connect(creator3).removeFromBlacklist(questIDs[2], ethers.constants.AddressZero)
+            ).to.be.revertedWith('ZeroAddress')
+            
+        });
+
+        it(' should only be callable by Quest creator', async () => {
+            
+            await expect(
+                board.connect(creator2).addToBlacklist(questIDs[0], voter3.address)
+            ).to.be.revertedWith('CallerNotAllowed')
+
+            await expect(
+                board.connect(creator3).addMultipleToBlacklist(questIDs[1], [voter3.address, voter1.address])
+            ).to.be.revertedWith('CallerNotAllowed')
+
+            await expect(
+                board.connect(creator1).removeFromBlacklist(questIDs[2], voter2.address)
+            ).to.be.revertedWith('CallerNotAllowed')
+
+        });
+
+        it(' should fail if Quest does not exist', async () => {
+
+            const incorrectID = questIDs[2].add(1)
+            
+            await expect(
+                board.connect(creator1).addToBlacklist(incorrectID, voter3.address)
+            ).to.be.revertedWith('InvalidQuestID')
+
+            await expect(
+                board.connect(creator2).addMultipleToBlacklist(incorrectID, [voter3.address, voter1.address])
+            ).to.be.revertedWith('InvalidQuestID')
+
+            await expect(
+                board.connect(creator3).removeFromBlacklist(incorrectID, voter2.address)
+            ).to.be.revertedWith('InvalidQuestID')
+
+        });
+
+        it(' should fail if Quest is expired', async () => {
+            
+            await advanceTime(WEEK.mul(8).toNumber())
+
+            await expect(
+                board.connect(creator1).addToBlacklist(questIDs[0], voter3.address)
+            ).to.be.revertedWith('ExpiredQuest')
+
+            await expect(
+                board.connect(creator2).addMultipleToBlacklist(questIDs[1], [voter3.address, voter1.address])
+            ).to.be.revertedWith('ExpiredQuest')
+
+            await expect(
+                board.connect(creator3).removeFromBlacklist(questIDs[2], voter2.address)
+            ).to.be.revertedWith('ExpiredQuest')
+
+        });
+
+        it(' should find correct reduced bias - add to blacklist', async () => {
+
+            await advanceTime(WEEK.toNumber())
+            
+            const next_period = first_period.add(WEEK)
+
+            const bl_bias_sum1 = (await getUserBias(voter1.address, gauge1.address, next_period)).add(
+                await getUserBias(voter2.address, gauge1.address, next_period)
+            )
+
+            const expected_reduced_bias_1 = gauge1_biases[0].sub(bl_bias_sum1)
+
+            expect(await board.getCurrentReducedBias(questIDs[0])).to.be.eq(expected_reduced_bias_1)
+
+            await board.connect(creator1).addToBlacklist(questIDs[0], voter3.address)
+
+            await advanceTime(WEEK.toNumber())
+            
+            const next_period2 = next_period.add(WEEK)
+
+            const bl_bias_sum2 = (await getUserBias(voter1.address, gauge1.address, next_period2)).add(
+                await getUserBias(voter2.address, gauge1.address, next_period2)
+            ).add(
+                await getUserBias(voter3.address, gauge1.address, next_period2)
+            )
+
+            const expected_reduced_bias_2 = gauge1_biases[1].sub(bl_bias_sum2)
+
+            expect(await board.getCurrentReducedBias(questIDs[0])).to.be.eq(expected_reduced_bias_2)
+            
+
+        });
+
+        it(' should find correct reduced bias - remove from blacklist', async () => {
+            
+            await advanceTime(WEEK.toNumber())
+            
+            const next_period = first_period.add(WEEK)
+
+            const bl_bias_sum1 = (await getUserBias(voter1.address, gauge3.address, next_period)).add(
+                await getUserBias(voter2.address, gauge3.address, next_period)
+            ).add(
+                await getUserBias(voter3.address, gauge3.address, next_period)
+            )
+
+            const expected_reduced_bias_1 = gauge3_biases[0].sub(bl_bias_sum1)
+
+            expect(await board.getCurrentReducedBias(questIDs[2])).to.be.eq(expected_reduced_bias_1)
+
+            await board.connect(creator3).removeFromBlacklist(questIDs[2], voter2.address)
+
+            await advanceTime(WEEK.toNumber())
+            
+            const next_period2 = next_period.add(WEEK)
+
+            const bl_bias_sum2 = (await getUserBias(voter1.address, gauge3.address, next_period2)).add(
+                await getUserBias(voter3.address, gauge3.address, next_period2)
+            )
+
+            const expected_reduced_bias_2 = gauge3_biases[1].sub(bl_bias_sum2)
+
+            expect(await board.getCurrentReducedBias(questIDs[2])).to.be.eq(expected_reduced_bias_2)
+
+        });
+
+
+    });
+
+
+    describe('closeQuestPeriod', async () => {
+
+        let gauges: string[] = []
+        let rewardToken: IERC20[] = []
+
+        const target_votes = [ethers.utils.parseEther('15000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('8000')]
+        const reward_per_vote = [ethers.utils.parseEther('2'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.5')]
+        const duration = [6, 4, 7]
+
+        let questIDs: BigNumber[] = [];
+
+        const gauge1_biases = [ethers.utils.parseEther('8000'), ethers.utils.parseEther('10000'), ethers.utils.parseEther('12000')]
+        const gauge2_biases = [ethers.utils.parseEther('18000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('30000')]
+        const gauge3_biases = [ethers.utils.parseEther('10000'), ethers.utils.parseEther('11000'), ethers.utils.parseEther('15000')]
+
+        const all_biases = [gauge1_biases, gauge2_biases, gauge3_biases]
+
+        let first_period: BigNumber;
+
+        let rewards_per_period: BigNumber[] = []
+        let total_rewards_amount: BigNumber[] = []
+        let total_fees: BigNumber[] = []
+
+        const getUserBias = async (voter: string, gauge: string, period: BigNumber): Promise<BigNumber> => {
+            const last_user_vote = await controller.last_user_vote(voter, gauge)
+            const last_user_slope = (await controller.vote_user_slopes(voter, gauge)).slope
+            const user_end = (await controller.vote_user_slopes(voter, gauge)).end
+
+            let user_bias = BigNumber.from(0)
+
+            if(last_user_vote.lte(period) && user_end.gt(period) && !last_user_slope.eq(0)){
+                user_bias = last_user_slope.mul(user_end.sub(period))
+            }
+
+            return user_bias
+        }
+
+        beforeEach(async () => {
+
+            gauges = [gauge1.address, gauge2.address, gauge3.address]
+            rewardToken = [DAI, CRV, DAI]
+
+            let creators = [creator1, creator2, creator3]
+
+            await board.connect(admin).initiateDistributor(distributor.address)
+
+            await board.connect(admin).approveManager(manager.address)
+
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+            await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
+
+            await board.connect(admin).addCreator(creator1.address)
+            await board.connect(admin).addCreator(creator2.address)
+            await board.connect(admin).addCreator(creator3.address)
+
+            await controller.add_gauge(gauge1.address, 2)
+            await controller.add_gauge(gauge2.address, 1)
+            await controller.add_gauge(gauge3.address, 2)
+
+            first_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+
+            for (let i = 0; i < gauges.length; i++) {
+                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
+                total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
+                total_fees[i] = total_rewards_amount[i].mul(250).div(10000)
+
+                await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
+                await rewardToken[i].connect(creators[i]).approve(board.address, 0)
+                await rewardToken[i].connect(creators[i]).approve(board.address, total_rewards_amount[i].add(total_fees[i]))
+
+                questIDs[i] = await board.nextID()
+
+                await board.connect(creators[i]).createQuest(
+                    gauges[i],
+                    rewardToken[i].address,
+                    duration[i],
+                    target_votes[i],
+                    reward_per_vote[i],
+                    total_rewards_amount[i],
+                    total_fees[i],
+                    BLACKLIST
+                )
+            }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            // mock votes
+            await controller.set_user_vote(voter1.address, gauge1.address, first_period, ethers.utils.parseEther('200'), current_ts.add(WEEK.mul(182)))
+            await controller.set_user_vote(voter1.address, gauge2.address, first_period, ethers.utils.parseEther('400'), current_ts.add(WEEK.mul(182)))
+
+            await controller.set_user_vote(voter2.address, gauge2.address, first_period, ethers.utils.parseEther('250'), current_ts.add(WEEK.mul(150)))
+            await controller.set_user_vote(voter2.address, gauge3.address, first_period, ethers.utils.parseEther('275'), current_ts.add(WEEK.mul(150)))
+
+            await controller.set_user_vote(voter3.address, gauge1.address, first_period, ethers.utils.parseEther('140'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge2.address, first_period, ethers.utils.parseEther('520'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge3.address, first_period, ethers.utils.parseEther('370'), current_ts.add(WEEK.mul(195)))
 
             //setup the gauges slopes
             for (let i = 0; i < gauge1_biases.length; i++) {
@@ -1927,7 +2704,15 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
 
-                const expected_distribute_amount = all_biases[i][0].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][0].mul(reward_per_vote[i]).div(UNIT)
+                // calculate the expected reduced bias, account for it,
+                // and check that we got correct data for closed periods
+                const next_period = first_period.add(WEEK)
+                const reduced_bias = all_biases[i][0].sub(
+                    (await getUserBias(BLACKLIST[0], gauges[i], next_period))
+                    .add(await getUserBias(BLACKLIST[1], gauges[i], next_period))
+                )
+
+                const expected_distribute_amount = reduced_bias.gte(target_votes[i]) ? rewards_per_period[i] : reduced_bias.mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -1972,7 +2757,15 @@ describe('QuestBoard contract tests', () => {
                 for (let i = 0; i < gauges.length; i++) {
                     let questPriod_data = await board.periodsByQuest(questIDs[i], toClose_period)
 
-                    let expected_distribute_amount = all_biases[i][j].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][j].mul(reward_per_vote[i]).div(UNIT)
+                    // calculate the expected reduced bias, account for it,
+                    // and check that we got correct data for closed periods
+                    const next_period = toClose_period.add(WEEK)
+                    const reduced_bias = all_biases[i][j].sub(
+                        (await getUserBias(BLACKLIST[0], gauges[i], next_period))
+                        .add(await getUserBias(BLACKLIST[1], gauges[i], next_period))
+                    )
+
+                    let expected_distribute_amount = reduced_bias.gte(target_votes[i]) ? rewards_per_period[i] : reduced_bias.mul(reward_per_vote[i]).div(UNIT)
                     let expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                     expect(questPriod_data.currentState).to.be.eq(2)
@@ -2019,7 +2812,7 @@ describe('QuestBoard contract tests', () => {
 
         it(' should fail if no distributor set', async () => {
 
-            let otherBoard = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as QuestBoard;
+            let otherBoard = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as EcosystemQuestBoard;
             await otherBoard.deployed();
 
             await otherBoard.connect(admin).whitelistToken(DAI.address, minDAIAmount)
@@ -2074,6 +2867,20 @@ describe('QuestBoard contract tests', () => {
 
         let toCloseIDs: BigNumber[] = []; 
 
+        const getUserBias = async (voter: string, gauge: string, period: BigNumber): Promise<BigNumber> => {
+            const last_user_vote = await controller.last_user_vote(voter, gauge)
+            const last_user_slope = (await controller.vote_user_slopes(voter, gauge)).slope
+            const user_end = (await controller.vote_user_slopes(voter, gauge)).end
+
+            let user_bias = BigNumber.from(0)
+
+            if(last_user_vote.lte(period) && user_end.gt(period) && !last_user_slope.eq(0)){
+                user_bias = last_user_slope.mul(user_end.sub(period))
+            }
+
+            return user_bias
+        }
+
         beforeEach(async () => {
 
             gauges = [gauge1.address, gauge2.address, gauge3.address]
@@ -2088,6 +2895,10 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
             await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
 
+            await board.connect(admin).addCreator(creator1.address)
+            await board.connect(admin).addCreator(creator2.address)
+            await board.connect(admin).addCreator(creator3.address)
+
             await controller.add_gauge(gauge1.address, 2)
             await controller.add_gauge(gauge2.address, 1)
             await controller.add_gauge(gauge3.address, 2)
@@ -2097,7 +2908,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(250).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -2112,9 +2923,24 @@ describe('QuestBoard contract tests', () => {
                     target_votes[i],
                     reward_per_vote[i],
                     total_rewards_amount[i],
-                    total_fees[i]
+                    total_fees[i],
+                    BLACKLIST
                 )
             }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            // mock votes
+            await controller.set_user_vote(voter1.address, gauge1.address, first_period, ethers.utils.parseEther('200'), current_ts.add(WEEK.mul(182)))
+            await controller.set_user_vote(voter1.address, gauge2.address, first_period, ethers.utils.parseEther('400'), current_ts.add(WEEK.mul(182)))
+
+            await controller.set_user_vote(voter2.address, gauge2.address, first_period, ethers.utils.parseEther('250'), current_ts.add(WEEK.mul(150)))
+            await controller.set_user_vote(voter2.address, gauge3.address, first_period, ethers.utils.parseEther('275'), current_ts.add(WEEK.mul(150)))
+
+            await controller.set_user_vote(voter3.address, gauge1.address, first_period, ethers.utils.parseEther('140'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge2.address, first_period, ethers.utils.parseEther('520'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge3.address, first_period, ethers.utils.parseEther('370'), current_ts.add(WEEK.mul(195)))
 
             //setup the gauges slopes
             for (let i = 0; i < gauge1_biases.length; i++) {
@@ -2153,7 +2979,15 @@ describe('QuestBoard contract tests', () => {
 
                 const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
 
-                const expected_distribute_amount = all_biases[i][0].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][0].mul(reward_per_vote[i]).div(UNIT)
+                // calculate the expected reduced bias, account for it,
+                // and check that we got correct data for closed periods
+                const next_period = first_period.add(WEEK)
+                const reduced_bias = all_biases[i][0].sub(
+                    (await getUserBias(BLACKLIST[0], gauges[i], next_period))
+                    .add(await getUserBias(BLACKLIST[1], gauges[i], next_period))
+                )
+
+                const expected_distribute_amount = reduced_bias.gte(target_votes[i]) ? rewards_per_period[i] : reduced_bias.mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -2214,7 +3048,15 @@ describe('QuestBoard contract tests', () => {
 
                     let questPriod_data = await board.periodsByQuest(questIDs[i], toClose_period)
 
-                    let expected_distribute_amount = all_biases[i][j].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][j].mul(reward_per_vote[i]).div(UNIT)
+                    // calculate the expected reduced bias, account for it,
+                    // and check that we got correct data for closed periods
+                    const next_period = toClose_period.add(WEEK)
+                    const reduced_bias = all_biases[i][j].sub(
+                        (await getUserBias(BLACKLIST[0], gauges[i], next_period))
+                        .add(await getUserBias(BLACKLIST[1], gauges[i], next_period))
+                    )
+
+                    let expected_distribute_amount = reduced_bias.gte(target_votes[i]) ? rewards_per_period[i] : reduced_bias.mul(reward_per_vote[i]).div(UNIT)
                     let expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                     expect(questPriod_data.currentState).to.be.eq(2)
@@ -2269,7 +3111,7 @@ describe('QuestBoard contract tests', () => {
 
         it(' should fail if no distributor set', async () => {
 
-            let otherBoard = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as QuestBoard;
+            let otherBoard = (await boardFactory.connect(admin).deploy(controller.address, mockChest.address)) as EcosystemQuestBoard;
             await otherBoard.deployed();
 
             await otherBoard.connect(admin).whitelistToken(DAI.address, minDAIAmount)
@@ -2298,6 +3140,7 @@ describe('QuestBoard contract tests', () => {
 
     });
 
+
     describe('closeQuestPeriod & closePartOfQuestPeriod', async () => {
 
         let gauges: string[] = []
@@ -2323,6 +3166,20 @@ describe('QuestBoard contract tests', () => {
 
         let toCloseIDs: BigNumber[] = []; 
 
+        const getUserBias = async (voter: string, gauge: string, period: BigNumber): Promise<BigNumber> => {
+            const last_user_vote = await controller.last_user_vote(voter, gauge)
+            const last_user_slope = (await controller.vote_user_slopes(voter, gauge)).slope
+            const user_end = (await controller.vote_user_slopes(voter, gauge)).end
+
+            let user_bias = BigNumber.from(0)
+
+            if(last_user_vote.lte(period) && user_end.gt(period) && !last_user_slope.eq(0)){
+                user_bias = last_user_slope.mul(user_end.sub(period))
+            }
+
+            return user_bias
+        }
+
         beforeEach(async () => {
 
             otherDistributor = (await distributorFactory.connect(admin).deploy(board.address)) as MultiMerkleDistributor;
@@ -2340,6 +3197,10 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
             await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
 
+            await board.connect(admin).addCreator(creator1.address)
+            await board.connect(admin).addCreator(creator2.address)
+            await board.connect(admin).addCreator(creator3.address)
+
             await controller.add_gauge(gauge1.address, 2)
             await controller.add_gauge(gauge2.address, 1)
             await controller.add_gauge(gauge3.address, 2)
@@ -2349,7 +3210,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(250).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -2368,9 +3229,24 @@ describe('QuestBoard contract tests', () => {
                     target_votes[i],
                     reward_per_vote[i],
                     total_rewards_amount[i],
-                    total_fees[i]
+                    total_fees[i],
+                    BLACKLIST
                 )
             }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            // mock votes
+            await controller.set_user_vote(voter1.address, gauge1.address, first_period, ethers.utils.parseEther('200'), current_ts.add(WEEK.mul(182)))
+            await controller.set_user_vote(voter1.address, gauge2.address, first_period, ethers.utils.parseEther('400'), current_ts.add(WEEK.mul(182)))
+
+            await controller.set_user_vote(voter2.address, gauge2.address, first_period, ethers.utils.parseEther('250'), current_ts.add(WEEK.mul(150)))
+            await controller.set_user_vote(voter2.address, gauge3.address, first_period, ethers.utils.parseEther('275'), current_ts.add(WEEK.mul(150)))
+
+            await controller.set_user_vote(voter3.address, gauge1.address, first_period, ethers.utils.parseEther('140'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge2.address, first_period, ethers.utils.parseEther('520'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge3.address, first_period, ethers.utils.parseEther('370'), current_ts.add(WEEK.mul(195)))
 
             //setup the gauges slopes
             for (let i = 0; i < gauge1_biases.length; i++) {
@@ -2395,7 +3271,15 @@ describe('QuestBoard contract tests', () => {
 
                 const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
 
-                const expected_distribute_amount = all_biases[i][0].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][0].mul(reward_per_vote[i]).div(UNIT)
+                // calculate the expected reduced bias, account for it,
+                // and check that we got correct data for closed periods
+                const next_period = first_period.add(WEEK)
+                const reduced_bias = all_biases[i][0].sub(
+                    (await getUserBias(BLACKLIST[0], gauges[i], next_period))
+                    .add(await getUserBias(BLACKLIST[1], gauges[i], next_period))
+                )
+
+                const expected_distribute_amount = reduced_bias.gte(target_votes[i]) ? rewards_per_period[i] : reduced_bias.mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -2437,7 +3321,15 @@ describe('QuestBoard contract tests', () => {
 
                 const questPriod_data = await board.periodsByQuest(questIDs[i], first_period)
 
-                const expected_distribute_amount = all_biases[i][0].gte(target_votes[i]) ? rewards_per_period[i] : all_biases[i][0].mul(reward_per_vote[i]).div(UNIT)
+                // calculate the expected reduced bias, account for it,
+                // and check that we got correct data for closed periods
+                const next_period = first_period.add(WEEK)
+                const reduced_bias = all_biases[i][0].sub(
+                    (await getUserBias(BLACKLIST[0], gauges[i], next_period))
+                    .add(await getUserBias(BLACKLIST[1], gauges[i], next_period))
+                )
+
+                const expected_distribute_amount = reduced_bias.gte(target_votes[i]) ? rewards_per_period[i] : reduced_bias.mul(reward_per_vote[i]).div(UNIT)
                 const expected_withdraw_amount = rewards_per_period[i].sub(expected_distribute_amount)
 
                 expect(questPriod_data.currentState).to.be.eq(2)
@@ -2513,6 +3405,10 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
             await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
 
+            await board.connect(admin).addCreator(creator1.address)
+            await board.connect(admin).addCreator(creator2.address)
+            await board.connect(admin).addCreator(creator3.address)
+
             await controller.add_gauge(gauge1.address, 2)
             await controller.add_gauge(gauge2.address, 1)
             await controller.add_gauge(gauge3.address, 2)
@@ -2522,7 +3418,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(250).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -2537,9 +3433,24 @@ describe('QuestBoard contract tests', () => {
                     target_votes[i],
                     reward_per_vote[i],
                     total_rewards_amount[i],
-                    total_fees[i]
+                    total_fees[i],
+                    BLACKLIST
                 )
             }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            // mock votes
+            await controller.set_user_vote(voter1.address, gauge1.address, first_period, ethers.utils.parseEther('200'), current_ts.add(WEEK.mul(182)))
+            await controller.set_user_vote(voter1.address, gauge2.address, first_period, ethers.utils.parseEther('400'), current_ts.add(WEEK.mul(182)))
+
+            await controller.set_user_vote(voter2.address, gauge2.address, first_period, ethers.utils.parseEther('250'), current_ts.add(WEEK.mul(150)))
+            await controller.set_user_vote(voter2.address, gauge3.address, first_period, ethers.utils.parseEther('275'), current_ts.add(WEEK.mul(150)))
+
+            await controller.set_user_vote(voter3.address, gauge1.address, first_period, ethers.utils.parseEther('140'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge2.address, first_period, ethers.utils.parseEther('520'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge3.address, first_period, ethers.utils.parseEther('370'), current_ts.add(WEEK.mul(195)))
 
             for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
@@ -2728,6 +3639,10 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
             await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
 
+            await board.connect(admin).addCreator(creator1.address)
+            await board.connect(admin).addCreator(creator2.address)
+            await board.connect(admin).addCreator(creator3.address)
+
             await controller.add_gauge(gauge1.address, 2)
             await controller.add_gauge(gauge2.address, 1)
             await controller.add_gauge(gauge3.address, 2)
@@ -2737,7 +3652,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(250).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -2752,9 +3667,24 @@ describe('QuestBoard contract tests', () => {
                     target_votes[i],
                     reward_per_vote[i],
                     total_rewards_amount[i],
-                    total_fees[i]
+                    total_fees[i],
+                    BLACKLIST
                 )
             }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            // mock votes
+            await controller.set_user_vote(voter1.address, gauge1.address, first_period, ethers.utils.parseEther('200'), current_ts.add(WEEK.mul(182)))
+            await controller.set_user_vote(voter1.address, gauge2.address, first_period, ethers.utils.parseEther('400'), current_ts.add(WEEK.mul(182)))
+
+            await controller.set_user_vote(voter2.address, gauge2.address, first_period, ethers.utils.parseEther('250'), current_ts.add(WEEK.mul(150)))
+            await controller.set_user_vote(voter2.address, gauge3.address, first_period, ethers.utils.parseEther('275'), current_ts.add(WEEK.mul(150)))
+
+            await controller.set_user_vote(voter3.address, gauge1.address, first_period, ethers.utils.parseEther('140'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge2.address, first_period, ethers.utils.parseEther('520'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge3.address, first_period, ethers.utils.parseEther('370'), current_ts.add(WEEK.mul(195)))
 
             for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
@@ -3008,11 +3938,11 @@ describe('QuestBoard contract tests', () => {
             const duration = 4
 
             const total_rewards_amount = rewards_per_period.mul(duration)
-            const total_fees = total_rewards_amount.mul(400).div(10000)
+            const total_fees = total_rewards_amount.mul(250).div(10000)
 
             const extend_duration = 3
             const added_total_rewards_amount = rewards_per_period.mul(extend_duration)
-            const added_total_fees = added_total_rewards_amount.mul(400).div(10000)
+            const added_total_fees = added_total_rewards_amount.mul(250).div(10000)
 
             await expect(
                 board.connect(creator1).createQuest(
@@ -3022,7 +3952,8 @@ describe('QuestBoard contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    BLACKLIST
                 )
             ).to.be.revertedWith('Killed')
 
@@ -3044,10 +3975,6 @@ describe('QuestBoard contract tests', () => {
         it(' should not block other methods', async () => {
 
             await board.connect(admin).killBoard()
-
-            /*await expect(
-                board.connect(manager).updatePeriod()
-            ).to.not.be.reverted*/
 
             await expect(
                 board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
@@ -3115,11 +4042,13 @@ describe('QuestBoard contract tests', () => {
             const duration = 4
 
             const total_rewards_amount = rewards_per_period.mul(duration)
-            const total_fees = total_rewards_amount.mul(400).div(10000)
+            const total_fees = total_rewards_amount.mul(250).div(10000)
 
             await board.connect(admin).initiateDistributor(distributor.address)
 
             await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+
+            await board.connect(admin).addCreator(creator1.address)
 
             await controller.add_gauge(gauge1.address, 2)
 
@@ -3139,7 +4068,8 @@ describe('QuestBoard contract tests', () => {
                     target_votes,
                     reward_per_vote,
                     total_rewards_amount,
-                    total_fees
+                    total_fees,
+                    BLACKLIST
                 )
             ).to.not.be.reverted
 
@@ -3219,6 +4149,10 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
             await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
 
+            await board.connect(admin).addCreator(creator1.address)
+            await board.connect(admin).addCreator(creator2.address)
+            await board.connect(admin).addCreator(creator3.address)
+
             await controller.add_gauge(gauge1.address, 2)
             await controller.add_gauge(gauge2.address, 1)
             await controller.add_gauge(gauge3.address, 2)
@@ -3228,7 +4162,7 @@ describe('QuestBoard contract tests', () => {
             for (let i = 0; i < gauges.length; i++) {
                 rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
                 total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
-                total_fees[i] = total_rewards_amount[i].mul(400).div(10000)
+                total_fees[i] = total_rewards_amount[i].mul(250).div(10000)
 
                 await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
                 await rewardToken[i].connect(creators[i]).approve(board.address, 0)
@@ -3243,9 +4177,24 @@ describe('QuestBoard contract tests', () => {
                     target_votes[i],
                     reward_per_vote[i],
                     total_rewards_amount[i],
-                    total_fees[i]
+                    total_fees[i],
+                    BLACKLIST
                 )
             }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            // mock votes
+            await controller.set_user_vote(voter1.address, gauge1.address, first_period, ethers.utils.parseEther('200'), current_ts.add(WEEK.mul(182)))
+            await controller.set_user_vote(voter1.address, gauge2.address, first_period, ethers.utils.parseEther('400'), current_ts.add(WEEK.mul(182)))
+
+            await controller.set_user_vote(voter2.address, gauge2.address, first_period, ethers.utils.parseEther('250'), current_ts.add(WEEK.mul(150)))
+            await controller.set_user_vote(voter2.address, gauge3.address, first_period, ethers.utils.parseEther('275'), current_ts.add(WEEK.mul(150)))
+
+            await controller.set_user_vote(voter3.address, gauge1.address, first_period, ethers.utils.parseEther('140'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge2.address, first_period, ethers.utils.parseEther('520'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge3.address, first_period, ethers.utils.parseEther('370'), current_ts.add(WEEK.mul(195)))
 
             for (let i = 0; i < gauge1_biases.length; i++) {
                 let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
@@ -3668,6 +4617,301 @@ describe('QuestBoard contract tests', () => {
 
     });
 
+    describe('fixQuestPeriodBias', async () => {
+
+        let gauges: string[] = []
+        let rewardToken: IERC20[] = []
+
+        const target_votes = [ethers.utils.parseEther('15000'), ethers.utils.parseEther('25000'), ethers.utils.parseEther('8000')]
+        const reward_per_vote = [ethers.utils.parseEther('2'), ethers.utils.parseEther('1.5'), ethers.utils.parseEther('0.5')]
+        const duration = [6, 4, 7]
+
+        let questIDs: BigNumber[] = [];
+
+        const gauge1_biases = [ethers.utils.parseEther('8000'), ethers.utils.parseEther('10000')]
+        const gauge2_biases = [ethers.utils.parseEther('18000'), ethers.utils.parseEther('25000')]
+        const gauge3_biases = [ethers.utils.parseEther('10000'), ethers.utils.parseEther('11000')]
+
+        let first_period: BigNumber;
+
+        let rewards_per_period: BigNumber[] = []
+        let total_rewards_amount: BigNumber[] = []
+        let total_fees: BigNumber[] = []
+
+        let total_distributed_rewards: BigNumber[] = []
+
+        const new_bias = ethers.utils.parseEther('5500')
+        const new_bias2 = ethers.utils.parseEther('21000')
+        const new_bias3 = ethers.utils.parseEther('17500')
+
+        beforeEach(async () => {
+
+            gauges = [gauge1.address, gauge2.address, gauge3.address]
+            rewardToken = [DAI, CRV, DAI]
+
+            let creators = [creator1, creator2, creator3]
+
+            await board.connect(admin).initiateDistributor(distributor.address)
+
+            await board.connect(admin).approveManager(manager.address)
+
+            await board.connect(admin).whitelistToken(DAI.address, minDAIAmount)
+            await board.connect(admin).whitelistToken(CRV.address, minCRVAmount)
+
+            await board.connect(admin).addCreator(creator1.address)
+            await board.connect(admin).addCreator(creator2.address)
+            await board.connect(admin).addCreator(creator3.address)
+
+            await controller.add_gauge(gauge1.address, 2)
+            await controller.add_gauge(gauge2.address, 1)
+            await controller.add_gauge(gauge3.address, 2)
+
+            first_period = (await board.getCurrentPeriod()).add(WEEK).div(WEEK).mul(WEEK)
+
+            for (let i = 0; i < gauges.length; i++) {
+                rewards_per_period[i] = target_votes[i].mul(reward_per_vote[i]).div(UNIT)
+                total_rewards_amount[i] = rewards_per_period[i].mul(duration[i])
+                total_fees[i] = total_rewards_amount[i].mul(250).div(10000)
+
+                await rewardToken[i].connect(admin).transfer(creators[i].address, total_rewards_amount[i].add(total_fees[i]))
+                await rewardToken[i].connect(creators[i]).approve(board.address, 0)
+                await rewardToken[i].connect(creators[i]).approve(board.address, total_rewards_amount[i].add(total_fees[i]))
+
+                questIDs[i] = await board.nextID()
+
+                await board.connect(creators[i]).createQuest(
+                    gauges[i],
+                    rewardToken[i].address,
+                    duration[i],
+                    target_votes[i],
+                    reward_per_vote[i],
+                    total_rewards_amount[i],
+                    total_fees[i],
+                    BLACKLIST
+                )
+            }
+
+            const block_number = await provider.getBlockNumber()
+            const current_ts = BigNumber.from((await provider.getBlock(block_number)).timestamp)
+
+            // mock votes
+            await controller.set_user_vote(voter1.address, gauge1.address, first_period, ethers.utils.parseEther('200'), current_ts.add(WEEK.mul(182)))
+            await controller.set_user_vote(voter1.address, gauge2.address, first_period, ethers.utils.parseEther('400'), current_ts.add(WEEK.mul(182)))
+
+            await controller.set_user_vote(voter2.address, gauge2.address, first_period, ethers.utils.parseEther('250'), current_ts.add(WEEK.mul(150)))
+            await controller.set_user_vote(voter2.address, gauge3.address, first_period, ethers.utils.parseEther('275'), current_ts.add(WEEK.mul(150)))
+
+            await controller.set_user_vote(voter3.address, gauge1.address, first_period, ethers.utils.parseEther('140'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge2.address, first_period, ethers.utils.parseEther('520'), current_ts.add(WEEK.mul(195)))
+            await controller.set_user_vote(voter3.address, gauge3.address, first_period, ethers.utils.parseEther('370'), current_ts.add(WEEK.mul(195)))
+
+            for (let i = 0; i < gauge1_biases.length; i++) {
+                let period_end_to_set = first_period.add(WEEK.mul(i + 1)).div(WEEK).mul(WEEK)
+
+                await controller.set_points_weight(gauge1.address, period_end_to_set, gauge1_biases[i])
+                await controller.set_points_weight(gauge2.address, period_end_to_set, gauge2_biases[i])
+                await controller.set_points_weight(gauge3.address, period_end_to_set, gauge3_biases[i])
+            }
+
+            await advanceTime(WEEK.mul(2).toNumber())
+
+            await board.connect(manager).closeQuestPeriod(first_period)
+
+            for (let i = 0; i < questIDs.length; i++) {
+                total_distributed_rewards[i] = await distributor.questRewardsPerPeriod(questIDs[i], first_period)
+            }
+
+        });
+
+        it(' should take the new bias and reduce the rewards to distribute (& send them back)', async () => { 
+
+            const old_board_balance = await DAI.balanceOf(board.address)
+            const old_distributor_balance = await DAI.balanceOf(distributor.address)
+
+            const old_distributed_amount = (await board.periodsByQuest(questIDs[0], first_period)).rewardAmountDistributed
+
+            const fix_tx = await board.connect(admin).fixQuestPeriodBias(first_period, questIDs[0], new_bias)
+
+            const new_board_balance = await DAI.balanceOf(board.address)
+            const new_distributor_balance = await DAI.balanceOf(distributor.address)
+
+            const new_questPriod_data = await board.periodsByQuest(questIDs[0], first_period)
+            const expected_distribute_amount = new_bias.mul(reward_per_vote[0]).div(UNIT)
+            const expected_withdraw_amount = rewards_per_period[0].sub(expected_distribute_amount)
+
+            expect(new_questPriod_data.currentState).to.be.eq(2)
+            expect(new_questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
+            expect(new_questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
+
+            const reward_diff = old_distributed_amount.sub(expected_distribute_amount)
+
+            expect(new_board_balance).to.be.eq(old_board_balance.add(reward_diff))
+            expect(new_distributor_balance).to.be.eq(old_distributor_balance.sub(reward_diff))
+
+            await expect(
+                fix_tx
+            ).to.emit(DAI, "Transfer")
+                .withArgs(distributor.address, board.address, reward_diff);
+
+            await expect(
+                fix_tx
+            ).to.emit(board, "PeriodBiasFixed")
+                .withArgs(first_period, questIDs[0], new_bias);
+
+        });
+
+        it(' should take the new bias and increase the rewards to distribute (& send them to distributor)', async () => {
+
+            const old_board_balance = await CRV.balanceOf(board.address)
+            const old_distributor_balance = await CRV.balanceOf(distributor.address)
+
+            const old_distributed_amount = (await board.periodsByQuest(questIDs[1], first_period)).rewardAmountDistributed
+
+            const fix_tx = await board.connect(admin).fixQuestPeriodBias(first_period, questIDs[1], new_bias2)
+
+            const new_board_balance = await CRV.balanceOf(board.address)
+            const new_distributor_balance = await CRV.balanceOf(distributor.address)
+
+            const new_questPriod_data = await board.periodsByQuest(questIDs[1], first_period)
+            const expected_distribute_amount = new_bias2.mul(reward_per_vote[1]).div(UNIT)
+            const expected_withdraw_amount = rewards_per_period[1].sub(expected_distribute_amount)
+
+            expect(new_questPriod_data.currentState).to.be.eq(2)
+            expect(new_questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
+            expect(new_questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
+
+            const reward_diff = expected_distribute_amount.sub(old_distributed_amount)
+
+            expect(new_board_balance).to.be.eq(old_board_balance.sub(reward_diff))
+            expect(new_distributor_balance).to.be.eq(old_distributor_balance.add(reward_diff))
+
+            await expect(
+                fix_tx
+            ).to.emit(CRV, "Transfer")
+                .withArgs(board.address, distributor.address, reward_diff);
+
+            await expect(
+                fix_tx
+            ).to.emit(board, "PeriodBiasFixed")
+                .withArgs(first_period, questIDs[1], new_bias2);
+        });
+
+        it(' should take the new bias and increase the rewards to distribute (& send them back) - set new bias over objective', async () => { 
+            
+            const old_board_balance = await DAI.balanceOf(board.address)
+            const old_distributor_balance = await DAI.balanceOf(distributor.address)
+
+            const old_distributed_amount = (await board.periodsByQuest(questIDs[0], first_period)).rewardAmountDistributed
+
+            const fix_tx = await board.connect(admin).fixQuestPeriodBias(first_period, questIDs[0], new_bias3)
+
+            const new_board_balance = await DAI.balanceOf(board.address)
+            const new_distributor_balance = await DAI.balanceOf(distributor.address)
+
+            const new_questPriod_data = await board.periodsByQuest(questIDs[0], first_period)
+            const expected_distribute_amount = rewards_per_period[0]
+            const expected_withdraw_amount = rewards_per_period[0].sub(expected_distribute_amount)
+
+            expect(new_questPriod_data.currentState).to.be.eq(2)
+            expect(new_questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
+            expect(new_questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
+
+            const reward_diff = expected_distribute_amount.sub(old_distributed_amount)
+
+            expect(new_board_balance).to.be.eq(old_board_balance.sub(reward_diff))
+            expect(new_distributor_balance).to.be.eq(old_distributor_balance.add(reward_diff))
+
+            await expect(
+                fix_tx
+            ).to.emit(DAI, "Transfer")
+                .withArgs(board.address, distributor.address, reward_diff);
+
+            await expect(
+                fix_tx
+            ).to.emit(board, "PeriodBiasFixed")
+                .withArgs(first_period, questIDs[0], new_bias3);
+            
+        });
+
+        it(' should take the new bias and reduce the rewards to distribute (& send them to distributor) - set new bias to 0', async () => {
+
+            const zero_bias = BigNumber.from(0)
+
+            const old_board_balance = await DAI.balanceOf(board.address)
+            const old_distributor_balance = await DAI.balanceOf(distributor.address)
+
+            const old_distributed_amount = (await board.periodsByQuest(questIDs[0], first_period)).rewardAmountDistributed
+
+            const fix_tx = await board.connect(admin).fixQuestPeriodBias(first_period, questIDs[0], zero_bias)
+
+            const new_board_balance = await DAI.balanceOf(board.address)
+            const new_distributor_balance = await DAI.balanceOf(distributor.address)
+
+            const new_questPriod_data = await board.periodsByQuest(questIDs[0], first_period)
+            const expected_distribute_amount = BigNumber.from(0)
+            const expected_withdraw_amount = rewards_per_period[0].sub(expected_distribute_amount)
+
+            expect(new_questPriod_data.currentState).to.be.eq(2)
+            expect(new_questPriod_data.rewardAmountDistributed).to.be.eq(expected_distribute_amount)
+            expect(new_questPriod_data.withdrawableAmount).to.be.eq(expected_withdraw_amount)
+
+            const reward_diff = old_distributed_amount.sub(expected_distribute_amount)
+
+            expect(new_board_balance).to.be.eq(old_board_balance.add(reward_diff))
+            expect(new_distributor_balance).to.be.eq(old_distributor_balance.sub(reward_diff))
+
+            await expect(
+                fix_tx
+            ).to.emit(DAI, "Transfer")
+                .withArgs(distributor.address, board.address, reward_diff);
+
+            await expect(
+                fix_tx
+            ).to.emit(board, "PeriodBiasFixed")
+                .withArgs(first_period, questIDs[0], zero_bias);
+
+        });
+
+        it(' should fail if incorrect Quest', async () => {
+
+            const incorrectID = questIDs[2].add(2)
+
+            await expect(
+                board.connect(admin).fixQuestPeriodBias(first_period, incorrectID, new_bias)
+            ).to.be.revertedWith('InvalidQuestID')
+
+        });
+
+        it(' should fail if incorrect period', async () => {
+
+            await expect(
+                board.connect(admin).fixQuestPeriodBias(0, questIDs[0], new_bias)
+            ).to.be.revertedWith('InvalidPeriod')
+
+            await expect(
+                board.connect(admin).fixQuestPeriodBias(first_period.sub(WEEK), questIDs[0], new_bias)
+            ).to.be.revertedWith('PeriodNotClosed')
+
+            await expect(
+                board.connect(admin).fixQuestPeriodBias(first_period.add(WEEK), questIDs[0], new_bias)
+            ).to.be.revertedWith('PeriodNotClosed')
+
+        });
+
+        it(' should only be callable by admin', async () => {
+
+            await expect(
+                board.connect(creator1).fixQuestPeriodBias(first_period, questIDs[0], new_bias)
+            ).to.be.revertedWith('Ownable: caller is not the owner')
+
+            await expect(
+                board.connect(manager).fixQuestPeriodBias(first_period, questIDs[0], new_bias)
+            ).to.be.revertedWith('Ownable: caller is not the owner')
+
+        });
+
+    });
+
 
     describe('updateRewardToken', async () => {
 
@@ -3678,6 +4922,10 @@ describe('QuestBoard contract tests', () => {
             await board.connect(admin).approveManager(manager.address)
 
             await board.connect(manager).whitelistToken(CRV.address, minCRVAmount)
+
+            await board.connect(admin).addCreator(creator1.address)
+            await board.connect(admin).addCreator(creator2.address)
+            await board.connect(admin).addCreator(creator3.address)
 
         });
 
@@ -3814,7 +5062,7 @@ describe('QuestBoard contract tests', () => {
 
     describe('updateMinObjective', async () => {
 
-        const new_min = ethers.utils.parseEther('400')
+        const new_min = ethers.utils.parseEther('250')
 
         it(' should update the min objective', async () => {
 

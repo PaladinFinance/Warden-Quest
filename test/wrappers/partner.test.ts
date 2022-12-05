@@ -689,7 +689,7 @@ describe('QuestPartner contract tests', () => {
         const total_fees2 = total_rewards_amount2.mul(400).div(10000)
 
         const ellapsedDuration = 3
-        const remainingDuration = duration - ellapsedDuration
+        const remainingDuration = duration - ellapsedDuration + 1
 
         const new_reward_per_vote = ethers.utils.parseEther('0.6')
         const new_rewards_per_period = ethers.utils.parseEther('90000')
@@ -762,14 +762,13 @@ describe('QuestPartner contract tests', () => {
             )
 
             const current_period = await board.getCurrentPeriod()
-            const applied_period = current_period.add(WEEK).div(WEEK).mul(WEEK)
 
             await expect(
                 increase_tx
             ).to.emit(board, "IncreasedQuestReward")
                 .withArgs(
                     questID1,
-                    applied_period,
+                    current_period,
                     new_reward_per_vote,
                     added_total_rewards_amount
                 );
@@ -788,7 +787,7 @@ describe('QuestPartner contract tests', () => {
 
                 let old_quest_period = old_quest_periods[i]
 
-                if (BigNumber.from(quest_period.periodStart).lte(current_period)) {
+                if (BigNumber.from(quest_period.periodStart).lt(current_period)) {
                     //Past & current should stay the same
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
@@ -942,7 +941,7 @@ describe('QuestPartner contract tests', () => {
         const total_fees2 = total_rewards_amount2.mul(400).div(10000)
 
         const ellapsedDuration = 2
-        const remainingDuration = duration - ellapsedDuration
+        const remainingDuration = duration - ellapsedDuration + 1
 
         const new_target_votes = ethers.utils.parseEther('20000')
         const new_rewards_per_period = ethers.utils.parseEther('6000')
@@ -1015,14 +1014,13 @@ describe('QuestPartner contract tests', () => {
             )
 
             const current_period = await board.getCurrentPeriod()
-            const applied_period = current_period.add(WEEK).div(WEEK).mul(WEEK)
 
             await expect(
                 increase_tx
             ).to.emit(board, "IncreasedQuestObjective")
                 .withArgs(
                     questID1,
-                    applied_period,
+                    current_period,
                     new_target_votes,
                     added_total_rewards_amount
                 );
@@ -1041,7 +1039,7 @@ describe('QuestPartner contract tests', () => {
 
                 let old_quest_period = old_quest_periods[i]
 
-                if (BigNumber.from(quest_period.periodStart).lte(current_period)) {
+                if (BigNumber.from(quest_period.periodStart).lt(current_period)) {
                     //Past & current should stay the same
                     expect(quest_period.periodStart).to.be.eq(old_quest_period.periodStart)
                     expect(quest_period.rewardAmountPerPeriod).to.be.eq(old_quest_period.rewardAmountPerPeriod)
