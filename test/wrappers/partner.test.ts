@@ -1485,7 +1485,7 @@ describe('QuestPartner contract tests', () => {
     });
 
 
-    describe('retrieveBlacklistRewards', async () => {
+    describe('retrieveRewards', async () => {
 
         const target_votes = ethers.utils.parseEther('150000')
         const reward_per_vote = ethers.utils.parseEther('6')
@@ -1563,7 +1563,7 @@ describe('QuestPartner contract tests', () => {
             let old_balance = await DAI.balanceOf(creator1.address)
     
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     distributor.address,
                     quest_id,
                     period,
@@ -1587,7 +1587,7 @@ describe('QuestPartner contract tests', () => {
             let proof = tree.getProof(quest_id, period, 2, partnerWrapper.address, wrapper_claim_amount);
 
             await expect(
-                partnerWrapper.connect(creator2).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator2).retrieveRewards(
                     distributor.address,
                     quest_id,
                     period,
@@ -1598,7 +1598,7 @@ describe('QuestPartner contract tests', () => {
             ).to.be.revertedWith('CallerNotAllowed')
 
             await expect(
-                partnerWrapper.connect(user1).retrieveBlacklistRewards(
+                partnerWrapper.connect(user1).retrieveRewards(
                     distributor.address,
                     quest_id,
                     period,
@@ -1615,7 +1615,7 @@ describe('QuestPartner contract tests', () => {
             let proof = tree.getProof(quest_id, period, 2, partnerWrapper.address, wrapper_claim_amount);
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     ethers.constants.AddressZero,
                     quest_id,
                     period,
@@ -1626,7 +1626,7 @@ describe('QuestPartner contract tests', () => {
             ).to.be.revertedWith('ZeroAddress')
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     receiver.address,
                     quest_id,
                     period,
@@ -1642,7 +1642,7 @@ describe('QuestPartner contract tests', () => {
             let proof = tree.getProof(quest_id, period, 2, partnerWrapper.address, wrapper_claim_amount);
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     distributor.address,
                     112,
                     period,
@@ -1653,7 +1653,7 @@ describe('QuestPartner contract tests', () => {
             ).to.be.reverted
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     distributor.address,
                     quest_id,
                     period.add(WEEK),
@@ -1664,7 +1664,7 @@ describe('QuestPartner contract tests', () => {
             ).to.be.reverted
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     distributor.address,
                     quest_id,
                     period,
@@ -1675,7 +1675,7 @@ describe('QuestPartner contract tests', () => {
             ).to.be.reverted
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     distributor.address,
                     quest_id,
                     period,
@@ -1686,7 +1686,7 @@ describe('QuestPartner contract tests', () => {
             ).to.be.reverted
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     distributor.address,
                     quest_id,
                     period,
@@ -2065,7 +2065,7 @@ describe('QuestPartner contract tests', () => {
             ).to.be.revertedWith('Killed')
 
             await expect(
-                partnerWrapper.connect(creator1).retrieveBlacklistRewards(
+                partnerWrapper.connect(creator1).retrieveRewards(
                     distributor.address,
                     questID,
                     10,

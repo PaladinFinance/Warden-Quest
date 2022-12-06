@@ -218,7 +218,7 @@ contract QuestPartner is Owner, ReentrancyGuard {
         require(_sendPartnerShare(rewardToken, feeAmount));
     }
 
-    function retrieveBlacklistRewards(
+    function retrieveRewards(
         address distributor,
         uint256 questID,
         uint256 period,
