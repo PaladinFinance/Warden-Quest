@@ -21,13 +21,13 @@ task('fork-get-all-ERC20', 'Steal ERC20 amount from holder to send to receiver o
                 address: "0xba100000625a3754423978a60c9317c58a424e3D", //BAL
                 amount: "250000",
                 holder: "0xF977814e90dA44bFA03b6295A0616a897441aceC"
-            },
+            },*/
             {
                 address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", //DAI
                 amount: "250000000",
                 holder: "0x075e72a5eDf65F0A5f44699c7654C1a76941Ddc8"
-            },*/
-            {
+            },
+            /*{
                 address: "0xD533a949740bb3306d119CC777fa900bA034cd52", //CRV
                 amount: "5000000",
                 holder: "0x32D03DB62e464c9168e41028FFa6E9a05D8C6451"
@@ -41,12 +41,12 @@ task('fork-get-all-ERC20', 'Steal ERC20 amount from holder to send to receiver o
                 address: "0x5A98FcBEA516Cf06857215779Fd812CA3beF1B32", //LDO
                 amount: "3500000",
                 holder: "0xad4f7415407b83a081a0bee22d05a8fdc18b42da"
-            },
+            },*/
             {
                 address: "0x31429d1856aD1377A8A0079410B297e1a9e214c2", //ANGLE
                 amount: "10000000",
                 holder: "0x2fc443960971e53fd6223806f0114d5faa8c7c4e"
-            },
+            },/*
             {
                 address: "0x41D5D79431A913C4aE7d69a668ecdfE5fF9DFB68", //INV
                 amount: "2500",
