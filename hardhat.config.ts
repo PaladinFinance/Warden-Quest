@@ -53,6 +53,10 @@ const config: HardhatUserConfig = {
       url: process.env.MAINNET_URI,
       accounts: [process.env.MAINNET_PRIVATE_KEY || ''],
     },
+    polygon: {
+      url: process.env.POLYGON_URI,
+      accounts: [process.env.POLYGON_PRIVATE_KEY || ''],
+    },
     fork: {
       url: process.env.FORK_URI,
       accounts: [process.env.MAINNET_PRIVATE_KEY || ''],
