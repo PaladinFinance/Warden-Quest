@@ -55,6 +55,16 @@ Light Quest Board - vlAURA: 0x653D8f14292A1C5239d6183b333De1F2e8669310
 Light MultiMerkleDistributor - vlAURA:
 0xbc269b4e4D056821edDa92D936b8EC8979b1129C 
 
+**veLIT:**
+Quest Board: 0xA6Ed52EB3e39891CE5029817CdB5eAc97A2834B3  
+
+MultiMerkleDistributor:
+0x3682518b529e4404fb05250F9ad590C3218E5F9f
+
+Dark Quest Board: 0x790F07657389F590d91330a75ccD633F4ab1B4c9  
+
+Dark MultiMerkleDistributor:
+0x98b8d3F9C08a082C593D54DE4633E503eD40c77c  
 
 ## Dependencies & Installation
 
