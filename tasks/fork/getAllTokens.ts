@@ -17,22 +17,22 @@ task('fork-get-all-ERC20', 'Steal ERC20 amount from holder to send to receiver o
                 amount: "1250000",
                 holder: "0xF977814e90dA44bFA03b6295A0616a897441aceC"
             },*/
-            {
+            /*{
                 address: "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", //UNI
                 amount: "2500000",
                 holder: "0x47173B170C64d16393a52e6C480b3Ad8c302ba1e"
-            },
+            },*/
             {
                 address: "0x6B175474E89094C44Da98b954EedeAC495271d0F", //DAI
                 amount: "250000000",
                 holder: "0x075e72a5eDf65F0A5f44699c7654C1a76941Ddc8"
             },
-            /*{
+            {
                 address: "0xD533a949740bb3306d119CC777fa900bA034cd52", //CRV
                 amount: "5000000",
                 holder: "0x32D03DB62e464c9168e41028FFa6E9a05D8C6451"
             },
-            {
+            /*{
                 address: "0xdBdb4d16EdA451D0503b854CF79D55697F90c8DF", //ALCX
                 amount: "450000",
                 holder: "0x000000000000000000000000000000000000dead"
@@ -66,6 +66,16 @@ task('fork-get-all-ERC20', 'Steal ERC20 amount from holder to send to receiver o
                 address: "0x2e9d63788249371f1DFC918a52f8d799F4a38C94", //TOKE
                 amount: "350000",
                 holder: "0x23a5efe19aa966388e132077d733672cf5798c03"
+            },*/
+            /*{
+                address: "0x4e3FBD56CD56c3e72c1403e103b45Db9da5B9D2B", //CVX
+                amount: "750000",
+                holder: "0xbEC5E1AD5422e52821735b59b39Dc03810aAe682"
+            },
+            {
+                address: "0xC0c293ce456fF0ED870ADd98a0828Dd4d2903DBF", //AURA
+                amount: "295000",
+                holder: "0x23A5eFe19Aa966388E132077d733672cf5798C03"
             },*/
         ]
 
