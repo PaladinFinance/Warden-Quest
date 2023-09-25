@@ -1,0 +1,64 @@
+import { ethers } from "hardhat";
+import { BigNumber } from "@ethersproject/bignumber";
+
+const TOKEN1_ADDRESS = "0xfd0205066521550D7d7AB19DA8F72bb004b4C341"; //here : LIT
+const TOKEN2_ADDRESS = "0x6B175474E89094C44Da98b954EedeAC495271d0F"; //here : DAI
+
+const VOTING_ESCROW_ADDRESS = "0xf17d23136B4FeAd139f54fB766c8795faae09660"; //here : veLIT
+
+const BIG_HOLDER1 = "0x63F2695207f1d625a9B0B8178D95cD517bC5E82C"; //here : LIT holder
+const BIG_HOLDER2 = "0x075e72a5eDf65F0A5f44699c7654C1a76941Ddc8"; //here : DAI holder
+
+const TOKEN1_AMOUNT = ethers.utils.parseEther('7500000'); //here : LIT
+const TOKEN2_AMOUNT = ethers.utils.parseEther('10000000'); //here : DAI
+
+const VETOKEN_LOCKING_TIME = Math.floor((86400 * 365) / (86400 * 7)) * (86400 * 7)
+
+const GAUGE_CONTROLLER = "0x901c8aA6A61f74aC95E7f397E22A0Ac7c1242218";
+
+const GAUGES = [
+    "0xd614e32088C5f5Dc389014Ec5727E03a0811b8c8",
+    "0x0DD538156cc4b0966d4aB60358Ad2B12f57B0961",
+    "0xa718193E1348FD4dEF3063E7F4b4154BAAcB0214"
+]
+
+const TARGET_VOTES = [
+    ethers.utils.parseEther("1750000"),
+    ethers.utils.parseEther("850000"),
+    ethers.utils.parseEther("300000")
+]
+
+const GAUGE_VOTER = "0x37aeB332D6E57112f1BFE36923a7ee670Ee9278b"
+
+const LIGHT_TARGET_VOTES = [
+    ethers.utils.parseEther("500000"),
+    ethers.utils.parseEther("150000"),
+    ethers.utils.parseEther("190000")
+]
+
+const BLACKLISTS = [
+    ["0x20907A020A4A85669F2940D645e94C5B6490d1ad", "0x37aeB332D6E57112f1BFE36923a7ee670Ee9278b"],
+    ["0xAbEaA41fd6a7464b1203b24486526b0461a5ceA4", "0x37aeB332D6E57112f1BFE36923a7ee670Ee9278b"],
+    ["0xE4b32828B558F17BcaF5efD52f0C067dba38833c", "0x37aeB332D6E57112f1BFE36923a7ee670Ee9278b"]
+]
+
+const BLOCK_NUMBER = 18092370
+
+
+module.exports = {
+    TOKEN1_ADDRESS,
+    TOKEN2_ADDRESS,
+    VOTING_ESCROW_ADDRESS,
+    BIG_HOLDER1,
+    BIG_HOLDER2,
+    TOKEN1_AMOUNT,
+    TOKEN2_AMOUNT,
+    VETOKEN_LOCKING_TIME,
+    GAUGE_CONTROLLER,
+    GAUGES,
+    TARGET_VOTES,
+    GAUGE_VOTER,
+    LIGHT_TARGET_VOTES,
+    BLACKLISTS,
+    BLOCK_NUMBER
+};

@@ -20,7 +20,8 @@ const params_path = () => {
 const param_file_path = params_path();
 
 const { 
-    BOARD_ADDRESS
+    //BOARD_ADDRESS
+    BOARD_LIT_ADDRESS
 } = require(param_file_path);
 
 
@@ -41,7 +42,7 @@ async function main() {
 
     const QuestBoard = await ethers.getContractFactory("QuestBoard");
 
-    const board = QuestBoard.attach(BOARD_ADDRESS);
+    const board = QuestBoard.attach(BOARD_LIT_ADDRESS);
 
     console.log('Closing the period ...')
     const period_ts = period_to_close.div(WEEK).mul(WEEK)
